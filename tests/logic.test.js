@@ -77,6 +77,7 @@ console.log("\n== economy ==");
   });
   check("abomination costs brains, refused with 0, accepted with 2", () => {
     forcePlot(G, 31);
+    G.S.level = 99; // abom unlocks at 9
     G.S.brains = 0;
     ok(G.plantAt(31, "zombie", "abom") === false);
     G.S.brains = 2;
@@ -166,7 +167,7 @@ function zombieWithNeighbors(cropIds, cropProgFrac, rand) {
   const inst = loadGame();
   const G = inst.G;
   G.startGame(null);
-  G.S.gold = 100000;
+  G.S.gold = 100000; G.S.level = 99; // afford + unlock any crop
   const center = 24, neigh = G.neighbors(center); // [23,25,17,31]
   forcePlot(G, center);
   G.plantAt(center, "zombie", "shambler");
@@ -245,7 +246,7 @@ console.log("\n== trees & life force ==");
 {
   const { G } = boot();
   check("oak radiates 10 life force", () => {
-    G.S.gold = 1000;
+    G.S.gold = 1000; G.S.level = 2; // oak unlocks at 2
     forcePlot(G, 8); G.plantAt(8, "tree", "oak");
     eq(G.S.lifeForce, 10); eq(G.S.stats.trees, 1);
   });
@@ -412,6 +413,273 @@ console.log("\n== save / continue / migration ==");
     G.startGame(s);
     const z = G.S.zombies[0];
     ok(typeof z.x === "number" && typeof z.y === "number");
+  });
+}
+
+console.log("\n== unlock gating & invalid ids ==");
+{
+  const { G } = boot();
+  check("plantAt refuses a not-yet-unlocked crop (melon needs level 10)", () => {
+    forcePlot(G, 20); G.S.gold = 100000;
+    ok(G.plantAt(20, "crop", "melon") === false);
+    eq(G.S.tiles[20].st, "plot"); eq(G.S.gold, 100000, "no gold taken");
+  });
+  check("plantAt refuses unknown ids instead of crashing", () => {
+    forcePlot(G, 21);
+    ok(G.plantAt(21, "crop", "wat") === false);
+    ok(G.plantAt(21, "zombie", "nope") === false);
+    ok(G.plantAt(21, "tree", "???") === false);
+    ok(G.plantAt(21, "sandwich", "carrot") === false);
+  });
+  check("unlocked-at-exact-level plants fine (corn at level 2)", () => {
+    G.S.level = 2; G.S.gold = 100;
+    forcePlot(G, 22);
+    ok(G.plantAt(22, "crop", "corn") === true);
+  });
+}
+
+console.log("\n== gardener & hunger ticks ==");
+{
+  const { G } = boot();
+  check("gardener fertilizes a growing crop (2x flag set)", () => {
+    G.S.gold = 1000;
+    forcePlot(G, 10); G.plantAt(10, "crop", "carrot");
+    G.S.zombies.push({ type: "gardener", name: "Gus", pow: 2, hp: 16, maxhp: 16, spd: 1, hunger: 30, x: 0, y: 0, tx: 0, ty: 0, wob: 0, mut: [], kills: 0 });
+    G.gardenerTick();
+    ok(G.S.tiles[10].fert === true);
+  });
+  check("gardener is throttled (one fertilize per 20s)", () => {
+    forcePlot(G, 11); G.plantAt(11, "crop", "carrot");
+    G.gardenerTick();
+    ok(G.S.tiles[11].fert === false, "second crop must wait for the 20s cooldown");
+  });
+  check("no gardener, no fertilizer", () => {
+    const inst2 = loadGame(); const G2 = inst2.G;
+    G2.startGame(null); G2.S.gold = 1000;
+    forcePlot(G2, 10); G2.plantAt(10, "crop", "carrot");
+    G2.gardenerTick();
+    ok(G2.S.tiles[10].fert === false);
+  });
+  check("hungerTick raises hunger by 1, clamped at 100", () => {
+    const inst2 = loadGame(); const G2 = inst2.G;
+    G2.startGame(null);
+    G2.S.zombies.push({ type: "mini", name: "A", pow: 3, hp: 12, maxhp: 12, spd: 1.7, hunger: 50, x: 0, y: 0, tx: 0, ty: 0, wob: 0, mut: [], kills: 0 });
+    G2.S.zombies.push({ type: "mini", name: "B", pow: 3, hp: 12, maxhp: 12, spd: 1.7, hunger: 100, x: 0, y: 0, tx: 0, ty: 0, wob: 0, mut: [], kills: 0 });
+    G2.hungerTick();
+    eq(G2.S.zombies[0].hunger, 51);
+    eq(G2.S.zombies[1].hunger, 100, "clamped");
+    G2.hungerTick(); // within 4s throttle window
+    eq(G2.S.zombies[0].hunger, 51, "throttled");
+  });
+}
+
+console.log("\n== offline growth (timestamps survive save/load) ==");
+{
+  const { G } = boot();
+  check("crop planted, saved, 'away' past grow time => ripe on return", () => {
+    G.S.gold = 100;
+    forcePlot(G, 12); G.plantAt(12, "crop", "carrot");
+    G.save();
+    // simulate returning later: rewrite the stored timestamp 25s into the past
+    const st = G.load();
+    st.tiles[12].at = Date.now() - 25 * 1000;
+    G.startGame(st);
+    const g = G.growthInfo(G.S.tiles[12]);
+    ok(g.ready, "ripe after offline time");
+  });
+  check("'away' past 8x grow time => wilted on return", () => {
+    const st = G.load();
+    st.tiles[12] = { st: "planted", kind: "crop", plant: "carrot", at: Date.now() - 20 * 8.5 * 1000, fert: false };
+    G.startGame(st);
+    ok(G.growthInfo(G.S.tiles[12]).wilted);
+  });
+}
+
+console.log("\n== mutation chance bounds ==");
+function mutationRoll(lifeForce, roll) {
+  const inst = loadGame(); const G = inst.G;
+  G.startGame(null);
+  G.S.gold = 100000; G.S.level = 99;
+  forcePlot(G, 24); G.plantAt(24, "zombie", "shambler");
+  forcePlot(G, 23); G.plantAt(23, "crop", "carrot");
+  G.S.tiles[23].at = Date.now() - 0.7 * 20 * 1000; // 70% grown
+  backdate(G, 24, 31);
+  G.S.lifeForce = lifeForce;
+  const restore = G.setRandom(() => roll);
+  G.harvest(24);
+  restore();
+  return G.S.zombies[0].mut.length;
+}
+{
+  check("base chance is 35%: roll 0.34 mutates, 0.36 doesn't (0 life force)", () => {
+    eq(mutationRoll(0, 0.34), 1);
+    eq(mutationRoll(0, 0.36), 0);
+  });
+  check("life force caps at +40%: with 100 LF, roll 0.74 mutates, 0.76 doesn't", () => {
+    eq(mutationRoll(100, 0.74), 1);
+    eq(mutationRoll(100, 0.76), 0);
+  });
+  check("more life force than 100 doesn't help further", () => {
+    eq(mutationRoll(100000, 0.76), 0);
+  });
+  check("a wilted neighbor never gifts a mutation (even lucky roll)", () => {
+    const inst = loadGame(); const G = inst.G;
+    G.startGame(null);
+    G.S.gold = 100000;
+    forcePlot(G, 24); G.plantAt(24, "zombie", "shambler");
+    forcePlot(G, 23); G.plantAt(23, "crop", "carrot");
+    G.S.tiles[23].at = Date.now() - 20 * 9 * 1000; // long dead
+    backdate(G, 24, 31);
+    const restore = G.setRandom(() => 0);
+    G.harvest(24);
+    restore();
+    eq(G.S.zombies[0].mut.length, 0);
+  });
+}
+
+console.log("\n== invasion gating ==");
+{
+  const inst = loadGame(); const G = inst.G; const els = inst.els;
+  G.startGame(null);
+  check("hud disables INVADE with fewer than 6 zombies", () => {
+    G.hud();
+    ok(els["invadeBtn"].disabled === true);
+    ok(els["invadeBtn"].innerHTML.includes("Need 6"));
+  });
+  check("invade click refused outright with a small horde (logic gate, not just UI)", () => {
+    els["invadeBtn"].onclick();
+    eq(G.scene, "farm");
+    ok(els["toast"].innerHTML.includes("need") || els["toast"].innerHTML.includes("6"), "explains why");
+  });
+  check("hud disables INVADE during the 3-minute cooldown", () => {
+    armyOf(G, 6, 100, 5);
+    G.S.lastInvade = Date.now() - 10 * 1000; // 10s ago, cooldown is 180s
+    G.hud();
+    ok(els["invadeBtn"].disabled === true);
+  });
+  check("invade click refused during cooldown (logic gate)", () => {
+    els["invadeBtn"].onclick();
+    eq(G.scene, "farm");
+    ok(els["toast"].innerHTML.includes("resting"));
+  });
+  check("cooldown over + 6 zombies => target picker opens", () => {
+    G.S.lastInvade = 0;
+    G.hud();
+    ok(els["invadeBtn"].disabled === false);
+    ok(els["invadeBtn"].innerHTML.includes("INVADE"));
+    els["invadeBtn"].onclick();
+    ok(els["mTitle"].innerHTML.includes("victim"), "target modal opened");
+  });
+}
+
+console.log("\n== save-code export / import (the real Help handlers) ==");
+{
+  const inst = loadGame(); const G = inst.G; const els = inst.els; const ctx = inst.ctx;
+  G.startGame(null);
+  G.S.gold = 7777; G.S.brains = 5; G.S.tiles[3] = { st: "plot" };
+  let exportedCode = null;
+  check("export produces a decodable save code", () => {
+    els["helpBtn"].onclick(); // builds the help modal + wires exp/imp buttons
+    ctx.prompt = (msg, val) => { exportedCode = val; };
+    els["expBtn"].onclick();
+    ok(typeof exportedCode === "string" && exportedCode.length > 50, "got a code");
+    const decoded = inst.run("JSON.parse(decodeURIComponent(escape(atob(" + JSON.stringify(exportedCode) + "))))");
+    eq(decoded.gold, 7777);
+  });
+  check("import round-trips the farm through the code", () => {
+    G.S.gold = 1; G.S.brains = 0; // wreck the live state
+    ctx.prompt = () => exportedCode;
+    ctx.location.reload = () => {};
+    els["impBtn"].onclick();
+    const st = G.load();
+    eq(st.gold, 7777); eq(st.brains, 5); eq(st.tiles[3].st, "plot");
+  });
+  check("garbage code is rejected gracefully (no crash, no save overwrite)", () => {
+    const before = inst.storage.get("zfr_save");
+    ctx.prompt = () => "definitely-not-base64!!!";
+    els["impBtn"].onclick();
+    eq(inst.storage.get("zfr_save"), before, "save untouched");
+    ok(els["toast"].innerHTML.includes("didn't work"));
+  });
+  check("valid base64 of a non-farm object is rejected too", () => {
+    const before = inst.storage.get("zfr_save");
+    const evil = inst.run('btoa(unescape(encodeURIComponent(JSON.stringify({hello:"world"}))))');
+    ctx.prompt = () => evil;
+    els["impBtn"].onclick();
+    eq(inst.storage.get("zfr_save"), before, "save untouched");
+  });
+}
+
+console.log("\n== sanitizeState (save repair & migration) ==");
+{
+  const inst = loadGame(); const G = inst.G;
+  check("null / non-object saves are rejected", () => {
+    eq(G.sanitizeState(null), null);
+    eq(G.sanitizeState("zombie"), null);
+    eq(G.sanitizeState(42), null);
+  });
+  check("empty object becomes a complete fresh farm", () => {
+    const s = G.sanitizeState({});
+    eq(s.gold, 200); eq(s.level, 1); eq(s.tiles.length, 49);
+    ok(Array.isArray(s.goalsDone) && Array.isArray(s.zombies));
+  });
+  check("planted tile with unknown crop id is downgraded to a plot (no crash-loop)", () => {
+    const raw = G.freshState();
+    raw.tiles[5] = { st: "planted", kind: "crop", plant: "deleted-crop", at: Date.now() };
+    const s = G.sanitizeState(raw);
+    eq(s.tiles[5].st, "plot");
+  });
+  check("tree with unknown id reverts to grass", () => {
+    const raw = G.freshState();
+    raw.tiles[6] = { st: "tree", tree: "upside-down-tree" };
+    eq(G.sanitizeState(raw).tiles[6].st, "grass");
+  });
+  check("valid planted/tree/plot tiles pass through intact", () => {
+    const raw = G.freshState();
+    raw.tiles[1] = { st: "plot" };
+    raw.tiles[2] = { st: "planted", kind: "crop", plant: "corn", at: 12345, fert: true };
+    raw.tiles[3] = { st: "tree", tree: "oak" };
+    const s = G.sanitizeState(raw);
+    eq(s.tiles[1].st, "plot");
+    eq(s.tiles[2].plant, "corn"); eq(s.tiles[2].at, 12345); eq(s.tiles[2].fert, true);
+    eq(s.tiles[3].tree, "oak");
+  });
+  check("zombies of unknown type are dropped; horde clamped to 16", () => {
+    const raw = G.freshState();
+    for (let k = 0; k < 20; k++) raw.zombies.push({ type: "mini", name: "Z" + k, hunger: 10 });
+    raw.zombies.push({ type: "vampire", name: "NotInThisGame" });
+    const s = G.sanitizeState(raw);
+    eq(s.zombies.length, 16);
+    ok(s.zombies.every(z => z.type === "mini"));
+  });
+  check("zombie missing stats gets its type's defaults", () => {
+    const raw = G.freshState();
+    raw.zombies.push({ type: "bruiser" });
+    const z = G.sanitizeState(raw).zombies[0];
+    eq(z.pow, 15); eq(z.hp, 60); eq(z.maxhp, 60);
+    ok(typeof z.name === "string" && z.name.length > 0);
+    ok(Array.isArray(z.mut)); eq(z.kills, 0);
+  });
+  check("junk mutation entries are stripped, max 2 kept", () => {
+    const raw = G.freshState();
+    raw.zombies.push({ type: "mini", mut: [null, "x", { label: "Speedy", col: "#f80" }, { nope: 1 }, { label: "Flaming" }, { label: "Sporified" }] });
+    const muts = G.sanitizeState(raw).zombies[0].mut;
+    eq(muts.length, 2);
+    eq(muts[0].label, "Speedy"); eq(muts[1].label, "Flaming");
+  });
+  check("non-numeric gold/level fall back to defaults; NaN is refused", () => {
+    const s = G.sanitizeState({ gold: "one million", level: NaN, xp: Infinity });
+    eq(s.gold, 200); eq(s.level, 1); eq(s.xp, 0);
+  });
+  check("non-string goal ids filtered out", () => {
+    const s = G.sanitizeState({ goalsDone: ["plow4", 7, null, "crop5"] });
+    eq(JSON.stringify(s.goalsDone), JSON.stringify(["plow4", "crop5"]));
+  });
+  check("corrupted localStorage JSON => load() returns null => fresh farm boots", () => {
+    inst.storage.set("zfr_save", "{broken json!!");
+    eq(G.load(), null);
+    G.startGame(G.load());
+    eq(G.S.gold, 200);
   });
 }
 

@@ -50,8 +50,16 @@ check("splash scene renders (moon, fence, zombie parade)", () => {
 });
 
 check("farm frame renders with crops, tree, gravestone, roaming zombie", () => {
+  // pin the in-game clock to mid-day: dayPhase() is wall-clock based, and a
+  // frame rendered at in-game night is (correctly!) tinted dark — flaky test.
+  inst.run(`(function(){
+    var base = Date.now();
+    var phase = (base/1000 % 240) / 240;
+    var frozen = base + Math.round((0.30 - phase) * 240 * 1000);
+    Date.now = function(){ return frozen; };
+  })()`);
   G.startGame(null);
-  G.S.gold = 100000;
+  G.S.gold = 100000; G.S.level = 99; // afford + unlock everything
   // dress the farm: various growth stages across the field
   const plant = (i, kind, id, backSec) => {
     G.S.tiles[i] = { st: "plot" };

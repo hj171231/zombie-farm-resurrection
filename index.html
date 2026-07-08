@@ -216,6 +216,49 @@ function freshState(){
 }
 function save(){ try{ localStorage.setItem("zfr_save", JSON.stringify(S)); }catch(e){} }
 function load(){ try{ const d = localStorage.getItem("zfr_save"); if(d) return JSON.parse(d); }catch(e){} return null; }
+// Rebuild any save into a known-good shape: missing fields get defaults,
+// broken tiles/zombies get repaired, unknown ids get cleared. The single
+// migration path for both startGame and save-code import — old saves keep
+// working forever, corrupt ones can't brick the farm.
+function sanitizeState(raw){
+  if(!raw || typeof raw!=="object") return null;
+  const num=(v,d)=>(typeof v==="number"&&isFinite(v))?v:d;
+  const s=freshState();
+  s.gold=num(raw.gold,s.gold); s.brains=num(raw.brains,s.brains);
+  s.xp=num(raw.xp,s.xp); s.level=Math.max(1,Math.floor(num(raw.level,1)));
+  s.lastInvade=num(raw.lastInvade,0); s.created=num(raw.created,s.created);
+  s.muted=!!raw.muted;
+  if(Array.isArray(raw.tiles)){
+    for(let i=0;i<s.tiles.length;i++){
+      const t=raw.tiles[i];
+      if(!t || typeof t!=="object") continue; // stays grass
+      if(t.st==="plot"){ s.tiles[i]={st:"plot"}; }
+      else if(t.st==="planted"){
+        const known = t.kind==="crop" ? CROPS.some(c=>c.id===t.plant)
+                    : t.kind==="zombie" ? ZTYPES.some(z=>z.id===t.plant) : false;
+        s.tiles[i]= known ? {st:"planted",kind:t.kind,plant:t.plant,at:num(t.at,now()),fert:!!t.fert} : {st:"plot"};
+      }
+      else if(t.st==="tree"){ s.tiles[i]= TREES.some(x=>x.id===t.tree) ? {st:"tree",tree:t.tree} : {st:"grass"}; }
+    }
+  }
+  if(Array.isArray(raw.zombies)){
+    s.zombies=raw.zombies
+      .filter(z=>z && typeof z==="object" && ZTYPES.some(t=>t.id===z.type))
+      .slice(0,MAX_Z)
+      .map(z=>{
+        const zd=ZTYPES.find(t=>t.id===z.type);
+        return { type:z.type, name:typeof z.name==="string"?z.name:pick(ZNAMES),
+          pow:num(z.pow,zd.pow), hp:num(z.hp,zd.hp), maxhp:num(z.maxhp,zd.hp), spd:num(z.spd,zd.spd),
+          hunger:num(z.hunger,30), x:z.x, y:z.y, tx:z.tx, ty:z.ty, wob:num(z.wob,0),
+          mut:Array.isArray(z.mut)?z.mut.filter(m=>m&&typeof m.label==="string").slice(0,2):[],
+          kills:num(z.kills,0) };
+      });
+  }
+  if(raw.stats && typeof raw.stats==="object") Object.keys(s.stats).forEach(k=>{ s.stats[k]=num(raw.stats[k],0); });
+  if(Array.isArray(raw.goalsDone)) s.goalsDone=raw.goalsDone.filter(x=>typeof x==="string");
+  if(Array.isArray(raw.claimed)) s.claimed=raw.claimed.filter(x=>typeof x==="string");
+  return s;
+}
 
 // ---------- audio ----------
 let AC=null;
@@ -509,21 +552,25 @@ function harvest(i){
 }
 function plantAt(i, kind, id){
   const t=S.tiles[i];
-  if(t.st!=="plot") return false;
+  if(!t || t.st!=="plot") return false;
+  // logic-level guard (the Market UI also gates these): unknown ids and
+  // not-yet-unlocked items are refused, so no save-tinkering or stale
+  // planting mode can plant something invalid.
+  const def = kind==="crop" ? CROPS.find(x=>x.id===id)
+            : kind==="zombie" ? ZTYPES.find(x=>x.id===id)
+            : kind==="tree" ? TREES.find(x=>x.id===id) : null;
+  if(!def || S.level<def.unlock) return false;
   if(kind==="crop"){
-    const c=CROPS.find(x=>x.id===id);
-    if(S.gold<c.cost){toast("Not enough gold!");sfx.bad();return false;}
-    gold(-c.cost);
+    if(S.gold<def.cost){toast("Not enough gold!");sfx.bad();return false;}
+    gold(-def.cost);
     S.tiles[i]={st:"planted",kind:"crop",plant:id,at:now(),fert:false};
   } else if(kind==="zombie"){
-    const z=ZTYPES.find(x=>x.id===id);
-    if(z.brains>0){ if(S.brains<z.brains){toast("Not enough brains! Win invasions to earn them.");sfx.bad();return false;} S.brains-=z.brains; }
-    else { if(S.gold<z.cost){toast("Not enough gold!");sfx.bad();return false;} gold(-z.cost); }
+    if(def.brains>0){ if(S.brains<def.brains){toast("Not enough brains! Win invasions to earn them.");sfx.bad();return false;} S.brains-=def.brains; }
+    else { if(S.gold<def.cost){toast("Not enough gold!");sfx.bad();return false;} gold(-def.cost); }
     S.tiles[i]={st:"planted",kind:"zombie",plant:id,at:now(),fert:false};
   } else if(kind==="tree"){
-    const tr=TREES.find(x=>x.id===id);
-    if(tr.brains>0){ if(S.brains<tr.brains){toast("Not enough brains!");sfx.bad();return false;} S.brains-=tr.brains; }
-    else { if(S.gold<tr.cost){toast("Not enough gold!");sfx.bad();return false;} gold(-tr.cost); }
+    if(def.brains>0){ if(S.brains<def.brains){toast("Not enough brains!");sfx.bad();return false;} S.brains-=def.brains; }
+    else { if(S.gold<def.cost){toast("Not enough gold!");sfx.bad();return false;} gold(-def.cost); }
     S.tiles[i]={st:"tree",tree:id}; S.stats.trees++; calcLF(); checkGoals();
   }
   gainXP(1); sfx.plant(); hud(); save(); return true;
@@ -1775,8 +1822,10 @@ $("helpBtn").onclick=()=>{
     if(!code)return;
     try{
       const st=JSON.parse(decodeURIComponent(escape(atob(code.trim()))));
-      if(!st||!st.tiles) throw new Error("bad");
-      localStorage.setItem("zfr_save",JSON.stringify(st));
+      if(!st || !Array.isArray(st.tiles)) throw new Error("bad");
+      const clean=sanitizeState(st);
+      if(!clean) throw new Error("bad");
+      localStorage.setItem("zfr_save",JSON.stringify(clean));
       location.reload();
     }catch(e){ toast("That code didn't work &mdash; double-check you pasted the whole thing."); }
   };
@@ -1792,6 +1841,11 @@ $("shovelBtn").onclick=function(){ clearPlantMode(); shovelMode=!shovelMode; thi
 let scene="farm";
 let B=null;
 $("invadeBtn").onclick=()=>{
+  // logic-level gate — hud() also disables the button, but never trust
+  // a DOM attribute refreshed on a 1s timer to enforce a game rule
+  if(S.zombies.length<INVADE_MIN){ toast("You need "+INVADE_MIN+" zombies to invade!"); sfx.bad(); return; }
+  const cdLeft=INVADE_CD-(now()-S.lastInvade)/1000;
+  if(cdLeft>0){ toast("Your horde is resting. Ready in "+fmtTime(cdLeft)+"."); sfx.bad(); return; }
   openModal("&#x2694;&#xFE0F; Choose your victim");
   $("mTabs").innerHTML="";
   const b=$("mBody"); b.innerHTML="";
@@ -2246,9 +2300,7 @@ function drawSplash(){
 
 // ---------- boot ----------
 function startGame(existing){
-  S = existing || freshState();
-  if(!S.stats) S.stats={plowed:0,crops:0,zombies:0,trees:0,wins:0,muts:0};
-  if(!S.zombies) S.zombies=[];
+  S = existing ? (sanitizeState(existing) || freshState()) : freshState();
   S.zombies.forEach(z=>{ if(z.x===undefined){const rp=randFieldPos();z.x=rp.x;z.y=rp.y;z.tx=z.x;z.ty=z.y;z.wob=Math.random()*7;} });
   calcLF();
   $("splash").style.display="none";

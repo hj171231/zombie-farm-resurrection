@@ -34,7 +34,7 @@ globalThis.__game = {
   get ISOX(){ return ISOX; }, get ISOY(){ return ISOY; },
   cv, cx,
   // logic
-  freshState, save, load, startGame,
+  freshState, save, load, sanitizeState, startGame,
   xpNeeded, gainXP, calcLF, neighbors, growthInfo, fmtTime,
   cellXY, tileAt, layout, resize,
   tapTile, plantAt, harvest, setPlantMode, clearPlantMode, checkGoals, hud,
@@ -155,6 +155,8 @@ function loadGame(opts = {}) {
     confirm: () => true,
     prompt: () => null,
     alert: () => {},
+    btoa: (s) => Buffer.from(s, "binary").toString("base64"),
+    atob: (s) => Buffer.from(s, "base64").toString("binary"),
     console,
   };
   sandbox.window.localStorage = sandbox.localStorage;
