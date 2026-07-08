@@ -976,6 +976,21 @@ function drawZHead(g,hx,hy,hr,skin,skinD,skinL,zd,muts,s,wob,seed){
     g.beginPath(); g.moveTo(hx,hy-hr*1.0); g.lineTo(hx+hr*0.05,hy-hr*1.28); g.stroke();
     g.beginPath(); g.moveTo(hx+hr*0.2,hy-hr*0.95); g.lineTo(hx+hr*0.35,hy-hr*1.15); g.stroke();
   }
+  if(spore && zd.hat!=="straw"){
+    g.fillStyle="#b06fd0";
+    g.beginPath(); g.moveTo(hx-hr*1.05,hy-hr*0.65);
+    g.quadraticCurveTo(hx,hy-hr*1.9,hx+hr*1.05,hy-hr*0.65);
+    g.quadraticCurveTo(hx,hy-hr*0.4,hx-hr*1.05,hy-hr*0.65); g.closePath(); g.fill();
+    outline(g,1.4*s); g.stroke();
+    g.fillStyle="#e3c2f0";
+    blob(g,hx-hr*0.4,hy-hr*1.1,hr*0.14); blob(g,hx+hr*0.3,hy-hr*1.25,hr*0.12);
+    const sp=Math.sin(wob*1.5);
+    g.globalAlpha=0.6;
+    g.fillStyle="#d8b8ea";
+    blob(g,hx+hr*(1.1+sp*0.15),hy-hr*(1.2+sp*0.2),hr*0.07);
+    blob(g,hx-hr*1.15,hy-hr*(0.9-sp*0.15),hr*0.06);
+    g.globalAlpha=1;
+  }
   if(flame && !jack){
     const fl=Math.sin(wob*3)*hr*0.1;
     if(spore || zd.hat==="straw"){
@@ -1008,21 +1023,6 @@ function drawZHead(g,hx,hy,hr,skin,skinD,skinL,zd,muts,s,wob,seed){
       g.quadraticCurveTo(hx+hr*0.15,hy-hr*1.35-fl,hx+hr*0.25,hy-hr*0.85);
       g.closePath(); g.fill();
     }
-  }
-  if(spore && zd.hat!=="straw"){
-    g.fillStyle="#b06fd0";
-    g.beginPath(); g.moveTo(hx-hr*1.05,hy-hr*0.65);
-    g.quadraticCurveTo(hx,hy-hr*1.9,hx+hr*1.05,hy-hr*0.65);
-    g.quadraticCurveTo(hx,hy-hr*0.4,hx-hr*1.05,hy-hr*0.65); g.closePath(); g.fill();
-    outline(g,1.4*s); g.stroke();
-    g.fillStyle="#e3c2f0";
-    blob(g,hx-hr*0.4,hy-hr*1.1,hr*0.14); blob(g,hx+hr*0.3,hy-hr*1.25,hr*0.12);
-    const sp=Math.sin(wob*1.5);
-    g.globalAlpha=0.6;
-    g.fillStyle="#d8b8ea";
-    blob(g,hx+hr*(1.1+sp*0.15),hy-hr*(1.2+sp*0.2),hr*0.07);
-    blob(g,hx-hr*1.15,hy-hr*(0.9-sp*0.15),hr*0.06);
-    g.globalAlpha=1;
   }
   if(speedy){
     g.fillStyle="#ff8c2e";

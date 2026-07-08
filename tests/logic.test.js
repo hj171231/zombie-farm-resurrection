@@ -1,0 +1,420 @@
+/* Logic test suite for Zombie Farm Resurrection.
+   Runs the real game script (extracted from index.html) with DOM stubs.
+   Usage: node tests/logic.test.js */
+"use strict";
+const { loadGame } = require("./harness");
+
+let passed = 0, failed = 0;
+function check(name, fn) {
+  try {
+    fn();
+    passed++;
+    console.log("  ✓ " + name);
+  } catch (e) {
+    failed++;
+    console.log("  ✗ " + name + "\n      " + (e && e.message));
+  }
+}
+function eq(a, b, msg) {
+  if (a !== b) throw new Error((msg || "expected equal") + ": got " + JSON.stringify(a) + ", want " + JSON.stringify(b));
+}
+function ok(v, msg) { if (!v) throw new Error(msg || "expected truthy, got " + JSON.stringify(v)); }
+
+// fresh game instance per section keeps tests independent
+function boot() {
+  const inst = loadGame();
+  inst.G.startGame(null);
+  return inst;
+}
+// helper: make tile i a plot without spending gold
+function forcePlot(G, i) { G.S.tiles[i] = { st: "plot" }; }
+// helper: backdate a planted tile by `sec` seconds
+function backdate(G, i, sec) { G.S.tiles[i].at = Date.now() - sec * 1000; }
+
+console.log("\n== economy ==");
+{
+  const { G } = boot();
+  check("fresh farm starts with 200 gold, level 1, 49 grass tiles", () => {
+    eq(G.S.gold, 200); eq(G.S.level, 1);
+    eq(G.S.tiles.length, 49);
+    ok(G.S.tiles.every(t => t.st === "grass"));
+  });
+  check("plowing grass costs 10g, makes a plot, counts stat", () => {
+    G.tapTile(24);
+    eq(G.S.gold, 190); eq(G.S.tiles[24].st, "plot"); eq(G.S.stats.plowed, 1);
+  });
+  check("plowing refused when broke", () => {
+    G.S.gold = 5;
+    G.tapTile(25);
+    eq(G.S.gold, 5); eq(G.S.tiles[25].st, "grass");
+  });
+  check("planting a carrot deducts its cost", () => {
+    G.S.gold = 100;
+    ok(G.plantAt(24, "crop", "carrot") === true);
+    eq(G.S.gold, 90); eq(G.S.tiles[24].st, "planted"); eq(G.S.tiles[24].plant, "carrot");
+  });
+  check("planting refused when broke (returns false, tile untouched)", () => {
+    forcePlot(G, 30); G.S.gold = 3;
+    ok(G.plantAt(30, "crop", "carrot") === false);
+    eq(G.S.tiles[30].st, "plot");
+  });
+  check("harvesting a ripe carrot pays sell price (18g) + xp + stat", () => {
+    G.S.gold = 0; const xp0 = G.S.xp; const crops0 = G.S.stats.crops;
+    backdate(G, 24, 21);
+    G.tapTile(24);
+    eq(G.S.gold, 18); eq(G.S.tiles[24].st, "plot");
+    eq(G.S.stats.crops, crops0 + 1);
+    ok(G.S.xp > xp0 || G.S.level > 1, "xp gained");
+  });
+  check("fertilized crop pays double (carrot 36g)", () => {
+    G.S.gold = 100;
+    G.plantAt(24, "crop", "carrot");
+    G.S.tiles[24].fert = true;
+    backdate(G, 24, 21);
+    const before = G.S.gold;
+    G.tapTile(24);
+    eq(G.S.gold, before + 36);
+  });
+  check("abomination costs brains, refused with 0, accepted with 2", () => {
+    forcePlot(G, 31);
+    G.S.brains = 0;
+    ok(G.plantAt(31, "zombie", "abom") === false);
+    G.S.brains = 2;
+    ok(G.plantAt(31, "zombie", "abom") === true);
+    eq(G.S.brains, 0); eq(G.S.tiles[31].plant, "abom");
+  });
+  check("spooky tree costs 1 brain", () => {
+    forcePlot(G, 32);
+    G.S.brains = 1;
+    ok(G.plantAt(32, "tree", "spooky") === true);
+    eq(G.S.brains, 0); eq(G.S.tiles[32].st, "tree");
+  });
+}
+
+console.log("\n== growth & wilt ==");
+{
+  const { G } = boot();
+  forcePlot(G, 10); G.plantAt(10, "crop", "carrot");
+  check("progress ~0 right after planting, not ready", () => {
+    const g = G.growthInfo(G.S.tiles[10]);
+    ok(g.prog < 0.05); ok(!g.ready); ok(!g.wilted);
+  });
+  check("ready exactly when grow time elapses", () => {
+    backdate(G, 10, 20);
+    const g = G.growthInfo(G.S.tiles[10]);
+    ok(g.ready); eq(g.prog, 1);
+  });
+  check("not wilted at 7.9x grow time", () => {
+    backdate(G, 10, 20 * 7.9);
+    ok(!G.growthInfo(G.S.tiles[10]).wilted);
+  });
+  check("wilted at 8x grow time", () => {
+    backdate(G, 10, 20 * 8.05);
+    ok(G.growthInfo(G.S.tiles[10]).wilted);
+  });
+  check("tapping a wilted crop plows it under (no gold)", () => {
+    const gold0 = G.S.gold;
+    G.tapTile(10);
+    eq(G.S.tiles[10].st, "plot"); eq(G.S.gold, gold0);
+  });
+  check("zombies never wilt (even at 10x)", () => {
+    forcePlot(G, 11); G.S.gold = 500; G.plantAt(11, "zombie", "shambler");
+    backdate(G, 11, 300);
+    const g = G.growthInfo(G.S.tiles[11]);
+    ok(g.ready); ok(!g.wilted);
+  });
+}
+
+console.log("\n== xp & levels ==");
+{
+  const { G } = boot();
+  check("xpNeeded(1) is 30", () => eq(G.xpNeeded(1), 30));
+  check("gainXP levels up and carries remainder", () => {
+    G.S.xp = 0; G.S.level = 1;
+    G.gainXP(35);
+    eq(G.S.level, 2); eq(G.S.xp, 5);
+  });
+  check("xpNeeded grows superlinearly", () => {
+    ok(G.xpNeeded(5) > 5 * G.xpNeeded(1));
+  });
+}
+
+console.log("\n== iso tap mapping ==");
+{
+  const { G } = boot();
+  check("cellXY -> tileAt roundtrip for all 49 cells", () => {
+    for (let i = 0; i < 49; i++) {
+      const p = G.cellXY(i);
+      const back = G.tileAt(p.x, p.y);
+      if (back !== i) throw new Error("cell " + i + " mapped back to " + back);
+    }
+  });
+  check("taps outside the diamond return -1", () => {
+    eq(G.tileAt(0, 0), -1);
+    eq(G.tileAt(G.W - 1, 0), -1);
+    eq(G.tileAt(G.ISOX, G.ISOY - 20), -1);
+  });
+  check("neighbors: corner has 2, edge has 3, center has 4", () => {
+    eq(G.neighbors(0).length, 2);
+    eq(G.neighbors(3).length, 3);
+    eq(G.neighbors(24).length, 4);
+  });
+}
+
+console.log("\n== mutations ==");
+function zombieWithNeighbors(cropIds, cropProgFrac, rand) {
+  const inst = loadGame();
+  const G = inst.G;
+  G.startGame(null);
+  G.S.gold = 100000;
+  const center = 24, neigh = G.neighbors(center); // [23,25,17,31]
+  forcePlot(G, center);
+  G.plantAt(center, "zombie", "shambler");
+  cropIds.forEach((cid, k) => {
+    const i = neigh[k];
+    forcePlot(G, i);
+    G.plantAt(i, "crop", cid);
+    const def = G.CROPS.find(c => c.id === cid);
+    G.S.tiles[i].at = Date.now() - def.time * 1000 * cropProgFrac;
+  });
+  backdate(G, center, 31); // zombie ready
+  const restore = G.setRandom(rand);
+  G.harvest(center);
+  restore();
+  return G;
+}
+{
+  check("adjacent ripening carrot + lucky roll => Speedy mutation (+0.6 spd)", () => {
+    const G = zombieWithNeighbors(["carrot"], 0.7, () => 0);
+    eq(G.S.zombies.length, 1);
+    const z = G.S.zombies[0];
+    eq(z.mut.length, 1); eq(z.mut[0].label, "Speedy");
+    eq(z.spd, 1.0 + 0.6);
+    eq(G.S.stats.muts, 1);
+  });
+  check("unlucky roll => no mutation", () => {
+    const G = zombieWithNeighbors(["carrot"], 0.7, () => 0.9999);
+    eq(G.S.zombies[0].mut.length, 0);
+    eq(G.S.stats.muts, 0);
+  });
+  check("crop below 50% grown never mutates (even lucky)", () => {
+    const G = zombieWithNeighbors(["carrot"], 0.2, () => 0);
+    eq(G.S.zombies[0].mut.length, 0);
+  });
+  check("4 distinct ripening crops => capped at 2 mutations", () => {
+    const G = zombieWithNeighbors(["carrot", "corn", "pumpkin", "shroom"], 0.7, () => 0);
+    eq(G.S.zombies[0].mut.length, 2);
+  });
+  check("duplicate crop => no duplicate mutation label", () => {
+    const G = zombieWithNeighbors(["carrot", "carrot"], 0.7, () => 0);
+    eq(G.S.zombies[0].mut.length, 1);
+  });
+  check("stat mutations apply: corn +2 pow, pumpkin +12 hp", () => {
+    const G = zombieWithNeighbors(["corn", "pumpkin"], 0.7, () => 0);
+    const z = G.S.zombies[0];
+    const zd = G.ZTYPES.find(t => t.id === "shambler");
+    eq(z.pow, zd.pow + 2);
+    eq(z.hp, zd.hp + 12); eq(z.maxhp, zd.hp + 12);
+  });
+}
+
+console.log("\n== horde ==");
+{
+  const { G } = boot();
+  check("harvested zombie joins the horde with a name", () => {
+    G.S.gold = 1000;
+    forcePlot(G, 5); G.plantAt(5, "zombie", "mini");
+    backdate(G, 5, 16);
+    G.tapTile(5);
+    eq(G.S.zombies.length, 1);
+    ok(G.ZNAMES.includes(G.S.zombies[0].name));
+    eq(G.S.stats.zombies, 1);
+  });
+  check("full horde (16): overflow zombie sells for cost*1.2+20", () => {
+    while (G.S.zombies.length < 16) G.S.zombies.push({ type: "mini", hp: 1, maxhp: 1, pow: 1, spd: 1, hunger: 0, mut: [], kills: 0, x: 0, y: 0, tx: 0, ty: 0, wob: 0, name: "Dummy" });
+    G.S.gold = 0;
+    forcePlot(G, 6); G.S.gold = 100; G.plantAt(6, "zombie", "mini"); // 100-30=70
+    backdate(G, 6, 16);
+    G.tapTile(6);
+    eq(G.S.zombies.length, 16, "horde stays capped");
+    eq(G.S.gold, 70 + Math.floor(30 * 1.2) + 20); // +56
+  });
+}
+
+console.log("\n== trees & life force ==");
+{
+  const { G } = boot();
+  check("oak radiates 10 life force", () => {
+    G.S.gold = 1000;
+    forcePlot(G, 8); G.plantAt(8, "tree", "oak");
+    eq(G.S.lifeForce, 10); eq(G.S.stats.trees, 1);
+  });
+  check("shovel clears a tree and life force recalculates", () => {
+    G.shovelMode = true;
+    G.tapTile(8);
+    eq(G.S.tiles[8].st, "grass"); eq(G.S.lifeForce, 0);
+    G.shovelMode = false;
+  });
+  check("shovel on grass does nothing", () => {
+    G.shovelMode = true;
+    G.tapTile(9);
+    eq(G.S.tiles[9].st, "grass");
+    G.shovelMode = false;
+  });
+}
+
+console.log("\n== planting mode ==");
+{
+  const { G } = boot();
+  check("setPlantMode refuses zombies (they plant one at a time)", () => {
+    G.setPlantMode("zombie", G.ZTYPES[0]);
+    eq(G.plantMode, null);
+  });
+  check("setPlantMode arms crop planting", () => {
+    G.setPlantMode("crop", G.CROPS[0]);
+    ok(G.plantMode); eq(G.plantMode.id, "carrot"); eq(G.plantMode.kind, "crop");
+  });
+  check("tap grass while armed = plow + plant in one tap", () => {
+    G.S.gold = 200;
+    G.tapTile(40);
+    eq(G.S.tiles[40].st, "planted"); eq(G.S.tiles[40].plant, "carrot");
+    eq(G.S.gold, 200 - 10 - 10);
+  });
+  check("tap plot while armed plants directly", () => {
+    forcePlot(G, 41); G.S.gold = 50;
+    G.tapTile(41);
+    eq(G.S.tiles[41].st, "planted"); eq(G.S.gold, 40);
+  });
+  check("clearPlantMode disarms", () => {
+    G.clearPlantMode();
+    eq(G.plantMode, null);
+  });
+}
+
+console.log("\n== battle ==");
+function armyOf(G, n, hunger, pow) {
+  G.S.zombies = [];
+  for (let k = 0; k < n; k++) {
+    G.S.zombies.push({ type: "shambler", name: "Z" + k, pow, hp: 60, maxhp: 60, spd: 1.2, hunger: Array.isArray(hunger) ? hunger[k] : hunger, x: 0, y: 0, tx: 0, ty: 0, wob: 0, mut: [], kills: 0 });
+  }
+}
+function simulate(G, maxSteps) {
+  for (let s = 0; s < maxSteps && !G.B.result; s++) G.updateBattle(0.05);
+  return G.B.result;
+}
+{
+  const { G } = boot();
+  check("startBattle queues zombies hungriest-first", () => {
+    armyOf(G, 3, [10, 80, 50], 5);
+    G.startBattle(G.TARGETS[0]);
+    eq(G.B.queue[0].hunger, 80);
+    eq(G.B.queue[1].hunger, 50);
+    eq(G.B.queue[2].hunger, 10);
+    eq(G.scene, "battle");
+    G.scene = "farm"; G.B = null;
+  });
+  check("hungry zombie (70+) marches; peckish is distracted", () => {
+    armyOf(G, 2, [90, 50], 5);
+    G.startBattle(G.TARGETS[0]);
+    G.nextAttacker();
+    eq(G.B.active.state, "march");
+    G.B.active = null; G.nextAttacker();
+    eq(G.B.active.state, "distracted");
+    eq(G.B.active.needTaps, 1); // hunger 40-69 -> 1 tap
+    G.scene = "farm"; G.B = null;
+  });
+  check("barely-hungry zombie (<40) needs 2 refocus taps", () => {
+    armyOf(G, 1, 10, 5);
+    G.startBattle(G.TARGETS[0]);
+    G.nextAttacker();
+    eq(G.B.active.needTaps, 2);
+    const a = G.B.active;
+    G.battleTap(a.x, a.y - 105);
+    eq(a.needTaps, 1); eq(a.state, "distracted");
+    G.battleTap(a.x, a.y - 105);
+    eq(a.state, "march");
+    G.scene = "farm"; G.B = null;
+  });
+  check("full sim: strong hungry horde wins, earns gold + xp + win stat", () => {
+    armyOf(G, 6, 100, 40);
+    const gold0 = G.S.gold, wins0 = G.S.stats.wins;
+    G.startBattle(G.TARGETS[0]);
+    const result = simulate(G, 4000);
+    eq(result, "win");
+    ok(G.S.gold >= gold0 + G.TARGETS[0].gold[0], "gold reward in range");
+    ok(G.S.gold <= gold0 + G.TARGETS[0].gold[1] + 40 + 250, "gold reward + possible goal bonus");
+    eq(G.S.stats.wins, wins0 + 1);
+    G.scene = "farm"; G.B = null;
+  });
+  check("after a win, survivors reset hunger (<=15), gain a kill, heal", () => {
+    ok(G.S.zombies.length > 0, "some zombies survived");
+    G.S.zombies.forEach(z => { ok(z.hunger <= 15); ok(z.kills >= 1); });
+  });
+  check("full sim: toothless horde times out and loses; dead are removed", () => {
+    armyOf(G, 6, 100, 0); // 0 pow: can never win
+    G.S.zombies[0].hp = 0.0001; // will die to the first projectile
+    G.startBattle(G.TARGETS[0]);
+    const result = simulate(G, 3000);
+    eq(result, "lose");
+    ok(G.S.zombies.every(z => z.hp > 0), "corpses-of-corpses filtered out");
+    G.scene = "farm"; G.B = null;
+  });
+  check("invasion cooldown stamps lastInvade", () => {
+    ok(Date.now() - G.S.lastInvade < 5000);
+  });
+}
+
+console.log("\n== goals ==");
+{
+  const { G } = boot();
+  check("plow4 goal completes at 4 plows and pays 40g", () => {
+    G.S.gold = 100;
+    G.S.stats.plowed = 4;
+    G.checkGoals();
+    ok(G.S.goalsDone.includes("plow4"));
+    eq(G.S.gold, 140);
+  });
+  check("goals never pay twice", () => {
+    G.checkGoals();
+    eq(G.S.gold, 140);
+  });
+}
+
+console.log("\n== save / continue / migration ==");
+{
+  const inst = loadGame();
+  const G = inst.G;
+  check("save -> load roundtrip preserves everything", () => {
+    G.startGame(null);
+    G.S.gold = 1234; G.S.brains = 3; G.S.tiles[7] = { st: "plot" };
+    G.save();
+    const loaded = G.load();
+    eq(JSON.stringify(loaded), JSON.stringify(G.S));
+  });
+  check("startGame(load()) continues the same farm", () => {
+    G.startGame(G.load());
+    eq(G.S.gold, 1234); eq(G.S.brains, 3); eq(G.S.tiles[7].st, "plot");
+  });
+  check("startGame(null) is a fresh 200g farm", () => {
+    G.startGame(null);
+    eq(G.S.gold, 200);
+  });
+  check("legacy save without stats/zombies fields gets migrated defaults", () => {
+    const legacy = { gold: 555, brains: 1, xp: 10, level: 3, tiles: G.freshState().tiles, lifeForce: 0, lastInvade: 0, muted: false, goalsDone: [], claimed: [], created: Date.now() };
+    G.startGame(legacy);
+    eq(G.S.gold, 555);
+    ok(G.S.stats && typeof G.S.stats.plowed === "number", "stats backfilled");
+    ok(Array.isArray(G.S.zombies), "zombies backfilled");
+  });
+  check("zombies missing positions get placed on the field", () => {
+    const s = G.freshState();
+    s.zombies = [{ type: "mini", name: "Old", pow: 3, hp: 12, maxhp: 12, spd: 1.7, hunger: 30, mut: [], kills: 0 }];
+    G.startGame(s);
+    const z = G.S.zombies[0];
+    ok(typeof z.x === "number" && typeof z.y === "number");
+  });
+}
+
+console.log("\n----------------------------------");
+console.log("logic: " + passed + " passed, " + failed + " failed");
+if (failed > 0) process.exit(1);

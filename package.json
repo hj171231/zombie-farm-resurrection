@@ -1,0 +1,15 @@
+{
+  "name": "zombie-farm-resurrection",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Fan-made tribute farm game. Single-file HTML5 canvas. Free forever.",
+  "scripts": {
+    "test": "node tests/logic.test.js && node tests/visual.test.js",
+    "test:logic": "node tests/logic.test.js",
+    "test:visual": "node tests/visual.test.js",
+    "serve": "python3 -m http.server 5173"
+  },
+  "devDependencies": {
+    "@napi-rs/canvas": "^0.1.65"
+  }
+}
