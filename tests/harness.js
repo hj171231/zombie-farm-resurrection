@@ -34,7 +34,7 @@ globalThis.__game = {
   get ISOX(){ return ISOX; }, get ISOY(){ return ISOY; },
   cv, cx,
   // logic
-  freshState, save, load, sanitizeState, startGame,
+  freshState, save, load, sanitizeState, backupSave, startGame, BUILD,
   xpNeeded, gainXP, calcLF, neighbors, growthInfo, fmtTime,
   cellXY, tileAt, layout, resize,
   tapTile, plantAt, harvest, setPlantMode, clearPlantMode, checkGoals, hud,

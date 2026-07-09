@@ -194,6 +194,7 @@ const GOALS = [
  {id:"inv12",   desc:"Win 12 invasions",          n:12, stat:"wins",      gold:2500}
 ];
 
+const BUILD = "build 5 · 2026-07-08"; // rewritten by scripts/deploy.sh at each publish
 const GRID = 7;
 const MAX_Z = 16;
 const INVADE_MIN = 6;
@@ -216,6 +217,10 @@ function freshState(){
 }
 function save(){ try{ localStorage.setItem("zfr_save", JSON.stringify(S)); }catch(e){} }
 function load(){ try{ const d = localStorage.getItem("zfr_save"); if(d) return JSON.parse(d); }catch(e){} return null; }
+// Safety net: called before anything overwrites/deletes the save (import,
+// New Farm, Reset). The previous farm is kept in zfr_save_backup and can be
+// restored from the Help menu.
+function backupSave(){ try{ const d=localStorage.getItem("zfr_save"); if(d) localStorage.setItem("zfr_save_backup",d); }catch(e){} }
 // Rebuild any save into a known-good shape: missing fields get defaults,
 // broken tiles/zombies get repaired, unknown ids get cleared. The single
 // migration path for both startGame and save-code import — old saves keep
@@ -1809,7 +1814,9 @@ $("helpBtn").onclick=()=>{
    "<b>&#x1F4BE; Saving:</b> Auto-saves in this browser every few seconds (and when you switch apps). Keep the game file in the same place and open it with the same browser, and your farm will be waiting. Crops even grow while you're away!<br><br>"+
    "<b>&#x1F511; Backup / move devices:</b> Copy a save code and load it anywhere.<br><button class='gbtn small' id='expBtn'>&#x1F4CB; Copy save code</button> <button class='gbtn small' id='impBtn'>&#x1F4E5; Load save code</button><br><br>"+
    "<button class='gbtn small' id='muteBtn2'>"+(S.muted?"&#x1F507; Unmute":"&#x1F50A; Mute")+" sounds</button> "+
-   "<button class='gbtn small red' id='resetBtn2'>&#x1F5D1; Reset farm</button></div>";
+   "<button class='gbtn small red' id='resetBtn2'>&#x1F5D1; Reset farm</button>"+
+   (localStorage.getItem("zfr_save_backup")?" <button class='gbtn small' id='restoreBtn'>&#x21A9; Restore previous farm</button>":"")+
+   "<div style='opacity:.55;font-size:11px;margin-top:10px'>Zombie Farm Resurrection &middot; "+BUILD+"</div></div>";
   $("muteBtn2").onclick=function(){ S.muted=!S.muted; save(); this.innerHTML=S.muted?"&#x1F507; Unmute":"&#x1F50A; Mute"; };
   $("expBtn").onclick=()=>{
     save();
@@ -1825,11 +1832,23 @@ $("helpBtn").onclick=()=>{
       if(!st || !Array.isArray(st.tiles)) throw new Error("bad");
       const clean=sanitizeState(st);
       if(!clean) throw new Error("bad");
+      backupSave();
       localStorage.setItem("zfr_save",JSON.stringify(clean));
       location.reload();
     }catch(e){ toast("That code didn't work &mdash; double-check you pasted the whole thing."); }
   };
-  $("resetBtn2").onclick=()=>{ if(confirm("Really bulldoze your whole farm and start over?")){ localStorage.removeItem("zfr_save"); location.reload(); } };
+  $("resetBtn2").onclick=()=>{ if(confirm("Really bulldoze your whole farm and start over? (The old farm is kept as a backup you can restore from this menu.)")){ backupSave(); localStorage.removeItem("zfr_save"); location.reload(); } };
+  const rb=$("restoreBtn");
+  if(rb) rb.onclick=()=>{
+    const bk=localStorage.getItem("zfr_save_backup");
+    if(!bk) return;
+    if(confirm("Restore the previous farm? Your current farm becomes the backup, so you can swap back.")){
+      const cur=localStorage.getItem("zfr_save");
+      localStorage.setItem("zfr_save",bk);
+      if(cur) localStorage.setItem("zfr_save_backup",cur); else localStorage.removeItem("zfr_save_backup");
+      location.reload();
+    }
+  };
 };
 
 $("shovelBtn").onclick=function(){ clearPlantMode(); shovelMode=!shovelMode; this.classList.toggle("toggled",shovelMode); sfx.tap();
@@ -2317,7 +2336,8 @@ function startGame(existing){
 }
 $("startBtn").onclick=()=>{ startGame(load()); };
 $("newBtn").onclick=()=>{
-  if(confirm("Start a brand new farm? This replaces your saved farm!")){
+  if(confirm("Start a brand new farm? This replaces your saved farm! (The old farm is kept as a backup — restorable from the ? Help menu.)")){
+    backupSave();
     localStorage.removeItem("zfr_save");
     startGame(null);
   }

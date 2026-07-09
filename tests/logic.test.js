@@ -683,6 +683,46 @@ console.log("\n== sanitizeState (save repair & migration) ==");
   });
 }
 
+console.log("\n== save backup net ==");
+{
+  const inst = loadGame(); const G = inst.G; const els = inst.els; const ctx = inst.ctx;
+  check("BUILD stamp exists and shows in the Help menu", () => {
+    ok(typeof G.BUILD === "string" && G.BUILD.length > 0);
+    G.startGame(null);
+    els["helpBtn"].onclick();
+    ok(els["mBody"].innerHTML.includes(G.BUILD), "Help shows the build stamp");
+  });
+  check("importing a save code backs up the previous farm first", () => {
+    G.S.gold = 4242; G.save();
+    const original = inst.storage.get("zfr_save");
+    const incoming = inst.run("btoa(unescape(encodeURIComponent(JSON.stringify(freshState()))))");
+    ctx.prompt = () => incoming;
+    ctx.location.reload = () => {};
+    els["helpBtn"].onclick();
+    els["impBtn"].onclick();
+    eq(inst.storage.get("zfr_save_backup"), original, "old farm preserved");
+    ok(JSON.parse(inst.storage.get("zfr_save")).gold === 200, "new farm installed");
+  });
+  check("New Farm backs up the old farm before wiping", () => {
+    G.startGame(G.load());
+    G.S.gold = 9999; G.save();
+    const original = inst.storage.get("zfr_save");
+    els["newBtn"].onclick(); // confirm() stub says yes
+    eq(inst.storage.get("zfr_save_backup"), original);
+    eq(G.S.gold, 200, "fresh farm started");
+  });
+  check("Restore swaps current and backup (so you can swap back)", () => {
+    G.save(); // current fresh farm now in zfr_save
+    const cur = inst.storage.get("zfr_save");
+    const bak = inst.storage.get("zfr_save_backup");
+    ctx.location.reload = () => {};
+    els["helpBtn"].onclick();
+    els["restoreBtn"].onclick();
+    eq(inst.storage.get("zfr_save"), bak, "backup promoted to live");
+    eq(inst.storage.get("zfr_save_backup"), cur, "old current kept as new backup");
+  });
+}
+
 console.log("\n----------------------------------");
 console.log("logic: " + passed + " passed, " + failed + " failed");
 if (failed > 0) process.exit(1);
