@@ -187,7 +187,7 @@ const ZTYPES = [
  {id:"gardener", name:"Gardener",  cost:230, brains:0, time:45,  pow:2,  hp:16, spd:1.0, unlock:4, col:"#6fcf96", shirt:"#3e7a4e", hat:"straw", desc:"Fertilizes crops for DOUBLE gold. Weak fighter."},
  {id:"bruiser",  name:"Bruiser",   cost:560, brains:0, time:120, pow:15, hp:60, spd:0.7, unlock:6, col:"#9a8bc0", shirt:"#5c4a7a", big:true, desc:"Built like a barn door."},
  {id:"banshee",  name:"Banshee",   cost:1200,brains:0, time:180, pow:20, hp:45, spd:1.4, unlock:8, col:"#c3d3ea", shirt:"#7a8fb0", glow:true, desc:"Fast, furious, faintly glowing."},
- {id:"abom",     name:"Abomination",cost:0,  brains:2, time:200, pow:32, hp:110,spd:0.6, unlock:9, col:"#cf7d7d", shirt:"#6e3a3a", big:true, desc:"A premium pile of muscle. Costs brains."},
+ {id:"abom",     name:"Abomination",cost:0,  brains:2, time:200, pow:32, hp:110,spd:0.6, unlock:9, col:"#cf7d7d", shirt:"#6e3a3a", big:true, hulk:true, desc:"A premium pile of muscle. Costs brains."},
  {id:"digger",   name:"Grave Digger",cost:3200,brains:0,time:240, pow:24, hp:70, spd:0.9, unlock:11,col:"#a8b060", shirt:"#c8842e", hat:"hardhat", prop:"shovel", desc:"Hardhat blocks 30% of projectile damage."},
  {id:"jester",   name:"Jester",    cost:7600,brains:0, time:300, pow:18, hp:50, spd:1.6, unlock:13,col:"#8fd8b8", shirt:"#7a3a9e", hat:"jester", motley:true, desc:"Confuses defenders &mdash; they throw much slower."},
  {id:"chef",     name:"Chef",      cost:16000,brains:0,time:360, pow:28, hp:80, spd:1.0, unlock:15,col:"#b8d86a", shirt:"#f0ede2", hat:"toque", prop:"ladle", desc:"After a won battle, survivors heal DOUBLE."},
@@ -229,7 +229,7 @@ const GOALS = [
  {id:"moon1",   desc:"Win at the Lunar Lab",      n:1,  stat:"moonwin",   gold:10000}
 ];
 
-const BUILD = "build 11 · 2026-07-09"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 12 · 2026-07-09"; // rewritten by scripts/deploy.sh at each publish
 const GRID = 7;
 const MAX_Z = 16;
 const INVADE_MIN = 6;
@@ -733,15 +733,16 @@ function hungerTick(){
   lastHunger=now();
   S.zombies.forEach(z=>{ z.hunger=clamp(z.hunger+1,0,100); });
 }
-// Roaming the farm slowly heals battle wounds — and battle wounds are meant
-// to STING. Recovering from half-health takes ~25 minutes with no trees,
-// and never less than ~10 minutes even at 300 life force. A mauled zombie
-// sits out the next invasion or two; that's the price of war.
+// Roaming the farm slowly heals battle wounds — but ONLY if trees radiate
+// life force. No trees, no healing: the dead don't mend on their own.
+// With LF, recovering from half-health takes ~25 minutes at a sliver and
+// never less than ~10 minutes even at 300. Battle wounds are meant to STING.
 let lastHeal=0;
 function healTick(){
   if(now()-lastHeal<5000) return;
   lastHeal=now();
-  const minutes = 25 - 15*Math.min(S.lifeForce,300)/300; // 25min bare -> 10min at 300 LF
+  if(!(S.lifeForce>0)) return; // no life force = no healing at all
+  const minutes = 25 - 15*Math.min(S.lifeForce,300)/300; // ~25min low LF -> 10min at 300
   const frac = 0.5/(minutes*12);                          // fraction of maxhp per 5s tick
   S.zombies.forEach(z=>{
     if(z.hp<z.maxhp){
@@ -1122,9 +1123,9 @@ function drawStar(g,x,y,r){
 function drawZombie(g,x,y,s,zd,muts,wob,seed,hungry){
   seed=seed||0;
   const small=zd.small, big=zd.big;
-  const bw=(big?30:small?18:24)*s*(zd.colossus?1.15:1);
+  const bw=(big?30:small?18:24)*s*(zd.colossus?1.15:zd.hulk?1.2:1);
   const bh=(big?26:small?14:20)*s*(zd.colossus?1.1:1);
-  const hr=(big?19:small?13:16)*s*(zd.colossus?0.62:1); // colossus: tiny head, huge body
+  const hr=(big?19:small?13:16)*s*(zd.colossus?0.62:zd.hulk?0.8:1); // colossus tiny head; hulk sunken head
   const bob=Math.sin(wob)*2.4*s;
   const lean=Math.sin(wob*0.7)*0.06;
   const skin=zd.col, skinD=shade(zd.col,-28), skinL=shade(zd.col,24);
@@ -1196,12 +1197,51 @@ function drawZombie(g,x,y,s,zd,muts,wob,seed,hungry){
     g.beginPath(); g.ellipse(-bw*0.22+lp*0.3,0,5*s,2.6*s,0,0,TAU); g.fill();
     g.beginPath(); g.ellipse(bw*0.2-lp*0.3,0,5*s,2.6*s,0,0,TAU); g.fill();
   }
+  if(zd.hulk){
+    // ---- ABOMINATION: a shirtless, stitched-together mountain of muscle ----
+    g.fillStyle=zd.shirt; g.fillRect(-bw*0.32,-10.5*s,bw*0.64,4*s); // trouser waistband
+    g.fillStyle=skin;
+    g.beginPath();
+    g.moveTo(-bw*0.3,-8*s);                                                    // left hip (narrow waist)
+    g.bezierCurveTo(-bw*0.62,-10*s-bh*0.3,-bw*0.74,-10*s-bh*0.85,-bw*0.56,-10*s-bh*1.02); // flare out to shoulder
+    g.quadraticCurveTo(0,-10*s-bh*1.24,bw*0.56,-10*s-bh*1.02);                 // trap ridge
+    g.bezierCurveTo(bw*0.74,-10*s-bh*0.85,bw*0.62,-10*s-bh*0.3,bw*0.3,-8*s);
+    g.quadraticCurveTo(0,-6*s,-bw*0.3,-8*s);
+    g.closePath(); g.fill();
+    outline(g,1.6*s); g.stroke();
+    // pec shelves + ab lines
+    g.strokeStyle=skinD; g.lineWidth=1.6*s; g.lineCap="round";
+    g.beginPath(); g.arc(-bw*0.22,-10*s-bh*0.74,bw*0.19,0.25,Math.PI*0.8); g.stroke();
+    g.beginPath(); g.arc(bw*0.22,-10*s-bh*0.74,bw*0.19,Math.PI*0.2,Math.PI*0.75); g.stroke();
+    g.beginPath(); g.moveTo(0,-10*s-bh*0.5); g.lineTo(0,-9*s); g.stroke();
+    g.lineWidth=1.1*s;
+    g.beginPath(); g.moveTo(-bw*0.13,-10*s-bh*0.34); g.lineTo(bw*0.13,-10*s-bh*0.34); g.stroke();
+    g.beginPath(); g.moveTo(-bw*0.11,-10*s-bh*0.17); g.lineTo(bw*0.11,-10*s-bh*0.17); g.stroke();
+    // pec highlight
+    g.fillStyle=skinL;
+    g.beginPath(); g.ellipse(-bw*0.24,-10*s-bh*0.9,bw*0.12,bh*0.08,0.2,0,TAU); g.fill();
+    // the assembly scar: a great stapled seam across the chest
+    g.strokeStyle="#7a3434"; g.lineWidth=1.9*s;
+    g.beginPath(); g.moveTo(-bw*0.5,-10*s-bh*0.98); g.quadraticCurveTo(-bw*0.05,-10*s-bh*0.7,bw*0.36,-10*s-bh*0.48); g.stroke();
+    g.lineWidth=1.2*s;
+    for(let k=0;k<4;k++){
+      const tt=0.14+k*0.24;
+      const sx2=-bw*0.5+bw*0.86*tt, sy2=-10*s-bh*(0.98-0.5*tt*(2-tt)*0.55);
+      g.beginPath(); g.moveTo(sx2-2*s,sy2-2.8*s); g.lineTo(sx2+2*s,sy2+2.8*s); g.stroke();
+    }
+    // the one overall strap that survived leg day, with its button
+    g.strokeStyle=zd.shirt; g.lineWidth=4.6*s; g.lineCap="butt";
+    g.beginPath(); g.moveTo(bw*0.28,-10*s-bh*1.04); g.lineTo(-bw*0.15,-10*s-bh*0.1); g.stroke();
+    g.fillStyle="#ffd94d"; blob(g,-bw*0.12,-10*s-bh*0.15,1.9*s);
+    outline(g,0.9*s); g.beginPath(); g.arc(-bw*0.12,-10*s-bh*0.15,1.9*s,0,TAU); g.stroke();
+  } else {
   g.fillStyle=zd.shirt;
   g.beginPath(); g.roundRect(-bw/2,-10*s-bh,bw,bh+2*s,5*s); g.fill();
   g.beginPath();
   g.moveTo(-bw/2,-9*s);
   for(let k=0;k<4;k++){ g.lineTo(-bw/2+bw*(k+0.5)/4,-6*s); g.lineTo(-bw/2+bw*(k+1)/4,-9*s); }
   g.closePath(); g.fill();
+  }
   if(zd.plaid){
     g.strokeStyle="rgba(80,15,10,.5)"; g.lineWidth=1.7*s;
     for(let k=-1;k<=1;k++){ g.beginPath(); g.moveTo(k*bw*0.26,-10*s-bh); g.lineTo(k*bw*0.26,-7.5*s); g.stroke(); }
@@ -1238,21 +1278,56 @@ function drawZombie(g,x,y,s,zd,muts,wob,seed,hungry){
     g.fillStyle="rgba(255,255,255,.55)"; blob(g,-1.8*s,-1.6*s,1.1*s);
     g.restore();
   }
-  g.fillStyle=shade(zd.shirt,30);
-  g.fillRect(-bw*0.1,-10*s-bh*0.5,bw*0.28,bw*0.24);
-  outline(g,1.4*s);
-  g.strokeRect(-bw*0.1,-10*s-bh*0.5,bw*0.28,bw*0.24);
-  g.beginPath(); g.roundRect(-bw/2,-10*s-bh,bw,bh+2*s,5*s); g.stroke();
+  if(!zd.hulk){
+    g.fillStyle=shade(zd.shirt,30);
+    g.fillRect(-bw*0.1,-10*s-bh*0.5,bw*0.28,bw*0.24);
+    outline(g,1.4*s);
+    g.strokeRect(-bw*0.1,-10*s-bh*0.5,bw*0.28,bw*0.24);
+    g.beginPath(); g.roundRect(-bw/2,-10*s-bh,bw,bh+2*s,5*s); g.stroke();
+  }
   if(kernel){
+    const kx=zd.hulk?0.56:0.44, kx2=zd.hulk?0.38:0.28, ky=zd.hulk?1.04:0.92, ky2=zd.hulk?1.16:1.02;
     g.fillStyle="#ffd94d";
-    blob(g,-bw*0.44,-10*s-bh*0.92,3*s); blob(g,-bw*0.28,-10*s-bh*1.02,2.6*s);
-    blob(g,bw*0.44,-10*s-bh*0.92,3*s); blob(g,bw*0.28,-10*s-bh*1.02,2.6*s);
+    blob(g,-bw*kx,-10*s-bh*ky,3*s); blob(g,-bw*kx2,-10*s-bh*ky2,2.6*s);
+    blob(g,bw*kx,-10*s-bh*ky,3*s); blob(g,bw*kx2,-10*s-bh*ky2,2.6*s);
     outline(g,0.9*s);
-    g.beginPath(); g.arc(-bw*0.44,-10*s-bh*0.92,3*s,0,TAU); g.stroke();
-    g.beginPath(); g.arc(bw*0.44,-10*s-bh*0.92,3*s,0,TAU); g.stroke();
+    g.beginPath(); g.arc(-bw*kx,-10*s-bh*ky,3*s,0,TAU); g.stroke();
+    g.beginPath(); g.arc(bw*kx,-10*s-bh*ky,3*s,0,TAU); g.stroke();
   }
   const armY=-8*s-bh*0.8, sw=Math.sin(wob+1)*2.5*s;
-  if(kernel){
+  if(zd.hulk){
+    // boulder biceps + knuckle-dragging fists (or corn-cob gauntlets)
+    [-1,1].forEach(sd=>{
+      const shY=-10*s-bh*0.92+sd*sw*0.4;
+      const bx2=sd*bw*0.72, by2=shY+bh*0.14;
+      g.fillStyle=skin; blob(g,bx2,by2,7.4*s); // bicep boulder
+      g.strokeStyle=skin; g.lineWidth=8.6*s; g.lineCap="round"; // forearm slab
+      const fx=sd*bw*0.9, fy=-2.5*s+sd*sw*0.4;
+      g.beginPath(); g.moveTo(bx2,by2); g.lineTo(fx,fy-3*s); g.stroke();
+      outline(g,1.4*s);
+      g.beginPath(); g.arc(bx2,by2,7.4*s,0,TAU); g.stroke();
+      // bicep stitch seam
+      g.strokeStyle="#7a3434"; g.lineWidth=1.1*s;
+      g.beginPath(); g.moveTo(bx2-sd*4*s,by2-4*s); g.lineTo(bx2+sd*3*s,by2+2*s); g.stroke();
+      g.beginPath(); g.moveTo(bx2-sd*1.5*s,by2-3.5*s); g.lineTo(bx2-sd*0.2*s,by2-0.5*s); g.stroke();
+      if(kernel){
+        // Kernel-Powered: the fists ARE giant corn cobs now
+        g.save(); g.translate(fx,fy); g.rotate(sd*0.85);
+        g.fillStyle="#ffd94d"; g.beginPath(); g.ellipse(0,0,10.5*s,6*s,0,0,TAU); g.fill();
+        outline(g,1.2*s); g.stroke();
+        g.strokeStyle="#e0a818"; g.lineWidth=1*s;
+        [-6,-1.5,3].forEach(kk=>{ g.beginPath(); g.moveTo(kk*s,-5*s); g.lineTo(kk*s,5*s); g.stroke(); });
+        g.fillStyle="#6fbf4a"; g.beginPath(); g.ellipse(-10*s,0,3.6*s,5.5*s,0.3,0,TAU); g.fill();
+        g.restore();
+      } else {
+        g.fillStyle=skin;
+        g.beginPath(); g.ellipse(fx,fy,6.2*s,5*s,0,0,TAU); g.fill(); // ground-dragging fist
+        outline(g,1.4*s); g.stroke();
+        g.strokeStyle=skinD; g.lineWidth=1.1*s; // knuckles
+        for(let k=-1;k<=1;k++){ g.beginPath(); g.arc(fx+k*2.7*s,fy-3.6*s,1.5*s,Math.PI,0); g.stroke(); }
+      }
+    });
+  } else if(kernel){
     const drawCob=(x1,y1,x2,y2)=>{
       g.strokeStyle=zd.shirt; g.lineWidth=5*s; g.lineCap="round";
       g.beginPath(); g.moveTo(x1,y1); g.lineTo((x1+x2)/2,(y1+y2)/2); g.stroke();
@@ -1291,7 +1366,19 @@ function drawZombie(g,x,y,s,zd,muts,wob,seed,hungry){
       g.fillStyle="#c8842e"; blob(g,hx3+3.5*s,hy3-12.5*s+Math.sin(wob*2)*s,1*s);
     }
   }
-  const headY=-10*s-bh-hr*0.82;
+  const headY=-10*s-bh-hr*(zd.hulk?0.42:0.82); // hulk: head sunk between the traps, no neck
+  if(zd.hulk && !zd.headless){
+    // neck bolts, naturally
+    g.fillStyle="#9aa4b0";
+    g.fillRect(-hr*1.02-4.5*s, headY+hr*0.42, 5*s, 3.2*s);
+    g.fillRect(hr*1.02-0.5*s, headY+hr*0.42, 5*s, 3.2*s);
+    outline(g,0.9*s);
+    g.strokeRect(-hr*1.02-4.5*s, headY+hr*0.42, 5*s, 3.2*s);
+    g.strokeRect(hr*1.02-0.5*s, headY+hr*0.42, 5*s, 3.2*s);
+    g.fillStyle="#c8ccd6";
+    blob(g,-hr*1.02-4.5*s,headY+hr*0.42+1.6*s,2.1*s);
+    blob(g,hr*1.02+4.5*s,headY+hr*0.42+1.6*s,2.1*s);
+  }
   if(!zd.headless){
     drawZHead(g,0,headY,hr,skin,skinD,skinL,zd,muts,s,wob,seed);
   } else {
@@ -2735,7 +2822,7 @@ function renderMarket(tab){
     let ds="";
     if(tab===0) ds="Grows in "+fmtTime(item.time)+" &middot; sells "+item.sell+"g &middot; +"+item.xp+"xp<br><i>Mutation gift: "+item.mut.label+"</i>";
     else if(tab===1) ds=item.desc+"<br>PWR "+item.pow+" &middot; HP "+item.hp+" &middot; rises in "+fmtTime(item.time);
-    else ds="+"+item.lf+" life force &mdash; better mutation odds AND faster healing for the roaming horde.";
+    else ds="+"+item.lf+" life force &mdash; better mutation odds, and the horde CANNOT heal without it.";
     inf.innerHTML="<div class='nm'>"+item.name+" <span style='font-weight:normal;font-size:12px'>&mdash; "+costStr+"</span></div><div class='ds'>"+(locked?("Unlocks at level "+item.unlock):ds)+"</div>";
     div.appendChild(inf);
     if(!locked){
@@ -2843,7 +2930,7 @@ $("helpBtn").onclick=()=>{
   $("mBody").innerHTML =
    "<div style='font-size:14px;line-height:1.6'>"+
    "<b>&#x1F33E; Farm:</b> Tap grass to plow a plot (10g). Tap a plot to open the Market. After you pick a seed you stay in <b>planting mode</b> &mdash; keep tapping plots (even unplowed grass!) to plant the same thing again and again. Tap the green banner to stop. Zombies are the exception: they plant <b>one at a time</b>, on purpose &mdash; each one is a commitment. Tap ripe things to harvest. Crops wither if ignored too long!<br><br>"+
-   "<b>&#x1F9DF; Zombies:</b> Harvested zombies join your horde (max "+MAX_Z+") and roam the farm, getting hungrier. Wounded zombies <b>heal while roaming</b> &mdash; plant trees for life force to speed it up! If the horde is full, harvesting a zombie sells it for gold.<br><br>"+
+   "<b>&#x1F9DF; Zombies:</b> Harvested zombies join your horde (max "+MAX_Z+") and roam the farm, getting hungrier. Wounded zombies <b>only heal if trees give life force</b> &mdash; no trees, no healing! More life force = faster mending. If the horde is full, harvesting a zombie sells it for gold.<br><br>"+
    "<b>&#x1F9EA; Mutations:</b> Grow a zombie <i>next to</i> ripening crops for a chance it rises mutated with bonus stats &mdash; and a new look! More life force (trees) = better odds. <button class='gbtn small' id='mutBtn'>&#x1F9EC; Mutation Almanac</button><br><br>"+
    "<b>&#x2694;&#xFE0F; Invasions:</b> With "+INVADE_MIN+"+ zombies, hit INVADE. Zombies march one by one. If one gets distracted (&#x1F308; bubble), <b>tap the bubble</b> to refocus it! Hungry zombies stay focused. Win gold, XP, and maybe a <b>brain</b>.<br><br>"+
    "<b>&#x1F9E0; Brains:</b> Rare currency from invasions. Buys premium zombies &amp; trees.<br><br>"+

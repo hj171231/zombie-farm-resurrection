@@ -1051,12 +1051,16 @@ function injuredHorde(lifeForce) {
   return G;
 }
 {
-  check("wounds STING: half-health recovery takes ~25 min with no trees", () => {
+  check("NO trees, NO healing — zero life force mends nothing", () => {
     const G = injuredHorde(0);
+    G.healTick(); G.healTick();
+    eq(G.S.zombies[0].hp, 110, "wounded zombie must stay wounded without trees");
+  });
+  check("a sliver of life force heals at the ~25-minute half-health rate", () => {
+    const G = injuredHorde(10); // minutes = 25 - 15*10/300 = 24.5
     G.healTick();
     const gain = G.S.zombies[0].hp - 110;
-    // 25 min = 300 ticks to regain half (110hp) => ~0.3667/tick on a 220hp zombie
-    ok(Math.abs(gain - 220 * 0.5 / 300) < 0.001, "gain was " + gain);
+    ok(Math.abs(gain - 220 * 0.5 / (24.5 * 12)) < 0.001, "gain was " + gain);
   });
   check("even at 300 life force, half-health takes AT LEAST 10 minutes", () => {
     const G = injuredHorde(300);
@@ -1071,9 +1075,9 @@ function injuredHorde(lifeForce) {
     ok(Math.abs((G.S.zombies[0].hp - 110) - 220 * 0.5 / 120) < 0.001);
   });
   check("healing is throttled to one tick per 5s", () => {
-    const G = injuredHorde(0);
+    const G = injuredHorde(300);
     G.healTick(); G.healTick(); G.healTick();
-    ok(Math.abs((G.S.zombies[0].hp - 110) - 220 * 0.5 / 300) < 0.001, "only the first tick counts");
+    ok(Math.abs((G.S.zombies[0].hp - 110) - 220 * 0.5 / 120) < 0.001, "only the first tick counts");
   });
   check("healing clamps at max hp; healthy zombies untouched", () => {
     const G = injuredHorde(300);
