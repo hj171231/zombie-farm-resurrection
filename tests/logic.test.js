@@ -292,44 +292,57 @@ console.log("\n== planting mode ==");
   });
 }
 
-console.log("\n== battle ==");
+console.log("\n== battle (squad system) ==");
 function armyOf(G, n, hunger, pow) {
   G.S.zombies = [];
   for (let k = 0; k < n; k++) {
     G.S.zombies.push({ type: "shambler", name: "Z" + k, pow, hp: 60, maxhp: 60, spd: 1.2, hunger: Array.isArray(hunger) ? hunger[k] : hunger, x: 0, y: 0, tx: 0, ty: 0, wob: 0, mut: [], kills: 0 });
   }
 }
+// step the battle, sending any available zombie whenever a slot frees up
 function simulate(G, maxSteps) {
-  for (let s = 0; s < maxSteps && !G.B.result; s++) G.updateBattle(0.05);
+  for (let s = 0; s < maxSteps && !G.B.result; s++) {
+    for (let k = 0; k < G.B.squad.length && G.B.actives.length < G.MAX_ACTIVE; k++) G.sendZombie(k);
+    G.updateBattle(0.05);
+  }
   return G.B.result;
 }
 {
   const { G } = boot();
-  check("startBattle queues zombies hungriest-first", () => {
-    armyOf(G, 3, [10, 80, 50], 5);
-    G.startBattle(G.TARGETS[0]);
-    eq(G.B.queue[0].hunger, 80);
-    eq(G.B.queue[1].hunger, 50);
-    eq(G.B.queue[2].hunger, 10);
+  check("startBattle takes a chosen squad (subset of the horde)", () => {
+    armyOf(G, 4, [10, 80, 50, 30], 5);
+    G.startBattle(G.TARGETS[0], [1, 2]); // only send Z1 and Z2
+    eq(G.B.squad.length, 2);
+    eq(G.B.squad[0].hunger, 80, "bench sorted hungriest-first");
+    eq(G.B.squad[1].hunger, 50);
     eq(G.scene, "battle");
+    G.scene = "farm"; G.B = null;
+  });
+  check("up to 3 zombies fight at once — the 4th send is refused", () => {
+    armyOf(G, 5, 100, 5);
+    G.startBattle(G.TARGETS[0]);
+    ok(G.sendZombie(0)); ok(G.sendZombie(1)); ok(G.sendZombie(2));
+    eq(G.B.actives.length, 3);
+    ok(G.sendZombie(3) === false, "cap enforced");
+    ok(G.sendZombie(0) === false, "no double-sending");
     G.scene = "farm"; G.B = null;
   });
   check("hungry zombie (70+) marches; peckish is distracted", () => {
     armyOf(G, 2, [90, 50], 5);
     G.startBattle(G.TARGETS[0]);
-    G.nextAttacker();
-    eq(G.B.active.state, "march");
-    G.B.active = null; G.nextAttacker();
-    eq(G.B.active.state, "distracted");
-    eq(G.B.active.needTaps, 1); // hunger 40-69 -> 1 tap
+    G.sendZombie(0);
+    eq(G.B.actives[0].state, "march");
+    G.sendZombie(1);
+    eq(G.B.actives[1].state, "distracted");
+    eq(G.B.actives[1].needTaps, 1); // hunger 40-69 -> 1 tap
     G.scene = "farm"; G.B = null;
   });
   check("barely-hungry zombie (<40) needs 2 refocus taps", () => {
     armyOf(G, 1, 10, 5);
     G.startBattle(G.TARGETS[0]);
-    G.nextAttacker();
-    eq(G.B.active.needTaps, 2);
-    const a = G.B.active;
+    G.sendZombie(0);
+    const a = G.B.actives[0];
+    eq(a.needTaps, 2);
     G.battleTap(a.x, a.y - 105);
     eq(a.needTaps, 1); eq(a.state, "distracted");
     G.battleTap(a.x, a.y - 105);
@@ -340,7 +353,7 @@ function simulate(G, maxSteps) {
     armyOf(G, 6, 100, 40);
     const gold0 = G.S.gold, wins0 = G.S.stats.wins;
     G.startBattle(G.TARGETS[0]);
-    const result = simulate(G, 4000);
+    const result = simulate(G, 6000);
     eq(result, "win");
     ok(G.S.gold >= gold0 + G.TARGETS[0].gold[0], "gold reward in range");
     ok(G.S.gold <= gold0 + G.TARGETS[0].gold[1] + 40 + 250, "gold reward + possible goal bonus");
@@ -353,15 +366,127 @@ function simulate(G, maxSteps) {
   });
   check("full sim: toothless horde times out and loses; dead are removed", () => {
     armyOf(G, 6, 100, 0); // 0 pow: can never win
-    G.S.zombies[0].hp = 0.0001; // will die to the first projectile
+    G.S.zombies[0].hp = 0.0001; // will die to the first hit
     G.startBattle(G.TARGETS[0]);
-    const result = simulate(G, 3000);
+    const result = simulate(G, 4000);
     eq(result, "lose");
     ok(G.S.zombies.every(z => z.hp > 0), "corpses-of-corpses filtered out");
     G.scene = "farm"; G.B = null;
   });
   check("invasion cooldown stamps lastInvade", () => {
-    ok(Date.now() - G.S.lastInvade < 5000);
+    ok(Date.now() - G.S.lastInvade < 15000);
+  });
+  check("brawler defenders charge out and melee — and take damage back", () => {
+    armyOf(G, 3, 100, 10);
+    G.startBattle(G.TARGETS[0]);
+    G.sendZombie(0);
+    G.B.nextBrawl = 0; // force an immediate charge
+    G.updateBattle(0.05);
+    eq(G.B.brawlers.length, 1, "brawler spawned");
+    const br = G.B.brawlers[0], a = G.B.actives[0];
+    // teleport them together and let them slug it out
+    br.x = a.x; br.atkT = 0.79;
+    const hp0 = a.z.hp, bhp0 = br.hp;
+    G.updateBattle(0.05);
+    ok(a.z.hp < hp0, "zombie took melee damage");
+    ok(br.hp < bhp0, "zombie brawled back");
+    G.scene = "farm"; G.B = null;
+  });
+  check("battle timer is 120s and targets got 50% tougher (farm = 90hp)", () => {
+    armyOf(G, 1, 100, 5);
+    G.startBattle(G.TARGETS[0]);
+    eq(G.B.timer, 120);
+    eq(G.TARGETS[0].hp, 90);
+    eq(G.TARGETS[7].hp, 3750);
+    G.scene = "farm"; G.B = null;
+  });
+}
+
+console.log("\n== horde management ==");
+{
+  const { G } = boot();
+  armyOf(G, 3, 30, 5);
+  check("renameZombie renames (trimmed, capped at 14 chars)", () => {
+    ok(G.renameZombie(0, "  Sir Chomps-a-Lot-The-Third  "));
+    eq(G.S.zombies[0].name, "Sir Chomps-a-L");
+    ok(G.renameZombie(0, "   ") === false, "blank refused");
+    eq(G.S.zombies[0].name, "Sir Chomps-a-L");
+  });
+  check("releaseZombie removes exactly that zombie", () => {
+    const before = G.S.zombies.length;
+    const victim = G.S.zombies[1].name;
+    ok(G.releaseZombie(1));
+    eq(G.S.zombies.length, before - 1);
+    ok(!G.S.zombies.some(z => z.name === victim));
+    ok(G.releaseZombie(99) === false, "bad index refused");
+  });
+}
+
+console.log("\n== camera (zoom & pan) ==");
+{
+  const { G } = boot();
+  check("default camera: no zoom, centered, screenToWorld = identity", () => {
+    G.resetCam();
+    eq(G.camZ, 1);
+    const p = G.screenToWorld(123, 456);
+    eq(Math.round(p.x), 123); eq(Math.round(p.y), 456);
+  });
+  check("zoomAt keeps the point under the cursor fixed", () => {
+    G.resetCam();
+    const px = G.W * 0.3, py = G.H * 0.6;
+    const before = G.screenToWorld(px, py);
+    G.zoomAt(px, py, 2);
+    eq(G.camZ, 2);
+    const after = G.screenToWorld(px, py);
+    ok(Math.abs(before.x - after.x) < 0.001 && Math.abs(before.y - after.y) < 0.001, "anchor point drifted");
+  });
+  check("zoom clamps to [1, 2.6] and camera stays inside the world", () => {
+    G.zoomAt(0, 0, 100);
+    ok(G.camZ <= 2.6);
+    G.zoomAt(0, 0, 0.0001);
+    eq(G.camZ, 1);
+    ok(Math.abs(G.camCX - G.W / 2) < 0.001, "at 1x the camera re-centers");
+    G.resetCam();
+  });
+  check("tap roundtrip while zoomed: cellXY -> screen -> world -> same tile", () => {
+    G.resetCam();
+    G.zoomAt(G.W / 2, G.H / 2, 1.8);
+    for (let i = 0; i < 49; i += 8) {
+      const p = G.cellXY(i); // world coords
+      // world -> screen
+      const sx = (p.x - G.camCX) * G.camZ + G.W / 2;
+      const sy = (p.y - G.camCY) * G.camZ + G.H / 2;
+      const w = G.screenToWorld(sx, sy);
+      const back = G.tileAt(w.x, w.y);
+      if (back !== i) throw new Error("cell " + i + " -> " + back + " while zoomed");
+    }
+    G.resetCam();
+  });
+}
+
+console.log("\n== mutation almanac ==");
+{
+  const { G } = boot();
+  check("undiscovered mutations are hidden (tier 0)", () => {
+    eq(G.mutTier("Speedy"), 0);
+    eq(G.mutTier("Pungent"), 0);
+  });
+  check("first mutated zombie discovers it (tier 1); third masters it (tier 2)", () => {
+    G.S.mutSeen = { Speedy: 1, Flaming: 3 };
+    eq(G.mutTier("Speedy"), 1);
+    eq(G.mutTier("Flaming"), 2);
+  });
+  check("harvest mutation increments mutSeen", () => {
+    const G2 = zombieWithNeighbors(["carrot"], 0.7, () => 0);
+    eq(G2.S.mutSeen.Speedy, 1);
+  });
+  check("mutSeen survives sanitizeState (and junk is dropped)", () => {
+    const raw = G.freshState();
+    raw.mutSeen = { Speedy: 2, Flaming: "lots", NotAMutation: 9 };
+    const s = G.sanitizeState(raw);
+    eq(s.mutSeen.Speedy, 2);
+    ok(!("Flaming" in s.mutSeen), "non-numeric dropped");
+    ok(!("NotAMutation" in s.mutSeen), "unknown label dropped");
   });
 }
 
@@ -717,10 +842,10 @@ function traitArmy(G, type, n) {
 function projectileHit(G, type) {
   traitArmy(G, type, 6);
   G.startBattle(G.TARGETS[0]);
-  G.nextAttacker();
-  const a = G.B.active;
+  G.sendZombie(0);
+  const a = G.B.actives[0];
   G.B.projectiles.push({ x: a.x, y: a.y - 20, vx: 0, vy: 0, g: 0, born: 0 });
-  const restore = G.setRandom(() => 0); // ri(4,9) -> 4 damage before traits
+  const restore = G.setRandom(() => 0); // ri(6,13) -> 6 damage before traits
   G.updateBattle(0.001);
   restore();
   const hp = a.z.hp;
@@ -730,13 +855,13 @@ function projectileHit(G, type) {
 {
   const { G } = boot();
   check("Grave Digger's hardhat blocks 30% of projectile damage", () => {
-    eq(projectileHit(G, "shambler"), 4);
-    eq(projectileHit(G, "digger"), 3); // ceil(4 * 0.7)
+    eq(projectileHit(G, "shambler"), 6);
+    eq(projectileHit(G, "digger"), 5); // ceil(6 * 0.7)
   });
   check("Jester confuses defenders into throwing slower", () => {
     // with rolls forced to 0 the throw gap is 1.4s (jester: 1.4*1.7 = 2.38s)
     traitArmy(G, "shambler", 6);
-    G.startBattle(G.TARGETS[0]); G.nextAttacker();
+    G.startBattle(G.TARGETS[0]); G.sendZombie(0);
     let restore = G.setRandom(() => 0);
     G.B.t = 2.0; G.B.lastThrow = 0;
     G.updateBattle(0.001);
@@ -744,7 +869,7 @@ function projectileHit(G, type) {
     eq(G.B.projectiles.length, 1, "shambler gets thrown at");
     G.scene = "farm"; G.B = null;
     traitArmy(G, "jester", 6);
-    G.startBattle(G.TARGETS[0]); G.nextAttacker();
+    G.startBattle(G.TARGETS[0]); G.sendZombie(0);
     restore = G.setRandom(() => 0);
     G.B.t = 2.0; G.B.lastThrow = 0;
     G.updateBattle(0.001);

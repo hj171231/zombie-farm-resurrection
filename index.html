@@ -20,6 +20,7 @@
   html,body { width:100%; height:100%; overflow:hidden; background:#3a5522; font-family:"Fredoka","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS","Trebuchet MS",sans-serif; touch-action:manipulation; }
   #game { position:absolute; inset:0; }
   canvas { display:block; width:100%; height:100%; }
+  #cv { touch-action:none; } /* we handle pinch-zoom & drag-pan ourselves */
 
   .hud { position:absolute; top:0; left:0; right:0; display:flex; gap:6px; padding:6px; align-items:center; pointer-events:none; flex-wrap:wrap; z-index:5; }
   .pill { background:linear-gradient(rgba(34,42,14,.92),rgba(18,24,8,.92)); border:2px solid #5d7a30; border-radius:18px; color:#ffe97a; padding:4px 12px; font-size:15px; font-family:"Lilita One","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-weight:400; letter-spacing:.5px; display:flex; align-items:center; gap:6px; white-space:nowrap; box-shadow:0 3px 5px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,200,.14); text-shadow:0 1px 2px rgba(0,0,0,.7); }
@@ -184,14 +185,14 @@ const TREES = [
  {id:"lantern", name:"Lantern Tree",cost:0,   brains:3, lf:180,unlock:16,col:"#3a3048"}
 ];
 const TARGETS = [
- {id:0, name:"Old MacDoughnut's Farm", unlock:1,  hp:60,  gold:[80,140],   brain:0.22, scen:"farm"},
- {id:1, name:"Law Offices of Grim & Grimmer", unlock:5, hp:130, gold:[200,340], brain:0.28, scen:"office"},
- {id:2, name:"Pirate Cove", unlock:8,  hp:240, gold:[420,700],  brain:0.33, scen:"pirate"},
- {id:3, name:"Ninja Dojo",  unlock:11, hp:400, gold:[800,1300], brain:0.38, scen:"ninja"},
- {id:4, name:"Robot Factory",unlock:14,hp:650, gold:[1500,2400],brain:0.45, scen:"robot"},
- {id:5, name:"Haunted Mega-Mall",unlock:17,hp:1100,gold:[2800,4400], brain:0.52, scen:"mall"},
- {id:6, name:"Wizard's Tower",unlock:21, hp:1700,gold:[5500,8000], brain:0.62, scen:"wizard"},
- {id:7, name:"Lunar Lab",   unlock:24, hp:2500,gold:[10000,15000],brain:0.75, scen:"moon"}
+ {id:0, name:"Old MacDoughnut's Farm", unlock:1,  hp:90,  gold:[80,140],   brain:0.22, scen:"farm"},
+ {id:1, name:"Law Offices of Grim & Grimmer", unlock:5, hp:195, gold:[200,340], brain:0.28, scen:"office"},
+ {id:2, name:"Pirate Cove", unlock:8,  hp:360, gold:[420,700],  brain:0.33, scen:"pirate"},
+ {id:3, name:"Ninja Dojo",  unlock:11, hp:600, gold:[800,1300], brain:0.38, scen:"ninja"},
+ {id:4, name:"Robot Factory",unlock:14,hp:975, gold:[1500,2400],brain:0.45, scen:"robot"},
+ {id:5, name:"Haunted Mega-Mall",unlock:17,hp:1650,gold:[2800,4400], brain:0.52, scen:"mall"},
+ {id:6, name:"Wizard's Tower",unlock:21, hp:2550,gold:[5500,8000], brain:0.62, scen:"wizard"},
+ {id:7, name:"Lunar Lab",   unlock:24, hp:3750,gold:[10000,15000],brain:0.75, scen:"moon"}
 ];
 const GOALS = [
  {id:"plow4",   desc:"Plow 4 plots",              n:4,  stat:"plowed",    gold:40},
@@ -212,7 +213,7 @@ const GOALS = [
  {id:"moon1",   desc:"Win at the Lunar Lab",      n:1,  stat:"moonwin",   gold:10000}
 ];
 
-const BUILD = "build 6 · 2026-07-08"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 7 · 2026-07-08"; // rewritten by scripts/deploy.sh at each publish
 const GRID = 7;
 const MAX_Z = 16;
 const INVADE_MIN = 6;
@@ -230,8 +231,20 @@ function freshState(){
     tiles, zombies:[], lifeForce:0,
     lastInvade:0, muted:false,
     stats:{plowed:0,crops:0,zombies:0,trees:0,wins:0,muts:0,apples:0,gmound:0,mallwin:0,moonwin:0},
-    goalsDone:[], claimed:[], created:now()
+    goalsDone:[], claimed:[], mutSeen:{}, created:now()
   };
+}
+// ---- horde management ----
+function renameZombie(ix,newName){
+  const z=S.zombies[ix]; if(!z) return false;
+  const nn=(newName||"").trim().slice(0,14);
+  if(!nn) return false;
+  z.name=nn; save(); return true;
+}
+function releaseZombie(ix){
+  const z=S.zombies[ix]; if(!z) return false;
+  S.zombies.splice(ix,1);
+  save(); hud(); return true;
 }
 function save(){ try{ localStorage.setItem("zfr_save", JSON.stringify(S)); }catch(e){} }
 function load(){ try{ const d = localStorage.getItem("zfr_save"); if(d) return JSON.parse(d); }catch(e){} return null; }
@@ -280,6 +293,9 @@ function sanitizeState(raw){
   if(raw.stats && typeof raw.stats==="object") Object.keys(s.stats).forEach(k=>{ s.stats[k]=num(raw.stats[k],0); });
   if(Array.isArray(raw.goalsDone)) s.goalsDone=raw.goalsDone.filter(x=>typeof x==="string");
   if(Array.isArray(raw.claimed)) s.claimed=raw.claimed.filter(x=>typeof x==="string");
+  if(raw.mutSeen && typeof raw.mutSeen==="object"){
+    CROPS.forEach(c=>{ const v=raw.mutSeen[c.mut.label]; if(typeof v==="number"&&isFinite(v)) s.mutSeen[c.mut.label]=v; });
+  }
   return s;
 }
 
@@ -333,6 +349,7 @@ function resize(){
   cv.width = W*DPR; cv.height = H*DPR;
   cx.setTransform(DPR,0,0,DPR,0,0);
   layout();
+  resetCam();
 }
 window.addEventListener("resize", resize);
 
@@ -345,6 +362,25 @@ function layout(){
   ISOY = topPad + ((H-topPad-botPad) - GRID*TH)/2;
   TILE = TW*0.62;
 }
+// ---------- camera (farm zoom & pan: pinch/drag on touch, wheel/drag on desktop) ----------
+let camZ=1, camCX=0, camCY=0;
+function clampCam(){
+  camZ=clamp(camZ,1,2.6);
+  const hw=W/(2*camZ), hh=H/(2*camZ);
+  camCX=clamp(camCX,hw,W-hw);
+  camCY=clamp(camCY,hh,H-hh);
+}
+function camApply(){ cx.translate(W/2,H/2); cx.scale(camZ,camZ); cx.translate(-camCX,-camCY); }
+function screenToWorld(px,py){ return {x:(px-W/2)/camZ+camCX, y:(py-H/2)/camZ+camCY}; }
+function zoomAt(px,py,f){
+  const before=screenToWorld(px,py);
+  camZ*=f; clampCam();
+  const after=screenToWorld(px,py);
+  camCX+=before.x-after.x; camCY+=before.y-after.y;
+  clampCam();
+}
+function resetCam(){ camZ=1; camCX=W/2; camCY=H/2; }
+
 function cellXY(i){ const c=i%GRID, r=Math.floor(i/GRID); return {x:ISOX+(c-r)*TW/2, y:ISOY+(c+r)*TH/2+TH/2}; }
 function randFieldPos(){ const p=cellXY(ri(0,GRID*GRID-1)); return {x:p.x+rnd(-TW*0.2,TW*0.2), y:p.y+rnd(-TH*0.3,TH*0.3)}; }
 // True if a point is inside the fenced field diamond (with a small margin).
@@ -354,13 +390,13 @@ function inFieldDiamond(x,y,margin){
   const dy=Math.abs(y-(ISOY+GRID*TH/2))/(GRID*TH/2+TH*1.1);
   return dx+dy<margin;
 }
-// Zombies mostly stroll the grassy ring around the field — the field itself
-// is busy with crops. ~1 in 5 walks still cuts across for a shortcut.
+// Zombies roam the whole window but stay OFF the field — the crops are busy
+// enough. A rare walk (~1 in 16) still cuts across as a shortcut.
 function randRoamPos(){
-  if(Math.random()<0.2) return randFieldPos();
-  for(let tries=0;tries<24;tries++){
-    const x=rnd(W*0.06,W*0.94), y=rnd(H*0.2,H*0.92);
-    if(!inFieldDiamond(x,y,1.12) && inFieldDiamond(x,y,2.4)) return {x,y};
+  if(Math.random()<0.06) return randFieldPos();
+  for(let tries=0;tries<30;tries++){
+    const x=rnd(W*0.04,W*0.96), y=rnd(H*0.16,H*0.94);
+    if(!inFieldDiamond(x,y,1.12)) return {x,y};
   }
   return randFieldPos();
 }
@@ -571,6 +607,8 @@ function harvest(i){
               const m=ng.def.mut;
               if(!z.mut.find(x=>x.label===m.label)){
                 z.mut.push({label:m.label, col:ng.def.col});
+                if(!S.mutSeen) S.mutSeen={};
+                S.mutSeen[m.label]=(S.mutSeen[m.label]||0)+1;
                 if(m.stat==="pow")z.pow+=m.amt;
                 if(m.stat==="hp"){z.hp+=m.amt; z.maxhp+=m.amt;}
                 if(m.stat==="spd")z.spd+=m.amt;
@@ -2263,9 +2301,13 @@ function drawFarm(dt){
         cx.beginPath(); cx.moveTo(sx,sy); cx.lineTo(ex2,ey2); cx.stroke();
       }
       if(t.st==="planted" && t.fert){
-        const pul=0.14+Math.sin(performance.now()/400)*0.05;
-        cx.fillStyle="rgba(90,255,140,"+pul+")";
-        diamond(cx,p.x,p.y,TW*0.94,TH*0.94); cx.fill();
+        // sprinkled fertilizer granules: mostly white, some pale green
+        for(let k=0;k<11;k++){
+          const fx=p.x+(seedRnd(i*11+k,141)-0.5)*TW*0.62;
+          const fy=p.y+(seedRnd(i*11+k,143)-0.5)*TH*0.62;
+          cx.fillStyle = k%3===0 ? "rgba(158,214,120,.9)" : "rgba(246,244,232,.88)";
+          blob(cx,fx,fy,Math.max(1.3,TW*0.014)*(0.7+seedRnd(k,i+9)*0.6));
+        }
       }
     } else if(t.st==="grass"){
       if((i%GRID+Math.floor(i/GRID))%2===0){
@@ -2298,6 +2340,14 @@ function drawFarm(dt){
       }
     }});
   }
+  // one lucky zombie occasionally hollers for brains, like the old days
+  if(!S.__nextYell) S.__nextYell=now()+rnd(60,180)*1000;
+  if(now()>S.__nextYell && S.zombies.length){
+    const yz=pick(S.zombies);
+    yz.yellUntil=now()+2600;
+    S.__nextYell=now()+rnd(180,240)*1000;
+    sfx.zomb();
+  }
   S.zombies.forEach(z=>{
     z.wob+=dt*4*z.spd;
     const d=Math.hypot(z.tx-z.x,z.ty-z.y);
@@ -2308,9 +2358,22 @@ function drawFarm(dt){
     }
     items.push({y:z.y, f:function(){
       const zd=ZTYPES.find(t=>t.id===z.type);
-      const sc=TILE/56;
+      const sc=TILE/66;
       drawZombie(cx,z.x,z.y,sc,zd,z.mut,z.wob,nameHash(z.name),z.hunger>=40);
-      const showB=Math.sin(z.wob/2+z.hunger)>0.55;
+      if(z.yellUntil && now()<z.yellUntil){
+        // speech bubble: "BRAINS!"
+        const yx=z.x+20*sc, yy=z.y-80*sc+Math.sin(performance.now()/120)*2;
+        cx.fillStyle="rgba(255,255,255,.97)";
+        cx.beginPath(); cx.roundRect(yx-34,yy-14,68,26,12); cx.fill();
+        cx.beginPath(); cx.moveTo(yx-12,yy+10); cx.lineTo(yx-20,yy+22); cx.lineTo(yx-2,yy+11); cx.closePath(); cx.fill();
+        outline(cx,1.6);
+        cx.beginPath(); cx.roundRect(yx-34,yy-14,68,26,12); cx.stroke();
+        cx.fillStyle="#b03a2e";
+        cx.font="bold 15px 'Lilita One','Arial Rounded MT Bold','Comic Sans MS',sans-serif"; cx.textAlign="center";
+        cx.fillText("BRAINS!",yx,yy+5);
+        return; // yelling replaces the thought bubble
+      }
+      const showB=Math.sin(z.wob/2+z.hunger)>0.87; // bubbles ~half as often now
       if(showB){
         const bx=z.x+16*sc, by=z.y-74*sc;
         cx.fillStyle="rgba(255,255,255,.95)";
@@ -2478,7 +2541,7 @@ $("zombiesBtn").onclick=()=>{
   const b=$("mBody");
   if(!S.zombies.length){ b.innerHTML="<p style='padding:20px;text-align:center'>No zombies yet! Plant some from the Market. &#x26B0;&#xFE0F;</p>"; return; }
   b.innerHTML="";
-  S.zombies.forEach(z=>{
+  S.zombies.forEach((z,ix)=>{
     const zd=ZTYPES.find(t=>t.id===z.type);
     const row=document.createElement("div"); row.className="zrow";
     row.appendChild(artCanvas((g,x,y,r)=>drawZombie(g,x,y+22,0.5,zd,z.mut,0.5)));
@@ -2488,6 +2551,24 @@ $("zombiesBtn").onclick=()=>{
       (z.mut.length?" <span style='color:#c9f'>("+z.mut.map(m=>m.label).join(", ")+")</span>":"")+
       "<br>PWR "+z.pow+" &middot; HP "+Math.ceil(z.hp)+"/"+z.maxhp+" &middot; "+hungry+" &middot; "+z.kills+" wins";
     row.appendChild(txt);
+    const btns=document.createElement("div");
+    btns.style.cssText="display:flex;flex-direction:column;gap:4px";
+    const rn=document.createElement("button"); rn.className="gbtn small"; rn.innerHTML="&#x270F;&#xFE0F;";
+    rn.title="Rename";
+    rn.onclick=(ev)=>{ ev.stopPropagation();
+      const nn=prompt("Rename "+z.name+" (max 14 chars):",z.name);
+      if(nn!==null && renameZombie(ix,nn)){ sfx.pop(); $("zombiesBtn").onclick(); }
+    };
+    const rel=document.createElement("button"); rel.className="gbtn small red"; rel.innerHTML="&#x1FAA6;";
+    rel.title="Release back to the earth";
+    rel.onclick=(ev)=>{ ev.stopPropagation();
+      if(confirm("Release "+z.name+" back to the earth? They will shamble off forever.")){
+        releaseZombie(ix); sfx.bad(); toast(z.name+" shambles into the sunset... &#x1F9DF;");
+        $("zombiesBtn").onclick();
+      }
+    };
+    btns.appendChild(rn); btns.appendChild(rel);
+    row.appendChild(btns);
     b.appendChild(row);
   });
   const tip=document.createElement("p"); tip.style.cssText="font-size:12px;opacity:.8;padding:6px";
@@ -2517,7 +2598,7 @@ $("helpBtn").onclick=()=>{
    "<div style='font-size:14px;line-height:1.6'>"+
    "<b>&#x1F33E; Farm:</b> Tap grass to plow a plot (10g). Tap a plot to open the Market. After you pick a seed you stay in <b>planting mode</b> &mdash; keep tapping plots (even unplowed grass!) to plant the same thing again and again. Tap the green banner to stop. Zombies are the exception: they plant <b>one at a time</b>, on purpose &mdash; each one is a commitment. Tap ripe things to harvest. Crops wither if ignored too long!<br><br>"+
    "<b>&#x1F9DF; Zombies:</b> Harvested zombies join your horde (max "+MAX_Z+") and roam the farm, getting hungrier. If the horde is full, harvesting a zombie sells it for gold.<br><br>"+
-   "<b>&#x1F9EA; Mutations:</b> Grow a zombie <i>next to</i> ripening crops for a chance it rises mutated with bonus stats &mdash; and a new look! More life force (trees) = better odds.<br><br>"+
+   "<b>&#x1F9EA; Mutations:</b> Grow a zombie <i>next to</i> ripening crops for a chance it rises mutated with bonus stats &mdash; and a new look! More life force (trees) = better odds. <button class='gbtn small' id='mutBtn'>&#x1F9EC; Mutation Almanac</button><br><br>"+
    "<b>&#x2694;&#xFE0F; Invasions:</b> With "+INVADE_MIN+"+ zombies, hit INVADE. Zombies march one by one. If one gets distracted (&#x1F308; bubble), <b>tap the bubble</b> to refocus it! Hungry zombies stay focused. Win gold, XP, and maybe a <b>brain</b>.<br><br>"+
    "<b>&#x1F9E0; Brains:</b> Rare currency from invasions. Buys premium zombies &amp; trees.<br><br>"+
    "<b>&#x26CF;&#xFE0F; Shovel:</b> Toggle it, then tap anything to clear it.<br><br>"+
@@ -2527,6 +2608,7 @@ $("helpBtn").onclick=()=>{
    "<button class='gbtn small red' id='resetBtn2'>&#x1F5D1; Reset farm</button>"+
    (localStorage.getItem("zfr_save_backup")?" <button class='gbtn small' id='restoreBtn'>&#x21A9; Restore previous farm</button>":"")+
    "<div style='opacity:.55;font-size:11px;margin-top:10px'>Zombie Farm Resurrection &middot; "+BUILD+"</div></div>";
+  $("mutBtn").onclick=()=>{ openAlmanac(); };
   $("muteBtn2").onclick=function(){ S.muted=!S.muted; save(); this.innerHTML=S.muted?"&#x1F507; Unmute":"&#x1F50A; Mute"; };
   $("expBtn").onclick=()=>{
     save();
@@ -2561,6 +2643,64 @@ $("helpBtn").onclick=()=>{
   };
 };
 
+// ---- Mutation Almanac: discovered by doing, mastered by raising 3 ----
+function mutTier(label){
+  const n=(S.mutSeen&&S.mutSeen[label])||0;
+  return n>=3?2 : n>=1?1 : 0; // 0 hidden, 1 discovered, 2 mastered (combos shown)
+}
+function openAlmanac(){
+  openModal("&#x1F9EC; Mutation Almanac");
+  $("mTabs").innerHTML="";
+  const b=$("mBody"); b.innerHTML="";
+  const intro=document.createElement("p");
+  intro.style.cssText="font-size:12.5px;opacity:.85;padding:4px 6px";
+  intro.innerHTML="Discover a mutation to reveal it. Raise <b>3 zombies</b> with it to unlock its combo gallery!";
+  b.appendChild(intro);
+  const zd=ZTYPES.find(t=>t.id==="shambler");
+  CROPS.forEach(c=>{
+    const label=c.mut.label, tier=mutTier(label);
+    const seen=(S.mutSeen&&S.mutSeen[label])||0;
+    const div=document.createElement("div"); div.className="shopitem"+(tier===0?" locked":"");
+    if(tier===0){
+      div.appendChild(artCanvas((g,x,y,r)=>{
+        g.fillStyle="#3a2c1a"; g.beginPath(); g.arc(x,y,20,0,TAU); g.fill();
+        g.fillStyle="#8a6d3b"; g.font="bold 24px 'Lilita One','Comic Sans MS',sans-serif";
+        g.textAlign="center"; g.textBaseline="middle"; g.fillText("?",x,y+1);
+      }));
+      const inf=document.createElement("div"); inf.className="inf";
+      inf.innerHTML="<div class='nm'>???</div><div class='ds'>Grow a zombie beside ripening <b>"+c.name+"</b> to discover this mutation.</div>";
+      div.appendChild(inf);
+    } else {
+      div.appendChild(artCanvas((g,x,y,r)=>drawZombie(g,x,y+22,0.5,zd,[{label,col:c.col}],0.5)));
+      const inf=document.createElement("div"); inf.className="inf";
+      const stat=c.mut.stat==="pow"?"+"+c.mut.amt+" PWR":c.mut.stat==="hp"?"+"+c.mut.amt+" HP":"+"+c.mut.amt+" SPD";
+      let html="<div class='nm'>"+label+" <span style='font-weight:normal;font-size:12px'>&mdash; "+stat+"</span></div>"+
+               "<div class='ds'>From "+c.name+" &middot; raised "+seen+"x</div>";
+      div.appendChild(inf);
+      if(tier===2){
+        // combo gallery: this mutation paired with every other discovered one
+        const others=CROPS.filter(o=>o.mut.label!==label && mutTier(o.mut.label)>=1);
+        if(others.length){
+          const strip=document.createElement("div");
+          strip.style.cssText="display:flex;gap:2px;flex-wrap:wrap;margin-top:4px";
+          others.forEach(o=>{
+            const mini=artCanvas((g,x,y,r)=>drawZombie(g,x,y+18,0.34,zd,[{label,col:c.col},{label:o.mut.label,col:o.col}],0.5));
+            mini.title=label+" + "+o.mut.label;
+            strip.appendChild(mini);
+          });
+          html+="<div class='ds' style='opacity:.8'>Combos with your other discoveries:</div>";
+          inf.innerHTML=html;
+          inf.appendChild(strip);
+        } else inf.innerHTML=html;
+      } else {
+        html+="<div class='ds' style='color:#c9f'>Raise "+(3-seen)+" more to unlock the combo gallery.</div>";
+        inf.innerHTML=html;
+      }
+    }
+    b.appendChild(div);
+  });
+}
+
 $("shovelBtn").onclick=function(){ clearPlantMode(); shovelMode=!shovelMode; this.classList.toggle("toggled",shovelMode); sfx.tap();
   if(shovelMode){ const u=iconDataURL("shovel",null,40); if(u) cv.style.cursor='url("'+u+'") 20 34, pointer'; }
   else cv.style.cursor="";
@@ -2588,86 +2728,177 @@ $("invadeBtn").onclick=()=>{
     div.appendChild(inf);
     if(!locked){
       const btn=document.createElement("button"); btn.className="gbtn small red"; btn.textContent="Attack!";
-      btn.onclick=()=>{ closeModal(); startBattle(t); };
+      btn.onclick=()=>{ openSquadPicker(t); };
       div.appendChild(btn);
     }
     b.appendChild(div);
   });
 };
 
-function startBattle(target){
+// ---- squad picker: choose exactly who marches ----
+let squadSel=null;
+function openSquadPicker(target){
+  openModal("&#x1F9DF; Pick your squad &mdash; "+target.name);
+  $("mTabs").innerHTML="";
+  squadSel = S.zombies.map(()=>true); // everyone volunteers by default
+  const b=$("mBody"); b.innerHTML="";
+  const info=document.createElement("p");
+  info.style.cssText="font-size:12.5px;opacity:.85;padding:4px 6px";
+  info.innerHTML="Tap a zombie to bench or enlist them. In battle, tap squad cards to send them in &mdash; up to <b>3 fight at once</b>!";
+  b.appendChild(info);
+  S.zombies.forEach((z,ix)=>{
+    const zd=ZTYPES.find(t=>t.id===z.type);
+    const row=document.createElement("div"); row.className="zrow";
+    row.style.cursor="pointer";
+    const paint=()=>{ row.style.opacity=squadSel[ix]?"1":"0.35"; };
+    row.appendChild(artCanvas((g,x,y,r)=>drawZombie(g,x,y+22,0.5,zd,z.mut,0.5)));
+    const txt=document.createElement("div"); txt.style.flex="1";
+    const hungry = z.hunger>=70?"STARVING":z.hunger>=40?"peckish":"content";
+    txt.innerHTML="<b style='color:#ffe9a8'>"+z.name+"</b> the "+zd.name+"<br>PWR "+z.pow+" &middot; HP "+Math.ceil(z.hp)+"/"+z.maxhp+" &middot; "+hungry;
+    row.appendChild(txt);
+    row.onclick=()=>{ squadSel[ix]=!squadSel[ix]; paint(); sfx.tap(); };
+    paint();
+    b.appendChild(row);
+  });
+  const go=document.createElement("button"); go.className="gbtn red"; go.style.margin="8px";
+  go.innerHTML="&#x2694;&#xFE0F; MARCH!";
+  go.onclick=()=>{
+    const idxs=S.zombies.map((z,ix)=>ix).filter(ix=>squadSel[ix]);
+    if(!idxs.length){ toast("Your squad is empty! Enlist at least one zombie."); sfx.bad(); return; }
+    closeModal(); startBattle(TARGETS.find(t=>t.id===target.id), idxs);
+  };
+  b.appendChild(go);
+}
+
+const MAX_ACTIVE = 3;
+function startBattle(target, squadIdxs){
   clearPlantMode(); sfx.zomb();
-  const squad = S.zombies.slice().sort((a,b)=>b.hunger-a.hunger);
+  const idxs = squadIdxs || S.zombies.map((z,ix)=>ix);
+  const squad = idxs.map(ix=>S.zombies[ix]).filter(z=>z&&z.hp>0)
+                    .sort((a,b)=>b.hunger-a.hunger);
   B = {
-    target, t:0, timer:90,
+    target, t:0, timer:120,
     hp:target.hp, maxhp:target.hp,
-    queue:squad, ix:0, active:null,
-    projectiles:[], lastThrow:0,
+    squad, sent:new Set(), actives:[], brawlers:[], nextBrawl:rnd(4,7),
+    projectiles:[], lastThrow:0, benchRects:[],
     result:null, deaths:[], goldWon:0, brainWon:false,
     shake:0
   };
   scene="battle";
   $("leftBar").style.display="none"; $("rightBar").style.display="none"; $("hud").style.display="none";
 }
-function nextAttacker(){
-  while(B.ix<B.queue.length){
-    const z=B.queue[B.ix++];
-    if(z.hp>0){
-      B.active={z, x:-40, y:H*0.68, state: z.hunger>=70?"march":"distracted", bubbleT:0, atkT:0};
-      if(B.active.state==="distracted") B.active.needTaps=z.hunger>=40?1:2;
-      return true;
-    }
-  }
-  B.active=null; return false;
+// Send squad member k charging in (player-triggered via bench tap).
+function sendZombie(k){
+  const z=B.squad[k];
+  if(!z || z.hp<=0 || B.sent.has(z) || B.actives.length>=MAX_ACTIVE) return false;
+  const slot=[0,1,2].find(sl=>!B.actives.some(a=>a.slot===sl));
+  const a={z, slot, x:-40, y:H*0.68-slot*14, state: z.hunger>=70?"march":"distracted", bubbleT:0, atkT:0};
+  if(a.state==="distracted") a.needTaps=z.hunger>=40?1:2;
+  B.sent.add(z); B.actives.push(a); sfx.zomb();
+  return true;
 }
+function removeActive(a){ B.actives=B.actives.filter(x=>x!==a); }
 function updateBattle(dt){
   B.t+=dt; B.timer-=dt;
   if(B.shake>0)B.shake-=dt*10;
   if(B.result){ return; }
-  if(B.timer<=0 || (B.active===null && B.ix>=B.queue.length && B.hp>0)){ endBattle(false); return; }
   if(B.hp<=0){ endBattle(true); return; }
-  if(!B.active){ if(!nextAttacker()){ return; } }
-  const a=B.active, targX=W*0.72;
-  if(a.state==="distracted"){
-    a.bubbleT+=dt;
-  } else if(a.state==="march"){
-    a.x += (55+a.z.spd*35)*dt;
-    if(Math.random()<dt*5) spawnParts(a.x-12,a.y,"#c9b48a",1);
-    if(a.x>=targX-60){ a.state="attack"; }
-  } else if(a.state==="attack"){
-    a.atkT+=dt;
-    if(a.atkT>0.7){
-      a.atkT=0;
-      const hungerBonus = 1 + a.z.hunger/150;
-      const dmg=a.z.pow*hungerBonus*rnd(0.8,1.2);
-      B.hp-=dmg; B.shake=1; sfx.chomp();
-      spawnParts(W*0.72-30+rnd(-10,10), H*0.6, "#9a8a7a", 5);
-      addFloat(targX, H*0.5, "-"+Math.round(dmg), "#ff8a6a");
+  const anySendable = B.squad.some(z=>z.hp>0 && !B.sent.has(z));
+  if(B.timer<=0 || (!B.actives.length && !anySendable)){ endBattle(false); return; }
+  const targX=W*0.72;
+  // actives: march in, brawl the building
+  B.actives.slice().forEach(a=>{
+    const stopX=targX-58-a.slot*46;
+    if(a.state==="distracted"){
+      a.bubbleT+=dt;
+    } else if(a.state==="march"){
+      a.x += (55+a.z.spd*35)*dt;
+      if(Math.random()<dt*5) spawnParts(a.x-12,a.y,"#c9b48a",1);
+      if(a.x>=stopX){ a.state="attack"; }
+    } else if(a.state==="attack"){
+      a.atkT+=dt;
+      if(a.atkT>0.7){
+        a.atkT=0;
+        const hungerBonus = 1 + a.z.hunger/150;
+        const dmg=a.z.pow*hungerBonus*rnd(0.8,1.2);
+        B.hp-=dmg; B.shake=1; sfx.chomp();
+        spawnParts(targX-30+rnd(-10,10), H*0.6, "#9a8a7a", 5);
+        addFloat(targX, H*0.5, "-"+Math.round(dmg), "#ff8a6a");
+      }
     }
-  }
-  // Jester trait: defenders are too busy laughing to throw at full speed
-  const throwGap = rnd(1.4,2.2) * (a && a.z.type==="jester" ? 1.7 : 1);
-  if(a && a.state!=="distracted" && B.t-B.lastThrow>throwGap){
+  });
+  // Jester trait: any jester on the field keeps defenders laughing (slower throws)
+  const jesterOut = B.actives.some(a=>a.z.type==="jester" && a.state!=="distracted");
+  const throwGap = rnd(1.4,2.2) * (jesterOut ? 1.7 : 1);
+  const targets = B.actives.filter(a=>a.state!=="distracted");
+  if(targets.length && B.t-B.lastThrow>throwGap){
     B.lastThrow=B.t;
     B.projectiles.push({x:targX+10, y:H*0.55, vx:-(180+rnd(0,80)), vy:-rnd(120,220), g:400, born:B.t});
   }
   B.projectiles.forEach(p=>{
     p.vy+=p.g*dt; p.x+=p.vx*dt; p.y+=p.vy*dt;
-    if(a && a.state!=="dead" && Math.abs(p.x-a.x)<26 && Math.abs(p.y-a.y+20)<40){
-      p.hit=true;
-      let dmg=ri(4,9)+B.target.id*3;
-      if(a.z.type==="digger") dmg=Math.ceil(dmg*0.7); // hardhat trait
-      a.z.hp-=dmg; sfx.bad();
-      spawnParts(a.x,a.y-40,"#7fae5a",6);
-      addFloat(a.x,a.y-60,"-"+dmg,"#ff6a6a");
-      if(a.z.hp<=0){
-        B.deaths.push(a.z);
-        addFloat(a.x,a.y-70,a.z.name+" fell!","#ff4a4a");
-        B.active=null;
+    for(const a of B.actives){
+      if(Math.abs(p.x-a.x)<26 && Math.abs(p.y-a.y+20)<40){
+        p.hit=true;
+        let dmg=ri(6,13)+B.target.id*4; // defenders hit 50%+ harder now
+        if(a.z.type==="digger") dmg=Math.ceil(dmg*0.7); // hardhat trait
+        a.z.hp-=dmg; sfx.bad();
+        spawnParts(a.x,a.y-40,"#7fae5a",6);
+        addFloat(a.x,a.y-60,"-"+dmg,"#ff6a6a");
+        if(a.z.hp<=0){
+          B.deaths.push(a.z);
+          addFloat(a.x,a.y-70,a.z.name+" fell!","#ff4a4a");
+          removeActive(a);
+        }
+        break;
       }
     }
   });
   B.projectiles=B.projectiles.filter(p=>!p.hit && p.y<H+40 && p.x>-60);
+  // brawler defenders: they don't just throw — they run out and FIGHT
+  B.nextBrawl-=dt;
+  if(B.nextBrawl<=0 && B.brawlers.length<2 && B.hp>0){
+    B.nextBrawl=rnd(6,9);
+    B.brawlers.push({x:targX-30, y:H*0.68, hp:24+B.target.id*10, maxhp:24+B.target.id*10, atkT:0, wob:rnd(0,7)});
+    addFloat(targX-30,H*0.55,"Defender charges out!","#ffca7a");
+  }
+  B.brawlers.slice().forEach(br=>{
+    br.wob+=dt*7;
+    let near=null, nd=1e9;
+    B.actives.forEach(a=>{ const d=Math.abs(a.x-br.x); if(d<nd){nd=d; near=a;} });
+    if(!near){ // no one to fight — pace menacingly mid-field
+      const px2=W*0.45;
+      if(Math.abs(br.x-px2)>6) br.x+=(px2>br.x?1:-1)*55*dt;
+      return;
+    }
+    if(nd>34){
+      br.x+=(near.x>br.x?1:-1)*68*dt;
+      if(Math.random()<dt*4) spawnParts(br.x,br.y+4,"#c9b48a",1);
+    } else {
+      br.atkT+=dt;
+      if(br.atkT>0.8){
+        br.atkT=0;
+        const dmg=4+B.target.id*3;
+        near.z.hp-=dmg;
+        addFloat(near.x,near.y-60,"-"+dmg,"#ff6a6a"); sfx.bad();
+        // the zombie brawls right back
+        const back=near.z.pow*0.7*rnd(0.8,1.2);
+        br.hp-=back;
+        addFloat(br.x,br.y-70,"-"+Math.round(back),"#b7e05c");
+        spawnParts((br.x+near.x)/2,br.y-30,"#e8d8c0",4);
+        if(near.z.hp<=0){
+          B.deaths.push(near.z);
+          addFloat(near.x,near.y-70,near.z.name+" fell!","#ff4a4a");
+          removeActive(near);
+        }
+        if(br.hp<=0){
+          B.brawlers=B.brawlers.filter(x=>x!==br);
+          addFloat(br.x,br.y-60,"defender down!","#b7e05c");
+          spawnParts(br.x,br.y-20,"#9a8a7a",8);
+        }
+      }
+    }
+  });
 }
 function endBattle(won){
   const target=B.target;
@@ -2696,53 +2927,143 @@ function battleTap(px,py){
     $("leftBar").style.display="flex"; $("rightBar").style.display="flex"; $("hud").style.display="flex";
     hud(); return;
   }
-  const a=B.active;
-  if(a && a.state==="distracted"){
-    if(Math.abs(px-a.x)<80 && Math.abs(py-(a.y-105))<70){
+  // refocus a distracted fighter by tapping its thought bubble
+  for(const a of B.actives){
+    if(a.state==="distracted" && Math.abs(px-a.x)<80 && Math.abs(py-(a.y-105))<70){
       a.needTaps--; sfx.pop();
       if(a.needTaps<=0){ a.state="march"; addFloat(a.x,a.y-90,"BRAINS!","#7dffa0"); }
+      return;
+    }
+  }
+  // tap a bench card to send that zombie into the fray
+  for(const r of B.benchRects){
+    if(px>=r.x && px<=r.x+r.w && py>=r.y && py<=r.y+r.h){
+      if(B.actives.length>=MAX_ACTIVE){ toast("Only "+MAX_ACTIVE+" can fight at once!"); sfx.bad(); }
+      else if(!sendZombie(r.k)){ sfx.bad(); }
+      return;
     }
   }
 }
 
+// per-scene battle environments: sky, ground, horizon dressing
+const BATTLE_ENV={
+  farm:  {sky:["#7a5a9a","#c97a5a","#e8a86a"], ground:["#67953c","#4a7229"], hills:"#5a7a3a", sun:true, clouds:true, birds:true},
+  office:{sky:["#3a4668","#8a7a9a","#d8a888"], ground:["#6a7a58","#4e5e42"], hills:"#4a566e", sun:true, clouds:true},
+  pirate:{sky:["#3a7aa0","#7ac2de","#ffe0b0"], ground:["#e8d0a0","#c8ac74"], sea:true, sun:true, clouds:true, birds:true},
+  ninja: {sky:["#3a2a5e","#8a5a8e","#e8a0a8"], ground:["#5a7a4a","#3e5e36"], mountains:true, sun:true},
+  robot: {sky:["#4e4e5e","#9a8878","#d8b078"], ground:["#7a7a6a","#5a5a4e"], pylons:true, clouds:true},
+  mall:  {sky:["#4a2a6e","#b85a8a","#ffb878"], ground:["#8a8a92","#66666e"], lot:true, sun:true},
+  wizard:{sky:["#141026","#2e2452","#5e3a7e"], ground:["#3e5e46","#283e30"], stars:true, pines:true, moonUp:true},
+  moon:  {sky:["#050508","#0c0c18","#16162a"], ground:["#b0b4c0","#82869a"], stars:true, earth:true, craters:true}
+};
 function drawBattle(dt){
   const tg=B.target;
+  const env=BATTLE_ENV[tg.scen]||BATTLE_ENV.farm;
+  const pnow=performance.now()/1000;
   // sky
   const grad=cx.createLinearGradient(0,0,0,H*0.75);
-  grad.addColorStop(0,"#7a5a9a"); grad.addColorStop(0.55,"#c97a5a"); grad.addColorStop(1,"#e8a86a");
+  grad.addColorStop(0,env.sky[0]); grad.addColorStop(0.55,env.sky[1]); grad.addColorStop(1,env.sky[2]);
   cx.fillStyle=grad; cx.fillRect(0,0,W,H*0.75);
-  // sun low
-  cx.fillStyle="rgba(255,220,150,.9)"; blob(cx,W*0.2,H*0.28,26);
-  cx.fillStyle="rgba(255,220,150,.25)"; blob(cx,W*0.2,H*0.28,44);
-  // puffy clouds
-  for(let k=0;k<3;k++){
-    const cxx=((performance.now()/1000*(6+k*3)+k*300)%(W+260))-130;
-    const cyy=H*(0.1+k*0.07);
-    cx.fillStyle="rgba(255,246,236,.85)";
-    blob(cx,cxx,cyy,20+k*4); blob(cx,cxx+22,cyy+6,15+k*3); blob(cx,cxx-22,cyy+6,14+k*3);
+  if(env.stars){
+    for(let k=0;k<26;k++){
+      const sx=seedRnd(k,71)*W, sy=seedRnd(k,73)*H*0.55;
+      cx.globalAlpha=0.35+Math.sin(pnow*2+k)*0.3;
+      cx.fillStyle="#fff"; blob(cx,sx,sy,1.3+seedRnd(k,79));
+    }
+    cx.globalAlpha=1;
   }
-  // birds
-  cx.strokeStyle="rgba(60,40,60,.7)"; cx.lineWidth=2;
-  for(let k=0;k<2;k++){
-    const bxx=((performance.now()/1000*25+k*140)%(W+100))-50;
-    const byy=H*0.18+Math.sin(performance.now()/500+k)*10+k*26;
-    cx.beginPath();
-    cx.arc(bxx-5,byy,5,Math.PI*1.15,Math.PI*1.85);
-    cx.arc(bxx+5,byy,5,Math.PI*1.15,Math.PI*1.85);
-    cx.stroke();
+  if(env.earth){ // home, far away
+    cx.fillStyle="#3a6ab0"; blob(cx,W*0.18,H*0.2,26);
+    cx.fillStyle="#5fae3a";
+    blob(cx,W*0.18-8,H*0.2-6,9); blob(cx,W*0.18+9,H*0.2+7,7); blob(cx,W*0.18+6,H*0.2-10,5);
+    cx.fillStyle="rgba(255,255,255,.35)"; blob(cx,W*0.18-4,H*0.2+8,7);
+    outline(cx,2); cx.beginPath(); cx.arc(W*0.18,H*0.2,26,0,TAU); cx.stroke();
   }
-  // far hills
-  cx.fillStyle="#5a7a3a";
-  cx.beginPath(); cx.moveTo(0,H*0.72);
-  cx.quadraticCurveTo(W*0.25,H*0.56,W*0.5,H*0.7);
-  cx.quadraticCurveTo(W*0.75,H*0.58,W,H*0.7);
-  cx.lineTo(W,H*0.75); cx.lineTo(0,H*0.75); cx.closePath(); cx.fill();
+  if(env.moonUp){
+    cx.fillStyle="rgba(240,240,215,.25)"; blob(cx,W*0.2,H*0.2,34);
+    cx.fillStyle="#efeeda"; blob(cx,W*0.2,H*0.2,22);
+    cx.fillStyle="#d8d6c0"; blob(cx,W*0.19,H*0.19,5); blob(cx,W*0.22,H*0.22,3.4);
+  }
+  if(env.sun){
+    cx.fillStyle="rgba(255,220,150,.9)"; blob(cx,W*0.2,H*0.28,26);
+    cx.fillStyle="rgba(255,220,150,.25)"; blob(cx,W*0.2,H*0.28,44);
+  }
+  if(env.clouds){
+    for(let k=0;k<3;k++){
+      const cxx=((pnow*(6+k*3)+k*300)%(W+260))-130;
+      const cyy=H*(0.1+k*0.07);
+      cx.fillStyle="rgba(255,246,236,.85)";
+      blob(cx,cxx,cyy,20+k*4); blob(cx,cxx+22,cyy+6,15+k*3); blob(cx,cxx-22,cyy+6,14+k*3);
+    }
+  }
+  if(env.birds){
+    cx.strokeStyle="rgba(60,40,60,.7)"; cx.lineWidth=2;
+    for(let k=0;k<2;k++){
+      const bxx=((pnow*25+k*140)%(W+100))-50;
+      const byy=H*0.18+Math.sin(pnow*2+k)*10+k*26;
+      cx.beginPath();
+      cx.arc(bxx-5,byy,5,Math.PI*1.15,Math.PI*1.85);
+      cx.arc(bxx+5,byy,5,Math.PI*1.15,Math.PI*1.85);
+      cx.stroke();
+    }
+  }
+  // horizon dressing
+  if(env.sea){
+    cx.fillStyle="#2e6a92"; cx.fillRect(0,H*0.6,W,H*0.14);
+    cx.strokeStyle="rgba(255,255,255,.35)"; cx.lineWidth=2;
+    for(let k=0;k<5;k++){
+      const wx=((pnow*18+k*170)%(W+80))-40;
+      cx.beginPath(); cx.arc(wx,H*(0.63+k*0.02),9,Math.PI*0.1,Math.PI*0.9); cx.stroke();
+    }
+  } else if(env.mountains){
+    cx.fillStyle="#2e2444";
+    cx.beginPath(); cx.moveTo(0,H*0.74);
+    cx.lineTo(W*0.14,H*0.5); cx.lineTo(W*0.3,H*0.74);
+    cx.lineTo(W*0.44,H*0.56) ; cx.lineTo(W*0.6,H*0.74); cx.closePath(); cx.fill();
+    cx.fillStyle="#f0ede2"; // snow caps
+    cx.beginPath(); cx.moveTo(W*0.14,H*0.5); cx.lineTo(W*0.17,H*0.56); cx.lineTo(W*0.11,H*0.56); cx.closePath(); cx.fill();
+  } else if(env.pylons){
+    cx.strokeStyle="rgba(70,70,84,.8)"; cx.lineWidth=3;
+    for(let k=0;k<3;k++){
+      const px2=W*(0.1+k*0.18);
+      cx.beginPath(); cx.moveTo(px2-14,H*0.74); cx.lineTo(px2,H*0.5); cx.lineTo(px2+14,H*0.74); cx.stroke();
+      cx.beginPath(); cx.moveTo(px2-10,H*0.62); cx.lineTo(px2+10,H*0.62); cx.stroke();
+      if(k<2){ cx.beginPath(); cx.moveTo(px2,H*0.52); cx.quadraticCurveTo(W*(0.19+k*0.18),H*0.6,W*(0.28+k*0.18),H*0.52); cx.stroke(); }
+    }
+  } else if(env.pines){
+    cx.fillStyle="#1c2e22";
+    for(let k=0;k<7;k++){
+      const px2=W*(0.03+k*0.09), ph2=H*(0.1+seedRnd(k,7)*0.05);
+      cx.beginPath(); cx.moveTo(px2-16,H*0.74); cx.lineTo(px2,H*0.74-ph2); cx.lineTo(px2+16,H*0.74); cx.closePath(); cx.fill();
+    }
+  } else if(env.hills){
+    cx.fillStyle=env.hills;
+    cx.beginPath(); cx.moveTo(0,H*0.72);
+    cx.quadraticCurveTo(W*0.25,H*0.56,W*0.5,H*0.7);
+    cx.quadraticCurveTo(W*0.75,H*0.58,W,H*0.7);
+    cx.lineTo(W,H*0.75); cx.lineTo(0,H*0.75); cx.closePath(); cx.fill();
+  }
   // ground
   const ggr=cx.createLinearGradient(0,H*0.72,0,H);
-  ggr.addColorStop(0,"#67953c"); ggr.addColorStop(1,"#4a7229");
+  ggr.addColorStop(0,env.ground[0]); ggr.addColorStop(1,env.ground[1]);
   cx.fillStyle=ggr; cx.fillRect(0,H*0.7,W,H*0.3);
+  if(env.craters){
+    cx.fillStyle="rgba(90,94,110,.5)";
+    [[0.2,0.82,30],[0.5,0.9,22],[0.35,0.78,14]].forEach(cr=>{
+      cx.beginPath(); cx.ellipse(W*cr[0],H*cr[1],cr[2],cr[2]*0.32,0,0,TAU); cx.fill();
+    });
+  }
+  if(env.lot){ // mall parking lot markings + a stray cart
+    cx.strokeStyle="rgba(255,220,80,.5)"; cx.lineWidth=4;
+    for(let k=0;k<4;k++){ cx.beginPath(); cx.moveTo(W*(0.08+k*0.1),H*0.88); cx.lineTo(W*(0.12+k*0.1),H*0.8); cx.stroke(); }
+    const cwx=W*0.3, cwy=H*0.79;
+    cx.strokeStyle="#9aa4b0"; cx.lineWidth=2.6;
+    cx.strokeRect(cwx-12,cwy-16,24,12);
+    cx.beginPath(); cx.moveTo(cwx+12,cwy-16); cx.lineTo(cwx+18,cwy-24); cx.stroke();
+    cx.fillStyle="#5a5a64"; blob(cx,cwx-8,cwy,3); blob(cx,cwx+8,cwy,3);
+  }
   // path to building
-  cx.fillStyle="rgba(120,90,50,.5)";
+  cx.fillStyle=tg.scen==="moon"?"rgba(70,74,90,.4)":"rgba(120,90,50,.5)";
   cx.beginPath();
   cx.moveTo(-20,H*0.78); cx.quadraticCurveTo(W*0.4,H*0.72,W*0.72,H*0.72);
   cx.lineTo(W*0.72,H*0.76); cx.quadraticCurveTo(W*0.4,H*0.78,-20,H*0.86);
@@ -2810,20 +3131,20 @@ function drawBattle(dt){
   drawDefender(cx,tg.scen,bx+(tg.scen==="pirate"?42:10)*bsc,by-(tg.scen==="pirate"?54:100)*bsc,bsc,B.t);
   // projectiles
   B.projectiles.forEach(p=>{ drawProjectile(cx,tg.scen,p.x,p.y,B.t-p.born); });
-  // waiting queue at left
-  let qn=0;
-  for(let i=B.ix;i<B.queue.length && qn<5;i++){
-    const z=B.queue[i]; if(z.hp<=0)continue;
-    const zd=ZTYPES.find(t=>t.id===z.type);
-    drawZombie(cx, 32+qn*44, H*0.68+10, 0.62, zd, z.mut, B.t*3+i, nameHash(z.name));
-    qn++;
-  }
-  // active zombie
-  if(B.active){
-    const a=B.active, zd=ZTYPES.find(t=>t.id===a.z.type);
+  // melee brawlers charging across the field
+  B.brawlers.forEach(br=>{
+    const hop=Math.abs(Math.sin(br.wob*2))*5;
+    drawDefender(cx,tg.scen,br.x,br.y+6-hop,1.05,br.wob);
+    cx.fillStyle="rgba(0,0,0,.45)";
+    cx.beginPath(); cx.roundRect(br.x-20,br.y-72,40,7,4); cx.fill();
+    cx.fillStyle="#ffca5a";
+    cx.beginPath(); cx.roundRect(br.x-18,br.y-70,36*clamp(br.hp/br.maxhp,0,1),4,2); cx.fill();
+  });
+  // active fighters
+  B.actives.forEach(a=>{
+    const zd=ZTYPES.find(t=>t.id===a.z.type);
     const lunge = a.state==="attack" ? Math.max(0,Math.sin(a.atkT/0.7*Math.PI))*16 : 0;
-    drawZombie(cx,a.x+lunge,a.y,1.05,zd,a.z.mut, a.state==="march"?B.t*8:B.t*2, nameHash(a.z.name), a.z.hunger>=40);
-    // hp bar
+    drawZombie(cx,a.x+lunge,a.y,0.95,zd,a.z.mut, a.state==="march"?B.t*8:B.t*2, nameHash(a.z.name), a.z.hunger>=40);
     cx.fillStyle="rgba(0,0,0,.45)";
     cx.beginPath(); cx.roundRect(a.x-26,a.y-100,52,9,5); cx.fill();
     cx.fillStyle="#7dffa0";
@@ -2837,7 +3158,7 @@ function drawBattle(dt){
       outline(cx,2.4);
       cx.beginPath(); cx.arc(bx2,by2,30,0,TAU); cx.stroke();
       // distraction art: rainbow / butterfly / music note
-      const kind=(a.z.name.length+B.ix)%3;
+      const kind=(a.z.name.length+a.slot)%3;
       if(kind===0){
         const cols=["#e05a4a","#ffca28","#5fae3a","#4e8fbe"];
         cols.forEach((cc,ci)=>{
@@ -2866,8 +3187,57 @@ function drawBattle(dt){
       cx.strokeText("TAP the bubble!",bx2,by2-44);
       cx.fillStyle="#fff"; cx.fillText("TAP the bubble!",bx2,by2-44);
     }
-  }
+  });
   cx.restore();
+  // ---- squad bench: tap a card to send that zombie in ----
+  B.benchRects=[];
+  if(!B.result){
+    const cardW=64, cardH=86, pad=6;
+    const bx0=10, by0=H-cardH-10;
+    cx.font="bold 12px 'Lilita One','Arial Rounded MT Bold','Comic Sans MS',sans-serif"; cx.textAlign="center";
+    cx.strokeStyle="rgba(0,0,0,.55)"; cx.lineWidth=3;
+    cx.strokeText("YOUR SQUAD — tap to send ("+B.actives.length+"/"+MAX_ACTIVE+" out)", bx0+4+(cardW+pad)*Math.min(B.squad.length,7)/2, by0-8);
+    cx.fillStyle="#fff";
+    cx.fillText("YOUR SQUAD — tap to send ("+B.actives.length+"/"+MAX_ACTIVE+" out)", bx0+4+(cardW+pad)*Math.min(B.squad.length,7)/2, by0-8);
+    B.squad.forEach((z,k)=>{
+      const col=k%7, row=Math.floor(k/7);
+      const rx=bx0+col*(cardW+pad), ry=by0-row*(cardH+pad);
+      const dead=z.hp<=0, out=B.sent.has(z)&&!dead;
+      const fielded=B.actives.some(a=>a.z===z);
+      // card
+      cx.fillStyle=dead?"rgba(40,30,30,.75)":fielded?"rgba(60,80,40,.8)":out?"rgba(35,30,45,.7)":"rgba(30,42,20,.88)";
+      cx.beginPath(); cx.roundRect(rx,ry,cardW,cardH,9); cx.fill();
+      cx.strokeStyle=dead?"#5a4a4a":fielded?"#9ccf3e":out?"#555":"#ffd94d";
+      cx.lineWidth=fielded?3:2;
+      cx.beginPath(); cx.roundRect(rx,ry,cardW,cardH,9); cx.stroke();
+      const zd=ZTYPES.find(t=>t.id===z.type);
+      cx.save();
+      if(dead||out&&!fielded) cx.globalAlpha=0.45;
+      drawZombie(cx,rx+cardW/2,ry+cardH-24,0.42,zd,z.mut,B.t*2+k,nameHash(z.name));
+      cx.restore();
+      // name + hp sliver
+      cx.font="10px 'Fredoka','Arial Rounded MT Bold',sans-serif"; cx.fillStyle="#ffe9a8";
+      cx.fillText(z.name.slice(0,8), rx+cardW/2, ry+12);
+      cx.fillStyle="rgba(0,0,0,.5)"; cx.fillRect(rx+8,ry+cardH-14,cardW-16,6);
+      cx.fillStyle=dead?"#5a4a4a":"#7dffa0";
+      cx.fillRect(rx+9,ry+cardH-13,(cardW-18)*clamp(z.hp/z.maxhp,0,1),4);
+      if(dead){
+        cx.strokeStyle="#ff6a6a"; cx.lineWidth=3;
+        cx.beginPath(); cx.moveTo(rx+16,ry+24); cx.lineTo(rx+cardW-16,ry+cardH-28); cx.stroke();
+        cx.beginPath(); cx.moveTo(rx+cardW-16,ry+24); cx.lineTo(rx+16,ry+cardH-28); cx.stroke();
+      } else if(fielded){
+        cx.font="bold 10px 'Lilita One',sans-serif"; cx.fillStyle="#9ccf3e";
+        cx.fillText("FIGHTING", rx+cardW/2, ry+22);
+      } else if(!out){
+        B.benchRects.push({x:rx,y:ry,w:cardW,h:cardH,k});
+        if(!B.actives.length){ // pulse hint when nobody's fighting
+          const pu=0.5+Math.sin(B.t*5)*0.5;
+          cx.strokeStyle="rgba(255,217,77,"+pu+")"; cx.lineWidth=3.4;
+          cx.beginPath(); cx.roundRect(rx-2,ry-2,cardW+4,cardH+4,10); cx.stroke();
+        }
+      }
+    });
+  }
   // timer plaque
   cx.fillStyle="rgba(40,28,10,.75)";
   cx.beginPath(); cx.roundRect(W/2-48,8,96,32,10); cx.fill();
@@ -2941,32 +3311,90 @@ function loop(ts){
   if(S){
     if(scene==="farm"){
       hungerTick(); gardenerTick();
+      cx.save(); camApply();          // world-space: everything zooms & pans together
       drawFarm(dt);
+      drawFloats(dt); drawParts(dt); drawPops(dt); drawTapFX(dt);
+      cx.restore();
+      ambientTick();
     } else if(scene==="battle" && B){
       updateBattle(dt);
       drawBattle(dt);
+      drawFloats(dt); drawParts(dt); drawPops(dt); drawTapFX(dt);
     }
-    drawFloats(dt);
-    drawParts(dt);
-    drawPops(dt);
-    drawTapFX(dt);
-    if(scene==="farm") ambientTick();
   } else {
     try{ drawSplash(); }catch(e){}
   }
   requestAnimationFrame(loop);
 }
 
-// ---------- input ----------
+// ---------- input: tap / drag-pan / pinch-zoom / wheel-zoom ----------
+const ptrs=new Map();      // active pointers
+let gestDown=null;         // {x,y,lx,ly} for the primary pointer
+let gestMoved=false;
+let pinch0=null;           // {d, z} at pinch start
+function pointerDist(){
+  const p=[...ptrs.values()];
+  return Math.hypot(p[0].x-p[1].x, p[0].y-p[1].y);
+}
+function pointerMid(){
+  const p=[...ptrs.values()];
+  return {x:(p[0].x+p[1].x)/2, y:(p[0].y+p[1].y)/2};
+}
 cv.addEventListener("pointerdown",e=>{
-  const px=e.clientX, py=e.clientY;
   if(!S) return;
-  addTapFX(px,py);
-  if(scene==="battle"){ battleTap(px,py); return; }
-  const i=tileAt(px,py);
-  if(i>=0) tapTile(i);
-  else if(plantMode){ clearPlantMode(); sfx.tap(); toast("Planting stopped."); }
+  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(ptrs.size===1){
+    gestDown={x:e.clientX,y:e.clientY,lx:e.clientX,ly:e.clientY};
+    gestMoved=false;
+  } else if(ptrs.size===2 && scene==="farm"){
+    pinch0={d:pointerDist(), z:camZ};
+    gestDown=null; gestMoved=true;
+  }
 });
+cv.addEventListener("pointermove",e=>{
+  if(!S || !ptrs.has(e.pointerId)) return;
+  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pinch0 && ptrs.size===2 && scene==="farm"){
+    const mid=pointerMid();
+    const f=(pointerDist()/pinch0.d)*pinch0.z/camZ;
+    zoomAt(mid.x,mid.y,f);
+    return;
+  }
+  if(gestDown && scene==="farm"){
+    const dx=e.clientX-gestDown.lx, dy=e.clientY-gestDown.ly;
+    if(!gestMoved && Math.hypot(e.clientX-gestDown.x,e.clientY-gestDown.y)>8) gestMoved=true;
+    if(gestMoved && camZ>1.001){
+      camCX-=dx/camZ; camCY-=dy/camZ; clampCam();
+    }
+    gestDown.lx=e.clientX; gestDown.ly=e.clientY;
+  }
+});
+function pointerEnd(e){
+  if(!ptrs.has(e.pointerId)) return;
+  ptrs.delete(e.pointerId);
+  if(pinch0 && ptrs.size<2) pinch0=null;
+  if(gestDown && ptrs.size===0){
+    if(!gestMoved && S){
+      const px=e.clientX, py=e.clientY;
+      if(scene==="battle"){ addTapFX(px,py); battleTap(px,py); }
+      else {
+        const wp=screenToWorld(px,py);
+        addTapFX(wp.x,wp.y);
+        const i=tileAt(wp.x,wp.y);
+        if(i>=0) tapTile(i);
+        else if(plantMode){ clearPlantMode(); sfx.tap(); toast("Planting stopped."); }
+      }
+    }
+    gestDown=null; gestMoved=false;
+  }
+}
+cv.addEventListener("pointerup",pointerEnd);
+cv.addEventListener("pointercancel",pointerEnd);
+cv.addEventListener("wheel",e=>{
+  if(!S || scene!=="farm") return;
+  e.preventDefault();
+  zoomAt(e.clientX,e.clientY, e.deltaY<0 ? 1.12 : 0.89);
+},{passive:false});
 
 // ---------- splash art (animated scene) ----------
 function drawSplash(){

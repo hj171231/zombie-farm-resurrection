@@ -87,7 +87,8 @@ check("battle frame renders (building, defender, marching zombie)", () => {
   G.S.zombies = [];
   for (let k = 0; k < 6; k++) G.S.zombies.push({ type: "shambler", name: "Z" + k, pow: 5, hp: 22, maxhp: 22, spd: 1, hunger: 100, x: 0, y: 0, tx: 0, ty: 0, wob: 0, mut: [], kills: 0 });
   G.startBattle(G.TARGETS[2]); // pirate cove
-  for (let s = 0; s < 40; s++) G.updateBattle(0.05); // let a zombie march in
+  G.sendZombie(0); G.sendZombie(1);
+  for (let s = 0; s < 40; s++) G.updateBattle(0.05); // let zombies march in
   G.drawBattle(0.016);
   savePNG(G.cv, "battle-pirate.png");
   ok(uniqueColors(G.cv) > 40, "battle too flat");
@@ -98,6 +99,7 @@ check("every battle target scene renders without throwing", () => {
   G.TARGETS.forEach(t => {
     G.S.zombies = [{ type: "shambler", name: "Solo", pow: 5, hp: 22, maxhp: 22, spd: 1, hunger: 100, x: 0, y: 0, tx: 0, ty: 0, wob: 0, mut: [], kills: 0 }];
     G.startBattle(t);
+    G.sendZombie(0);
     G.updateBattle(0.05);
     G.drawBattle(0.016);
     G.scene = "farm"; G.B = null;

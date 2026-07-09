@@ -38,7 +38,11 @@ globalThis.__game = {
   xpNeeded, gainXP, calcLF, neighbors, growthInfo, fmtTime,
   cellXY, tileAt, layout, resize, randRoamPos, inFieldDiamond,
   tapTile, plantAt, harvest, setPlantMode, clearPlantMode, checkGoals, hud,
-  startBattle, nextAttacker, updateBattle, endBattle, battleTap,
+  startBattle, sendZombie, updateBattle, endBattle, battleTap, openSquadPicker, MAX_ACTIVE,
+  renameZombie, releaseZombie, mutTier, openAlmanac,
+  screenToWorld, zoomAt, resetCam, clampCam,
+  get camZ(){ return camZ; }, set camZ(v){ camZ = v; },
+  get camCX(){ return camCX; }, get camCY(){ return camCY; },
   gardenerTick, hungerTick,
   // art (for visual smoke tests)
   drawSplash, drawFarm, drawBattle, drawZombie, drawZHead, drawProduce,

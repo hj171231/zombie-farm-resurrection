@@ -4,7 +4,7 @@
    - Google Fonts CSS + woff2: stale-while-revalidate style cache-first (fonts basically never change)
    - icons/manifest: precached
    Bump VERSION on every deploy that changes cached files. */
-const VERSION = 'zfr-v6';
+const VERSION = 'zfr-v7';
 const PRECACHE = [
   './',
   './index.html',
