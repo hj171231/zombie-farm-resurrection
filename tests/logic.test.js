@@ -955,14 +955,20 @@ console.log("\n== content pack: new stats & goals ==");
 console.log("\n== zombie roaming ==");
 {
   const { G } = boot();
-  check("zombies mostly pick strolling spots outside the fenced field", () => {
-    let outside = 0;
+  check("randRoamPos always lands in the grass, never on the field", () => {
     for (let k = 0; k < 300; k++) {
       const p = G.randRoamPos();
-      if (!G.inFieldDiamond(p.x, p.y, 1.05)) outside++;
+      ok(!G.inFieldDiamond(p.x, p.y, 1.05), "landed on the field: " + JSON.stringify(p));
     }
-    ok(outside > 180, "only " + outside + "/300 outside — should be ~80%");
-    ok(outside < 300, "some walks should still cross the field, got " + outside + "/300 outside");
+  });
+  check("roam paths route AROUND the field (rare 1.5% shortcuts allowed)", () => {
+    const start = G.randRoamPos();
+    let crossings = 0;
+    for (let k = 0; k < 300; k++) {
+      const p = G.roamTargetFrom(start.x, start.y);
+      if (!G.pathAvoidsField(start.x, start.y, p.x, p.y)) crossings++;
+    }
+    ok(crossings < 20, crossings + "/300 paths crossed the field — should be ~1.5%");
   });
   check("roam spots stay on screen", () => {
     for (let k = 0; k < 100; k++) {

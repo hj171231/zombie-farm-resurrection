@@ -36,7 +36,7 @@ globalThis.__game = {
   // logic
   freshState, save, load, sanitizeState, backupSave, startGame, BUILD,
   xpNeeded, gainXP, calcLF, neighbors, growthInfo, fmtTime,
-  cellXY, tileAt, layout, resize, randRoamPos, inFieldDiamond,
+  cellXY, tileAt, layout, resize, randRoamPos, inFieldDiamond, roamTargetFrom, pathAvoidsField,
   tapTile, plantAt, harvest, setPlantMode, clearPlantMode, checkGoals, hud,
   startBattle, sendZombie, updateBattle, endBattle, battleTap, openSquadPicker, MAX_ACTIVE,
   renameZombie, releaseZombie, mutTier, openAlmanac, pairKey, pairRaised, SQUAD_MAX,
