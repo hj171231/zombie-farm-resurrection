@@ -1012,6 +1012,76 @@ console.log("\n== save backup net ==");
   });
 }
 
+console.log("\n== roam healing (trees earn their keep) ==");
+function injuredHorde(lifeForce) {
+  const inst = loadGame(); const G = inst.G;
+  G.startGame(null);
+  G.S.lifeForce = lifeForce;
+  G.S.zombies.push({ type: "shambler", name: "Ouch", pow: 5, hp: 10, maxhp: 22, spd: 1, hunger: 30, x: 100, y: 100, tx: 100, ty: 100, wob: 0, mut: [], kills: 0 });
+  G.S.zombies.push({ type: "mini", name: "Fine", pow: 3, hp: 12, maxhp: 12, spd: 1.7, hunger: 30, x: 100, y: 100, tx: 100, ty: 100, wob: 0, mut: [], kills: 0 });
+  return G;
+}
+{
+  check("injured zombies heal 1hp per tick with no life force", () => {
+    const G = injuredHorde(0);
+    G.healTick();
+    eq(G.S.zombies[0].hp, 11);
+  });
+  check("healing is throttled to one tick per 5s", () => {
+    const G = injuredHorde(0);
+    G.healTick(); G.healTick(); G.healTick();
+    eq(G.S.zombies[0].hp, 11, "only the first tick counts");
+  });
+  check("300 life force heals 6x faster", () => {
+    const G = injuredHorde(300);
+    G.healTick();
+    eq(G.S.zombies[0].hp, 16);
+  });
+  check("life force beyond 300 doesn't help further", () => {
+    const G = injuredHorde(9999);
+    G.healTick();
+    eq(G.S.zombies[0].hp, 16);
+  });
+  check("healing clamps at max hp; healthy zombies untouched", () => {
+    const G = injuredHorde(300);
+    G.S.zombies[0].hp = 20; // 6 would overshoot 22
+    G.healTick();
+    eq(G.S.zombies[0].hp, 22);
+    eq(G.S.zombies[1].hp, 12, "healthy zombie stays put");
+  });
+}
+
+console.log("\n== combo tracking (almanac pairs) ==");
+{
+  check("a double mutation records its pair in pairSeen", () => {
+    const G = zombieWithNeighbors(["carrot", "corn", "pumpkin", "shroom"], 0.7, () => 0);
+    eq(G.S.zombies[0].mut.length, 2);
+    const key = G.S.zombies[0].mut.map(m => m.label).sort().join(" + ");
+    eq(G.S.pairSeen[key], 1);
+    ok(G.pairRaised(G.S.zombies[0].mut[0].label, G.S.zombies[0].mut[1].label));
+  });
+  check("a single mutation records no pair", () => {
+    const G = zombieWithNeighbors(["carrot"], 0.7, () => 0);
+    eq(Object.keys(G.S.pairSeen || {}).length, 0);
+  });
+  check("pairKey is order-independent", () => {
+    const { G } = boot();
+    eq(G.pairKey("Flaming", "Speedy"), G.pairKey("Speedy", "Flaming"));
+  });
+  check("sanitizeState keeps valid pairs, drops junk", () => {
+    const { G } = boot();
+    const raw = G.freshState();
+    raw.pairSeen = { "Flaming + Speedy": 2, "Speedy + NotReal": 1, "Flaming": 3, "Flaming + Speedy + Pungent": 1 };
+    const s = G.sanitizeState(raw);
+    eq(s.pairSeen["Flaming + Speedy"], 2);
+    eq(Object.keys(s.pairSeen).length, 1, "junk keys dropped");
+  });
+  check("squad picker cap is 5", () => {
+    const { G } = boot();
+    eq(G.SQUAD_MAX, 5);
+  });
+}
+
 console.log("\n----------------------------------");
 console.log("logic: " + passed + " passed, " + failed + " failed");
 if (failed > 0) process.exit(1);
