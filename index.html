@@ -170,34 +170,34 @@ const ZNAMES = ["Grubbs","Mortimer","Squelch","Petunia","Boggart","Lurleen","Fes
 // ---------- content data ----------
 const CROPS = [
  {id:"carrot",   name:"Carrot",       cost:10,  time:25,   sell:16,   xp:1, unlock:1, col:"#ff8c2e", mut:{stat:"spd", amt:0.6, label:"Speedy"}},
- {id:"corn",     name:"Corn",         cost:25,  time:50,   sell:45,   xp:2, unlock:2, col:"#ffd94d", mut:{stat:"pow", amt:2,   label:"Kernel-Powered"}},
- {id:"pumpkin",  name:"Pumpkin",      cost:60,  time:100,  sell:110,  xp:3, unlock:3, col:"#ff7f1e", mut:{stat:"hp",  amt:12,  label:"Gourd-Headed"}},
- {id:"shroom",   name:"Gloomshroom",  cost:120, time:200,  sell:245,  xp:5, unlock:5, col:"#c98ee0", mut:{stat:"pow", amt:4,   label:"Sporified"}},
- {id:"pepper",   name:"Ghost Pepper", cost:250, time:330,  sell:560,  xp:8, unlock:7, col:"#e03c2e", mut:{stat:"pow", amt:7,  label:"Flaming"}},
- {id:"melon",    name:"Moon Melon",   cost:500, time:540,  sell:1200, xp:12,unlock:10,col:"#8ee0b0", mut:{stat:"hp",  amt:25,  label:"Moon-Touched"}},
- {id:"wormapple",name:"Wormy Apple",  cost:900, time:780,  sell:2250, xp:16,unlock:12,col:"#e04838", mut:{stat:"hp",  amt:18,  label:"Wormfriend"}},
- {id:"beet",     name:"Beating Beet", cost:1800,time:1320, sell:4700, xp:22,unlock:14,col:"#c22b5a", mut:{stat:"hp",  amt:35,  label:"Big-Hearted"}},
- {id:"eyeberry", name:"Eyeball Berries",cost:3500,time:1980,sell:9500,xp:30,unlock:17,col:"#7ab8e0", mut:{stat:"spd", amt:0.8, label:"All-Seeing"}},
- {id:"garlic",   name:"Grave Garlic", cost:7000,time:3000, sell:20000,xp:40,unlock:20,col:"#e8e2d0", mut:{stat:"pow", amt:12,  label:"Pungent"}}
+ {id:"corn",     name:"Corn",         cost:30,  time:50,   sell:50,   xp:2, unlock:2, col:"#ffd94d", mut:{stat:"pow", amt:2,   label:"Kernel-Powered"}},
+ {id:"pumpkin",  name:"Pumpkin",      cost:80,  time:100,  sell:145,  xp:3, unlock:3, col:"#ff7f1e", mut:{stat:"hp",  amt:12,  label:"Gourd-Headed"}},
+ {id:"shroom",   name:"Gloomshroom",  cost:180, time:200,  sell:370,  xp:5, unlock:5, col:"#c98ee0", mut:{stat:"pow", amt:4,   label:"Sporified"}},
+ {id:"pepper",   name:"Ghost Pepper", cost:440, time:330,  sell:980,  xp:8, unlock:7, col:"#e03c2e", mut:{stat:"pow", amt:7,  label:"Flaming"}},
+ {id:"melon",    name:"Moon Melon",   cost:1000,time:540,  sell:2400, xp:12,unlock:10,col:"#8ee0b0", mut:{stat:"hp",  amt:25,  label:"Moon-Touched"}},
+ {id:"wormapple",name:"Wormy Apple",  cost:2100,time:780,  sell:5200, xp:16,unlock:12,col:"#e04838", mut:{stat:"hp",  amt:18,  label:"Wormfriend"}},
+ {id:"beet",     name:"Beating Beet", cost:4800,time:1320, sell:12500,xp:22,unlock:14,col:"#c22b5a", mut:{stat:"hp",  amt:35,  label:"Big-Hearted"}},
+ {id:"eyeberry", name:"Eyeball Berries",cost:10500,time:1980,sell:29000,xp:30,unlock:17,col:"#7ab8e0", mut:{stat:"spd", amt:0.8, label:"All-Seeing"}},
+ {id:"garlic",   name:"Grave Garlic", cost:24500,time:3000,sell:70000,xp:40,unlock:20,col:"#e8e2d0", mut:{stat:"pow", amt:12,  label:"Pungent"}}
 ];
 const ZTYPES = [
  {id:"shambler", name:"Shambler",  cost:50,  brains:0, time:30,  pow:5,  hp:22, spd:1.0, unlock:1, col:"#82c356", shirt:"#b23a2c", plaid:true, desc:"Your everyday hard-working corpse."},
- {id:"mini",     name:"Mini Z",    cost:30,  brains:0, time:15,  pow:3,  hp:12, spd:1.7, unlock:1, col:"#98d86a", shirt:"#4e8fbe", small:true, desc:"Tiny, quick, adorable-ish."},
- {id:"headless", name:"Headless",  cost:120, brains:0, time:60,  pow:9,  hp:32, spd:0.9, unlock:3, col:"#79ab8f", shirt:"#8f5a4e", headless:true, desc:"Lost its head. Never lost a fight."},
- {id:"gardener", name:"Gardener",  cost:150, brains:0, time:45,  pow:2,  hp:16, spd:1.0, unlock:4, col:"#6fcf96", shirt:"#3e7a4e", hat:"straw", desc:"Fertilizes crops for DOUBLE gold. Weak fighter."},
- {id:"bruiser",  name:"Bruiser",   cost:320, brains:0, time:120, pow:15, hp:60, spd:0.7, unlock:6, col:"#9a8bc0", shirt:"#5c4a7a", big:true, desc:"Built like a barn door."},
- {id:"banshee",  name:"Banshee",   cost:600, brains:0, time:180, pow:20, hp:45, spd:1.4, unlock:8, col:"#c3d3ea", shirt:"#7a8fb0", glow:true, desc:"Fast, furious, faintly glowing."},
+ {id:"mini",     name:"Mini Z",    cost:35,  brains:0, time:15,  pow:3,  hp:12, spd:1.7, unlock:1, col:"#98d86a", shirt:"#4e8fbe", small:true, desc:"Tiny, quick, adorable-ish."},
+ {id:"headless", name:"Headless",  cost:160, brains:0, time:60,  pow:9,  hp:32, spd:0.9, unlock:3, col:"#79ab8f", shirt:"#8f5a4e", headless:true, desc:"Lost its head. Never lost a fight."},
+ {id:"gardener", name:"Gardener",  cost:230, brains:0, time:45,  pow:2,  hp:16, spd:1.0, unlock:4, col:"#6fcf96", shirt:"#3e7a4e", hat:"straw", desc:"Fertilizes crops for DOUBLE gold. Weak fighter."},
+ {id:"bruiser",  name:"Bruiser",   cost:560, brains:0, time:120, pow:15, hp:60, spd:0.7, unlock:6, col:"#9a8bc0", shirt:"#5c4a7a", big:true, desc:"Built like a barn door."},
+ {id:"banshee",  name:"Banshee",   cost:1200,brains:0, time:180, pow:20, hp:45, spd:1.4, unlock:8, col:"#c3d3ea", shirt:"#7a8fb0", glow:true, desc:"Fast, furious, faintly glowing."},
  {id:"abom",     name:"Abomination",cost:0,  brains:2, time:200, pow:32, hp:110,spd:0.6, unlock:9, col:"#cf7d7d", shirt:"#6e3a3a", big:true, desc:"A premium pile of muscle. Costs brains."},
- {id:"digger",   name:"Grave Digger",cost:1200,brains:0,time:240, pow:24, hp:70, spd:0.9, unlock:11,col:"#a8b060", shirt:"#c8842e", hat:"hardhat", prop:"shovel", desc:"Hardhat blocks 30% of projectile damage."},
- {id:"jester",   name:"Jester",    cost:2500,brains:0, time:300, pow:18, hp:50, spd:1.6, unlock:13,col:"#8fd8b8", shirt:"#7a3a9e", hat:"jester", motley:true, desc:"Confuses defenders &mdash; they throw much slower."},
- {id:"chef",     name:"Chef",      cost:4500,brains:0, time:360, pow:28, hp:80, spd:1.0, unlock:15,col:"#b8d86a", shirt:"#f0ede2", hat:"toque", prop:"ladle", desc:"After a won battle, survivors heal DOUBLE."},
+ {id:"digger",   name:"Grave Digger",cost:3200,brains:0,time:240, pow:24, hp:70, spd:0.9, unlock:11,col:"#a8b060", shirt:"#c8842e", hat:"hardhat", prop:"shovel", desc:"Hardhat blocks 30% of projectile damage."},
+ {id:"jester",   name:"Jester",    cost:7600,brains:0, time:300, pow:18, hp:50, spd:1.6, unlock:13,col:"#8fd8b8", shirt:"#7a3a9e", hat:"jester", motley:true, desc:"Confuses defenders &mdash; they throw much slower."},
+ {id:"chef",     name:"Chef",      cost:16000,brains:0,time:360, pow:28, hp:80, spd:1.0, unlock:15,col:"#b8d86a", shirt:"#f0ede2", hat:"toque", prop:"ladle", desc:"After a won battle, survivors heal DOUBLE."},
  {id:"gravemound",name:"Gravemound",cost:0,  brains:5, time:600, pow:55, hp:220,spd:0.5, unlock:19,col:"#7a9a6a", shirt:"#4e5e42", big:true, colossus:true, desc:"A walking hillside. The ground remembers him."}
 ];
 const TREES = [
  {id:"oak",    name:"Gnarly Oak",   cost:100, brains:0, lf:10, unlock:2, col:"#4e8a2e"},
- {id:"willow", name:"Weeping Willow",cost:300,brains:0, lf:25, unlock:5, col:"#72aa50"},
+ {id:"willow", name:"Weeping Willow",cost:350,brains:0, lf:25, unlock:5, col:"#72aa50"},
  {id:"spooky", name:"Spooky Tree",  cost:0,   brains:1, lf:60, unlock:7, col:"#6a568a"},
- {id:"bonebirch",name:"Bone Birch", cost:2000,brains:0, lf:100,unlock:12,col:"#cfe0c0"},
+ {id:"bonebirch",name:"Bone Birch", cost:3000,brains:0, lf:100,unlock:12,col:"#cfe0c0"},
  {id:"lantern", name:"Lantern Tree",cost:0,   brains:3, lf:180,unlock:16,col:"#3a3048"}
 ];
 const TARGETS = [
@@ -229,7 +229,7 @@ const GOALS = [
  {id:"moon1",   desc:"Win at the Lunar Lab",      n:1,  stat:"moonwin",   gold:10000}
 ];
 
-const BUILD = "build 10 · 2026-07-09"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 11 · 2026-07-09"; // rewritten by scripts/deploy.sh at each publish
 const GRID = 7;
 const MAX_Z = 16;
 const INVADE_MIN = 6;
@@ -733,18 +733,20 @@ function hungerTick(){
   lastHunger=now();
   S.zombies.forEach(z=>{ z.hunger=clamp(z.hunger+1,0,100); });
 }
-// Roaming the farm heals battle wounds. Trees radiate life force, and the
-// more of it, the faster the horde patches itself up:
-//   0 LF -> 1 hp / 5s ... 300 LF -> 6 hp / 5s
+// Roaming the farm slowly heals battle wounds — and battle wounds are meant
+// to STING. Recovering from half-health takes ~25 minutes with no trees,
+// and never less than ~10 minutes even at 300 life force. A mauled zombie
+// sits out the next invasion or two; that's the price of war.
 let lastHeal=0;
 function healTick(){
   if(now()-lastHeal<5000) return;
   lastHeal=now();
-  const rate=1+Math.min(S.lifeForce,300)/60;
+  const minutes = 25 - 15*Math.min(S.lifeForce,300)/300; // 25min bare -> 10min at 300 LF
+  const frac = 0.5/(minutes*12);                          // fraction of maxhp per 5s tick
   S.zombies.forEach(z=>{
     if(z.hp<z.maxhp){
-      z.hp=Math.min(z.maxhp,z.hp+rate);
-      if(Math.random()<0.35) spawnParts(z.x,z.y-30,"#7dffa0",2); // healing sparkle
+      z.hp=Math.min(z.maxhp, z.hp + Math.max(0.04, z.maxhp*frac));
+      if(Math.random()<0.15) spawnParts(z.x,z.y-30,"#7dffa0",2); // healing sparkle
     }
   });
 }
@@ -3159,8 +3161,11 @@ function sendZombie(k){
   const z=B.squad[k];
   if(!z || z.hp<=0 || B.sent.has(z) || B.actives.length>=MAX_ACTIVE) return false;
   const slot=[0,1,2].find(sl=>!B.actives.some(a=>a.slot===sl));
-  const a={z, slot, x:-40, y:H*0.68-slot*14, state: z.hunger>=70?"march":"distracted", bubbleT:0, atkT:0};
-  if(a.state==="distracted") a.needTaps=z.hunger>=40?1:2;
+  // everyone charges the MOMENT you tap — no off-screen dawdling. Not-hungry
+  // zombies get distracted MID-march, on screen, where the bubble is tappable.
+  const a={z, slot, x:-40, y:H*0.68-slot*14, state:"march", bubbleT:0, atkT:0,
+           willDistract: z.hunger>=70?0 : (z.hunger>=40?1:2),
+           distractX: W*rnd(0.2,0.42)};
   B.sent.add(z); B.actives.push(a); sfx.zomb();
   return true;
 }
@@ -3206,6 +3211,10 @@ function updateBattle(dt){
     if(a.state==="march"){
       a.x += (55+a.z.spd*35)*dt;
       if(Math.random()<dt*5) spawnParts(a.x-12,a.y,"#c9b48a",1);
+      if(a.willDistract && a.x>=a.distractX){ // something shiny, mid-field...
+        a.state="distracted"; a.needTaps=a.willDistract; a.willDistract=0;
+        return;
+      }
       if(a.x>=stopX){ a.state="attack"; }
     } else if(a.state==="attack"){
       a.atkT+=dt;

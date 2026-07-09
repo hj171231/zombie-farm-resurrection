@@ -234,11 +234,11 @@ console.log("\n== horde ==");
   check("full horde (16): overflow zombie sells for cost*1.2+20", () => {
     while (G.S.zombies.length < 16) G.S.zombies.push({ type: "mini", hp: 1, maxhp: 1, pow: 1, spd: 1, hunger: 0, mut: [], kills: 0, x: 0, y: 0, tx: 0, ty: 0, wob: 0, name: "Dummy" });
     G.S.gold = 0;
-    forcePlot(G, 6); G.S.gold = 100; G.plantAt(6, "zombie", "mini"); // 100-30=70
+    forcePlot(G, 6); G.S.gold = 100; G.plantAt(6, "zombie", "mini"); // 100-35=65
     backdate(G, 6, 16);
     G.tapTile(6);
     eq(G.S.zombies.length, 16, "horde stays capped");
-    eq(G.S.gold, 70 + Math.floor(30 * 1.2) + 20); // +56
+    eq(G.S.gold, 65 + Math.floor(35 * 1.2) + 20); // +62
   });
 }
 
@@ -327,21 +327,37 @@ function simulate(G, maxSteps) {
     ok(G.sendZombie(0) === false, "no double-sending");
     G.scene = "farm"; G.B = null;
   });
-  check("hungry zombie (70+) marches; peckish is distracted", () => {
+  check("EVERYONE marches immediately on send — no off-screen dawdling", () => {
     armyOf(G, 2, [90, 50], 5);
     G.startBattle(G.TARGETS[0]);
-    G.sendZombie(0);
+    G.sendZombie(0); G.sendZombie(1);
     eq(G.B.actives[0].state, "march");
-    G.sendZombie(1);
-    eq(G.B.actives[1].state, "distracted");
-    eq(G.B.actives[1].needTaps, 1); // hunger 40-69 -> 1 tap
+    eq(G.B.actives[1].state, "march", "even the peckish one starts marching");
+    G.scene = "farm"; G.B = null;
+  });
+  check("not-hungry zombies get distracted MID-march, ON screen (1 tap)", () => {
+    armyOf(G, 1, 50, 5);
+    G.startBattle(G.TARGETS[0]);
+    G.B.nextBrawl = 999; // keep the field clear for this test
+    G.sendZombie(0);
+    const a = G.B.actives[0];
+    let steps = 0;
+    while (a.state === "march" && steps++ < 400) G.updateBattle(0.05);
+    eq(a.state, "distracted");
+    eq(a.needTaps, 1);
+    ok(a.x > G.W * 0.15, "distraction happens on screen, x=" + Math.round(a.x));
+    G.battleTap(a.x, a.y - 105);
+    eq(a.state, "march", "one tap refocuses");
     G.scene = "farm"; G.B = null;
   });
   check("barely-hungry zombie (<40) needs 2 refocus taps", () => {
     armyOf(G, 1, 10, 5);
     G.startBattle(G.TARGETS[0]);
+    G.B.nextBrawl = 999;
     G.sendZombie(0);
     const a = G.B.actives[0];
+    let steps = 0;
+    while (a.state === "march" && steps++ < 400) G.updateBattle(0.05);
     eq(a.needTaps, 2);
     G.battleTap(a.x, a.y - 105);
     eq(a.needTaps, 1); eq(a.state, "distracted");
@@ -839,9 +855,16 @@ console.log("\n== content pack: data ==");
     const want = [25, 50, 100, 200, 330, 540, 780, 1320, 1980, 3000];
     eq(JSON.stringify(G.CROPS.map(c => c.time)), JSON.stringify(want));
   });
-  check("crop payouts trimmed ~10% to nice numbers", () => {
-    const want = [16, 45, 110, 245, 560, 1200, 2250, 4700, 9500, 20000];
-    eq(JSON.stringify(G.CROPS.map(c => c.sell)), JSON.stringify(want));
+  check("crop economy ladder: ~15% compounding per tier (carrot untouched)", () => {
+    const wantCost = [10, 30, 80, 180, 440, 1000, 2100, 4800, 10500, 24500];
+    const wantSell = [16, 50, 145, 370, 980, 2400, 5200, 12500, 29000, 70000];
+    eq(JSON.stringify(G.CROPS.map(c => c.cost)), JSON.stringify(wantCost));
+    eq(JSON.stringify(G.CROPS.map(c => c.sell)), JSON.stringify(wantSell));
+  });
+  check("zombie & tree price ladders (first item + brains prices untouched)", () => {
+    const wantZ = [50, 35, 160, 230, 560, 1200, 0, 3200, 7600, 16000, 0];
+    eq(JSON.stringify(G.ZTYPES.map(z => z.cost)), JSON.stringify(wantZ));
+    eq(JSON.stringify(G.TREES.map(t => t.cost)), JSON.stringify([100, 350, 0, 3000, 0]));
   });
   check("every crop's mutation label is unique (visual zone ownership)", () => {
     const labels = G.CROPS.map(c => c.mut.label);
@@ -1023,36 +1046,40 @@ function injuredHorde(lifeForce) {
   const inst = loadGame(); const G = inst.G;
   G.startGame(null);
   G.S.lifeForce = lifeForce;
-  G.S.zombies.push({ type: "shambler", name: "Ouch", pow: 5, hp: 10, maxhp: 22, spd: 1, hunger: 30, x: 100, y: 100, tx: 100, ty: 100, wob: 0, mut: [], kills: 0 });
+  G.S.zombies.push({ type: "gravemound", name: "Ouch", pow: 55, hp: 110, maxhp: 220, spd: 0.5, hunger: 30, x: 100, y: 100, tx: 100, ty: 100, wob: 0, mut: [], kills: 0 });
   G.S.zombies.push({ type: "mini", name: "Fine", pow: 3, hp: 12, maxhp: 12, spd: 1.7, hunger: 30, x: 100, y: 100, tx: 100, ty: 100, wob: 0, mut: [], kills: 0 });
   return G;
 }
 {
-  check("injured zombies heal 1hp per tick with no life force", () => {
+  check("wounds STING: half-health recovery takes ~25 min with no trees", () => {
     const G = injuredHorde(0);
     G.healTick();
-    eq(G.S.zombies[0].hp, 11);
+    const gain = G.S.zombies[0].hp - 110;
+    // 25 min = 300 ticks to regain half (110hp) => ~0.3667/tick on a 220hp zombie
+    ok(Math.abs(gain - 220 * 0.5 / 300) < 0.001, "gain was " + gain);
+  });
+  check("even at 300 life force, half-health takes AT LEAST 10 minutes", () => {
+    const G = injuredHorde(300);
+    G.healTick();
+    const gain = G.S.zombies[0].hp - 110;
+    ok(gain <= 220 * 0.5 / 120 + 1e-9, "gain " + gain + " would beat the 10-min floor");
+    ok(Math.abs(gain - 220 * 0.5 / 120) < 0.001, "should heal exactly the 10-min rate");
+  });
+  check("life force beyond 300 doesn't help further", () => {
+    const G = injuredHorde(99999);
+    G.healTick();
+    ok(Math.abs((G.S.zombies[0].hp - 110) - 220 * 0.5 / 120) < 0.001);
   });
   check("healing is throttled to one tick per 5s", () => {
     const G = injuredHorde(0);
     G.healTick(); G.healTick(); G.healTick();
-    eq(G.S.zombies[0].hp, 11, "only the first tick counts");
-  });
-  check("300 life force heals 6x faster", () => {
-    const G = injuredHorde(300);
-    G.healTick();
-    eq(G.S.zombies[0].hp, 16);
-  });
-  check("life force beyond 300 doesn't help further", () => {
-    const G = injuredHorde(9999);
-    G.healTick();
-    eq(G.S.zombies[0].hp, 16);
+    ok(Math.abs((G.S.zombies[0].hp - 110) - 220 * 0.5 / 300) < 0.001, "only the first tick counts");
   });
   check("healing clamps at max hp; healthy zombies untouched", () => {
     const G = injuredHorde(300);
-    G.S.zombies[0].hp = 20; // 6 would overshoot 22
+    G.S.zombies[0].hp = 219.99;
     G.healTick();
-    eq(G.S.zombies[0].hp, 22);
+    eq(G.S.zombies[0].hp, 220);
     eq(G.S.zombies[1].hp, 12, "healthy zombie stays put");
   });
 }
