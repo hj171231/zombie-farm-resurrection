@@ -58,22 +58,22 @@ console.log("\n== economy ==");
     ok(G.plantAt(30, "crop", "carrot") === false);
     eq(G.S.tiles[30].st, "plot");
   });
-  check("harvesting a ripe carrot pays sell price (18g) + xp + stat", () => {
+  check("harvesting a ripe carrot pays sell price (16g) + xp + stat", () => {
     G.S.gold = 0; const xp0 = G.S.xp; const crops0 = G.S.stats.crops;
     backdate(G, 24, 26);
     G.tapTile(24);
-    eq(G.S.gold, 18); eq(G.S.tiles[24].st, "plot");
+    eq(G.S.gold, 16); eq(G.S.tiles[24].st, "plot");
     eq(G.S.stats.crops, crops0 + 1);
     ok(G.S.xp > xp0 || G.S.level > 1, "xp gained");
   });
-  check("fertilized crop pays double (carrot 36g)", () => {
+  check("fertilized crop pays double (carrot 32g)", () => {
     G.S.gold = 100;
     G.plantAt(24, "crop", "carrot");
     G.S.tiles[24].fert = true;
     backdate(G, 24, 26);
     const before = G.S.gold;
     G.tapTile(24);
-    eq(G.S.gold, before + 36);
+    eq(G.S.gold, before + 32);
   });
   check("abomination costs brains, refused with 0, accepted with 2", () => {
     forcePlot(G, 31);
@@ -390,6 +390,26 @@ function simulate(G, maxSteps) {
     G.updateBattle(0.05);
     ok(a.z.hp < hp0, "zombie took melee damage");
     ok(br.hp < bhp0, "zombie brawled back");
+    G.scene = "farm"; G.B = null;
+  });
+  check("zombies prioritize field brawlers over the building", () => {
+    armyOf(G, 3, 100, 20);
+    G.startBattle(G.TARGETS[0]);
+    G.sendZombie(0);
+    const a = G.B.actives[0];
+    a.state = "attack"; a.x = G.W * 0.72 - 58; // parked at the building
+    G.B.brawlers.push({ x: a.x + 10, y: a.y, hp: 40, maxhp: 40, atkT: 0, wob: 0 });
+    const bhp0 = G.B.hp;
+    // while the brawler stands, the building must not take a scratch
+    let steps = 0;
+    while (G.B.brawlers.length && steps++ < 100) {
+      G.updateBattle(0.1);
+      if (G.B.brawlers.length) eq(G.B.hp, bhp0, "building hit while a brawler was on the field");
+    }
+    ok(steps < 100, "brawler was mobbed and defeated");
+    // field clear -> back to demolishing the building
+    for (let s2 = 0; s2 < 10; s2++) G.updateBattle(0.1);
+    ok(G.B.hp < bhp0, "building damage resumes after the brawl");
     G.scene = "farm"; G.B = null;
   });
   check("battle timer is 120s and targets got 50% tougher (farm = 90hp)", () => {
@@ -818,6 +838,10 @@ console.log("\n== content pack: data ==");
   check("crop grow times are the approved nice numbers", () => {
     const want = [25, 50, 100, 200, 330, 540, 780, 1320, 1980, 3000];
     eq(JSON.stringify(G.CROPS.map(c => c.time)), JSON.stringify(want));
+  });
+  check("crop payouts trimmed ~10% to nice numbers", () => {
+    const want = [16, 45, 110, 245, 560, 1200, 2250, 4700, 9500, 20000];
+    eq(JSON.stringify(G.CROPS.map(c => c.sell)), JSON.stringify(want));
   });
   check("every crop's mutation label is unique (visual zone ownership)", () => {
     const labels = G.CROPS.map(c => c.mut.label);

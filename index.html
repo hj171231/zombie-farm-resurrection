@@ -31,6 +31,12 @@
   #xptext { position:absolute; inset:0; text-align:center; color:#fff; font-size:12px; font-family:"Lilita One","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-weight:400; letter-spacing:.4px; line-height:19px; text-shadow:0 1px 2px #000; }
 
   .btnbar { position:absolute; bottom:10px; right:10px; display:flex; flex-direction:column; gap:8px; z-index:5; align-items:flex-end; }
+  /* hamburger menu: one clean button on screen; the rest slide out on demand */
+  #menuItems { display:none; flex-direction:column; gap:8px; align-items:flex-end; }
+  #menuItems.open { display:flex; animation:menuPop .16s ease-out; }
+  @keyframes menuPop { from{ opacity:0; transform:translateY(8px);} to{ opacity:1; transform:translateY(0);} }
+  #menuBtn { font-size:20px; padding:9px 16px; min-width:54px; }
+  #menuBtn.open { background:linear-gradient(#ffd97a 0%,#e0a83a 45%,#b07a1e 100%); border-color:#5e440c; }
   .btnbar-l { position:absolute; bottom:10px; left:10px; display:flex; flex-direction:column; gap:8px; z-index:5; align-items:flex-start; }
   .gbtn { background:linear-gradient(#b8e262 0%, #7fb33c 45%, #5d8a2a 100%); border:3px solid #2f4a12; border-radius:16px; color:#fff; font-weight:bold; font-size:15px; padding:9px 15px; cursor:pointer; box-shadow:inset 0 3px 0 rgba(255,255,255,.35), 0 4px 0 #24390d, 0 6px 10px rgba(0,0,0,.4); text-shadow:0 2px 2px rgba(0,0,0,.45); font-family:"Lilita One","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-weight:400; letter-spacing:.5px; }
   .gbtn:active { transform:translateY(3px); box-shadow:inset 0 3px 0 rgba(255,255,255,.25), 0 1px 0 #24390d; }
@@ -67,8 +73,8 @@
 
   #splash { position:fixed; inset:0; background:linear-gradient(180deg,#2e2352 0%,#5e3a6a 16%,#c97858 32%,#eaa964 42%,#84b350 56%,#4a7229 100%); z-index:40; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; text-align:center; padding:20px; overflow:hidden; }
   #logoWrap { transform:rotate(-2.5deg); animation:logoBob 3.2s ease-in-out infinite; }
-  #logoTop { font-family:"Lilita One","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-size:clamp(34px,9vw,62px); color:#c8ef6a; -webkit-text-stroke:2px #24390d; letter-spacing:2px; text-shadow:0 4px 0 #2f4a12, 0 9px 20px rgba(0,0,0,.7); line-height:1.05; }
-  #ribbon { display:inline-block; margin-top:4px; font-family:"Lilita One","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-size:clamp(15px,3.6vw,24px); letter-spacing:7px; text-indent:7px; color:#fff; background:linear-gradient(#ff8a5a,#c03a1e); padding:5px 28px; border:2px solid #5e1c0c; clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 50%,calc(100% - 12px) 100%,12px 100%,0 50%); text-shadow:0 2px 2px rgba(0,0,0,.55); box-shadow:0 4px 10px rgba(0,0,0,.4); }
+  #logoTop { font-family:"Lilita One","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-size:clamp(46px,13vw,104px); color:#c8ef6a; -webkit-text-stroke:2.5px #24390d; letter-spacing:2px; text-shadow:0 5px 0 #2f4a12, 0 12px 26px rgba(0,0,0,.7); line-height:1.02; }
+  #ribbon { display:inline-block; margin-top:6px; font-family:"Lilita One","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-size:clamp(18px,4.8vw,34px); letter-spacing:8px; text-indent:8px; color:#fff; background:linear-gradient(#ff8a5a,#c03a1e); padding:6px 34px; border:2px solid #5e1c0c; clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 50%,calc(100% - 12px) 100%,12px 100%,0 50%); text-shadow:0 2px 2px rgba(0,0,0,.55); box-shadow:0 4px 10px rgba(0,0,0,.4); }
   @keyframes logoBob { 0%,100%{ transform:rotate(-2.5deg) translateY(0);} 50%{ transform:rotate(-2.5deg) translateY(-7px);} }
   #splashBtns { display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:center; }
   #startBtn { animation:pulseBtn 1.8s ease-in-out infinite; }
@@ -97,14 +103,17 @@
 </div>
 
 <div class="btnbar" id="rightBar" style="display:none">
-  <button class="gbtn" id="marketBtn">&#x1F6D2; Market</button>
-  <button class="gbtn" id="zombiesBtn">&#x1FAA6; Horde</button>
-  <button class="gbtn small" id="shovelBtn">&#x26CF;&#xFE0F; Shovel</button>
-  <button class="gbtn small" id="helpBtn">?</button>
+  <div id="menuItems">
+    <button class="gbtn" id="marketBtn">&#x1F6D2; Market</button>
+    <button class="gbtn" id="zombiesBtn">&#x1FAA6; Horde</button>
+    <button class="gbtn small" id="goalsBtn">&#x1F4DC; Goals</button>
+    <button class="gbtn small" id="shovelBtn">&#x26CF;&#xFE0F; Shovel</button>
+    <button class="gbtn small" id="helpBtn">? Help</button>
+  </div>
+  <button class="gbtn" id="menuBtn">&#x2630;</button>
 </div>
 <div class="btnbar-l" id="leftBar" style="display:none">
   <button class="gbtn red" id="invadeBtn">&#x2694;&#xFE0F; INVADE</button>
-  <button class="gbtn small" id="goalsBtn">&#x1F4DC; Goals</button>
 </div>
 
 <div class="modal-shade" id="shade">
@@ -120,7 +129,7 @@
 
 <div id="splash">
   <div id="logoWrap">
-    <div id="logoTop">&#x1F9DF; ZOMBIE FARM</div>
+    <div id="logoTop">ZOMBIE FARM</div>
     <div id="ribbon">RESURRECTION</div>
   </div>
   <canvas id="splashArt" width="680" height="240"></canvas>
@@ -153,16 +162,16 @@ const ZNAMES = ["Grubbs","Mortimer","Squelch","Petunia","Boggart","Lurleen","Fes
 
 // ---------- content data ----------
 const CROPS = [
- {id:"carrot",   name:"Carrot",       cost:10,  time:25,   sell:18,   xp:1, unlock:1, col:"#ff8c2e", mut:{stat:"spd", amt:0.6, label:"Speedy"}},
- {id:"corn",     name:"Corn",         cost:25,  time:50,   sell:48,   xp:2, unlock:2, col:"#ffd94d", mut:{stat:"pow", amt:2,   label:"Kernel-Powered"}},
- {id:"pumpkin",  name:"Pumpkin",      cost:60,  time:100,  sell:120,  xp:3, unlock:3, col:"#ff7f1e", mut:{stat:"hp",  amt:12,  label:"Gourd-Headed"}},
- {id:"shroom",   name:"Gloomshroom",  cost:120, time:200,  sell:270,  xp:5, unlock:5, col:"#c98ee0", mut:{stat:"pow", amt:4,   label:"Sporified"}},
- {id:"pepper",   name:"Ghost Pepper", cost:250, time:330,  sell:620,  xp:8, unlock:7, col:"#e03c2e", mut:{stat:"pow", amt:7,  label:"Flaming"}},
- {id:"melon",    name:"Moon Melon",   cost:500, time:540,  sell:1350, xp:12,unlock:10,col:"#8ee0b0", mut:{stat:"hp",  amt:25,  label:"Moon-Touched"}},
- {id:"wormapple",name:"Wormy Apple",  cost:900, time:780,  sell:2500, xp:16,unlock:12,col:"#e04838", mut:{stat:"hp",  amt:18,  label:"Wormfriend"}},
- {id:"beet",     name:"Beating Beet", cost:1800,time:1320, sell:5200, xp:22,unlock:14,col:"#c22b5a", mut:{stat:"hp",  amt:35,  label:"Big-Hearted"}},
- {id:"eyeberry", name:"Eyeball Berries",cost:3500,time:1980,sell:10500,xp:30,unlock:17,col:"#7ab8e0", mut:{stat:"spd", amt:0.8, label:"All-Seeing"}},
- {id:"garlic",   name:"Grave Garlic", cost:7000,time:3000, sell:22000,xp:40,unlock:20,col:"#e8e2d0", mut:{stat:"pow", amt:12,  label:"Pungent"}}
+ {id:"carrot",   name:"Carrot",       cost:10,  time:25,   sell:16,   xp:1, unlock:1, col:"#ff8c2e", mut:{stat:"spd", amt:0.6, label:"Speedy"}},
+ {id:"corn",     name:"Corn",         cost:25,  time:50,   sell:45,   xp:2, unlock:2, col:"#ffd94d", mut:{stat:"pow", amt:2,   label:"Kernel-Powered"}},
+ {id:"pumpkin",  name:"Pumpkin",      cost:60,  time:100,  sell:110,  xp:3, unlock:3, col:"#ff7f1e", mut:{stat:"hp",  amt:12,  label:"Gourd-Headed"}},
+ {id:"shroom",   name:"Gloomshroom",  cost:120, time:200,  sell:245,  xp:5, unlock:5, col:"#c98ee0", mut:{stat:"pow", amt:4,   label:"Sporified"}},
+ {id:"pepper",   name:"Ghost Pepper", cost:250, time:330,  sell:560,  xp:8, unlock:7, col:"#e03c2e", mut:{stat:"pow", amt:7,  label:"Flaming"}},
+ {id:"melon",    name:"Moon Melon",   cost:500, time:540,  sell:1200, xp:12,unlock:10,col:"#8ee0b0", mut:{stat:"hp",  amt:25,  label:"Moon-Touched"}},
+ {id:"wormapple",name:"Wormy Apple",  cost:900, time:780,  sell:2250, xp:16,unlock:12,col:"#e04838", mut:{stat:"hp",  amt:18,  label:"Wormfriend"}},
+ {id:"beet",     name:"Beating Beet", cost:1800,time:1320, sell:4700, xp:22,unlock:14,col:"#c22b5a", mut:{stat:"hp",  amt:35,  label:"Big-Hearted"}},
+ {id:"eyeberry", name:"Eyeball Berries",cost:3500,time:1980,sell:9500,xp:30,unlock:17,col:"#7ab8e0", mut:{stat:"spd", amt:0.8, label:"All-Seeing"}},
+ {id:"garlic",   name:"Grave Garlic", cost:7000,time:3000, sell:20000,xp:40,unlock:20,col:"#e8e2d0", mut:{stat:"pow", amt:12,  label:"Pungent"}}
 ];
 const ZTYPES = [
  {id:"shambler", name:"Shambler",  cost:50,  brains:0, time:30,  pow:5,  hp:22, spd:1.0, unlock:1, col:"#82c356", shirt:"#b23a2c", plaid:true, desc:"Your everyday hard-working corpse."},
@@ -213,7 +222,7 @@ const GOALS = [
  {id:"moon1",   desc:"Win at the Lunar Lab",      n:1,  stat:"moonwin",   gold:10000}
 ];
 
-const BUILD = "build 7 · 2026-07-08"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 8 · 2026-07-09"; // rewritten by scripts/deploy.sh at each publish
 const GRID = 7;
 const MAX_Z = 16;
 const INVADE_MIN = 6;
@@ -2373,7 +2382,7 @@ function drawFarm(dt){
         cx.fillText("BRAINS!",yx,yy+5);
         return; // yelling replaces the thought bubble
       }
-      const showB=Math.sin(z.wob/2+z.hunger)>0.87; // bubbles ~half as often now
+      const showB=Math.sin(z.wob/2+z.hunger)>0.965; // bubbles: rare, special moments
       if(showB){
         const bx=z.x+16*sc, by=z.y-74*sc;
         cx.fillStyle="rgba(255,255,255,.95)";
@@ -2531,6 +2540,24 @@ function renderMarket(tab){
     b.appendChild(div);
   });
 }
+// hamburger menu: keep the play-space clean, especially on phones
+$("menuBtn").onclick=function(){
+  const mi=$("menuItems");
+  const open=!mi.classList.contains("open");
+  mi.classList.toggle("open",open);
+  this.classList.toggle("open",open);
+  this.innerHTML=open?"&#x2715;":"&#x2630;";
+  sfx.tap();
+};
+function closeMenu(){
+  const mi=$("menuItems"), mb=$("menuBtn");
+  if(mi&&mi.classList){ mi.classList.remove("open"); }
+  if(mb&&mb.classList){ mb.classList.remove("open"); mb.innerHTML="&#x2630;"; }
+}
+["marketBtn","zombiesBtn","goalsBtn","shovelBtn","helpBtn"].forEach(id=>{
+  const el=$(id);
+  if(el&&el.addEventListener) el.addEventListener("click",()=>setTimeout(closeMenu,60));
+});
 $("marketBtn").onclick=()=>{sfx.tap();openMarket();};
 $("plantChip").onclick=()=>{ clearPlantMode(); sfx.tap(); };
 
@@ -2652,35 +2679,54 @@ function openAlmanac(){
   openModal("&#x1F9EC; Mutation Almanac");
   $("mTabs").innerHTML="";
   const b=$("mBody"); b.innerHTML="";
-  const intro=document.createElement("p");
-  intro.style.cssText="font-size:12.5px;opacity:.85;padding:4px 6px";
-  intro.innerHTML="Discover a mutation to reveal it. Raise <b>3 zombies</b> with it to unlock its combo gallery!";
+  const discovered=CROPS.filter(c=>mutTier(c.mut.label)>=1).length;
+  const mastered=CROPS.filter(c=>mutTier(c.mut.label)>=2).length;
+  const intro=document.createElement("div");
+  intro.style.cssText="font-size:12.5px;padding:6px 8px;line-height:1.55";
+  intro.innerHTML=
+    "<div style='text-align:center;font-size:14px;margin-bottom:4px'><b style='color:#ffe9a8'>Discovered "+discovered+"/"+CROPS.length+"</b> &middot; <b style='color:#c9f'>Mastered "+mastered+"/"+CROPS.length+"</b></div>"+
+    "<b>&#x1F52C; How mutations work:</b> plant a <b>zombie</b> in a plot right <b>next to</b> a crop that's <b>over half grown</b>. "+
+    "When the zombie rises, each ripening neighbor gives a chance to gift its mutation "+
+    "(<b>35%</b> base, up to <b>75%</b> with 100 life force from trees). "+
+    "A zombie can carry <b>up to 2</b> mutations &mdash; stats AND looks stack. Wilted crops gift nothing!";
   b.appendChild(intro);
   const zd=ZTYPES.find(t=>t.id==="shambler");
   CROPS.forEach(c=>{
     const label=c.mut.label, tier=mutTier(label);
     const seen=(S.mutSeen&&S.mutSeen[label])||0;
+    const statTxt=c.mut.stat==="pow"?"+"+c.mut.amt+" POWER":c.mut.stat==="hp"?"+"+c.mut.amt+" HP":"+"+c.mut.amt+" SPEED";
+    const lockedByLevel=S.level<c.unlock;
     const div=document.createElement("div"); div.className="shopitem"+(tier===0?" locked":"");
     if(tier===0){
+      // undiscovered: show the source crop so you know what to farm
       div.appendChild(artCanvas((g,x,y,r)=>{
-        g.fillStyle="#3a2c1a"; g.beginPath(); g.arc(x,y,20,0,TAU); g.fill();
-        g.fillStyle="#8a6d3b"; g.font="bold 24px 'Lilita One','Comic Sans MS',sans-serif";
+        drawProduce(g,c.id,x,y,26);
+        g.fillStyle="rgba(30,20,10,.55)"; g.beginPath(); g.arc(x,y,24,0,TAU); g.fill();
+        g.fillStyle="#e8d8b0"; g.font="bold 26px 'Lilita One','Comic Sans MS',sans-serif";
         g.textAlign="center"; g.textBaseline="middle"; g.fillText("?",x,y+1);
       }));
       const inf=document.createElement("div"); inf.className="inf";
-      inf.innerHTML="<div class='nm'>???</div><div class='ds'>Grow a zombie beside ripening <b>"+c.name+"</b> to discover this mutation.</div>";
+      inf.innerHTML="<div class='nm'>??? <span style='font-weight:normal;font-size:12px'>&mdash; "+statTxt+"</span></div>"+
+        "<div class='ds'><b>Recipe:</b> grow a zombie beside a ripening <b>"+c.name+"</b>"+
+        (lockedByLevel?" <i>(unlocks at level "+c.unlock+")</i>":"")+
+        ", then harvest the zombie and cross your fingers.</div>";
       div.appendChild(inf);
     } else {
-      div.appendChild(artCanvas((g,x,y,r)=>drawZombie(g,x,y+22,0.5,zd,[{label,col:c.col}],0.5)));
+      // discovered: zombie wearing it + the crop that causes it
+      div.appendChild(artCanvas((g,x,y,r)=>{
+        drawZombie(g,x-8,y+22,0.46,zd,[{label,col:c.col}],0.5);
+        drawProduce(g,c.id,x+22,y+14,14);
+      }));
       const inf=document.createElement("div"); inf.className="inf";
-      const stat=c.mut.stat==="pow"?"+"+c.mut.amt+" PWR":c.mut.stat==="hp"?"+"+c.mut.amt+" HP":"+"+c.mut.amt+" SPD";
-      let html="<div class='nm'>"+label+" <span style='font-weight:normal;font-size:12px'>&mdash; "+stat+"</span></div>"+
-               "<div class='ds'>From "+c.name+" &middot; raised "+seen+"x</div>";
+      let html="<div class='nm'>"+label+" <span style='font-weight:normal;font-size:12px'>&mdash; "+statTxt+"</span></div>"+
+        "<div class='ds'><b>Made by:</b> "+c.name+" (grows in "+fmtTime(c.time)+")"+
+        " &middot; <b>You've raised:</b> "+seen+" zombie"+(seen===1?"":"s")+" with this</div>";
       div.appendChild(inf);
       if(tier===2){
-        // combo gallery: this mutation paired with every other discovered one
         const others=CROPS.filter(o=>o.mut.label!==label && mutTier(o.mut.label)>=1);
         if(others.length){
+          html+="<div class='ds' style='color:#c9f'><b>&#x2B50; MASTERED!</b> Combos with your other discoveries &mdash; hover/hold for names:</div>";
+          inf.innerHTML=html;
           const strip=document.createElement("div");
           strip.style.cssText="display:flex;gap:2px;flex-wrap:wrap;margin-top:4px";
           others.forEach(o=>{
@@ -2688,17 +2734,22 @@ function openAlmanac(){
             mini.title=label+" + "+o.mut.label;
             strip.appendChild(mini);
           });
-          html+="<div class='ds' style='opacity:.8'>Combos with your other discoveries:</div>";
-          inf.innerHTML=html;
           inf.appendChild(strip);
-        } else inf.innerHTML=html;
+        } else {
+          html+="<div class='ds' style='color:#c9f'><b>&#x2B50; MASTERED!</b> Discover more mutations to see combo art.</div>";
+          inf.innerHTML=html;
+        }
       } else {
-        html+="<div class='ds' style='color:#c9f'>Raise "+(3-seen)+" more to unlock the combo gallery.</div>";
+        html+="<div class='ds' style='color:#c9f'>Raise <b>"+(3-seen)+" more</b> to master it and unlock the combo gallery.</div>";
         inf.innerHTML=html;
       }
     }
     b.appendChild(div);
   });
+  const foot=document.createElement("p");
+  foot.style.cssText="font-size:11.5px;opacity:.7;padding:6px 8px";
+  foot.innerHTML="&#x1F4A1; Pro tip: ring one plot with four different ripening crops, then plant the zombie in the middle for the best shot at a double mutation.";
+  b.appendChild(foot);
 }
 
 $("shovelBtn").onclick=function(){ clearPlantMode(); shovelMode=!shovelMode; this.classList.toggle("toggled",shovelMode); sfx.tap();
@@ -2750,7 +2801,21 @@ function openSquadPicker(target){
     const zd=ZTYPES.find(t=>t.id===z.type);
     const row=document.createElement("div"); row.className="zrow";
     row.style.cursor="pointer";
-    const paint=()=>{ row.style.opacity=squadSel[ix]?"1":"0.35"; };
+    // big unmistakable indicator: green GO arrow when enlisted
+    const sel=document.createElement("div");
+    sel.style.cssText="width:52px;flex:none;text-align:center;font-family:'Lilita One','Arial Rounded MT Bold','Comic Sans MS',sans-serif;line-height:1.1";
+    const paint=()=>{
+      if(squadSel[ix]){
+        sel.innerHTML="<span style='color:#7dffa0;font-size:24px'>&#x25B6;</span><br><span style='color:#7dffa0;font-size:10px'>GOING!</span>";
+        row.style.opacity="1";
+        row.style.outline="2px solid #7dffa0"; row.style.borderRadius="10px";
+      } else {
+        sel.innerHTML="<span style='color:#8a8a7a;font-size:22px'>&#x1F4A4;</span><br><span style='color:#8a8a7a;font-size:10px'>benched</span>";
+        row.style.opacity="0.55";
+        row.style.outline="none";
+      }
+    };
+    row.appendChild(sel);
     row.appendChild(artCanvas((g,x,y,r)=>drawZombie(g,x,y+22,0.5,zd,z.mut,0.5)));
     const txt=document.createElement("div"); txt.style.flex="1";
     const hungry = z.hunger>=70?"STARVING":z.hunger>=40?"peckish":"content";
@@ -2806,12 +2871,37 @@ function updateBattle(dt){
   const anySendable = B.squad.some(z=>z.hp>0 && !B.sent.has(z));
   if(B.timer<=0 || (!B.actives.length && !anySendable)){ endBattle(false); return; }
   const targX=W*0.72;
-  // actives: march in, brawl the building
+  // actives: field defenders FIRST, then the building
   B.actives.slice().forEach(a=>{
     const stopX=targX-58-a.slot*46;
-    if(a.state==="distracted"){
-      a.bubbleT+=dt;
-    } else if(a.state==="march"){
+    if(a.state==="distracted"){ a.bubbleT+=dt; return; }
+    // priority one: any brawler on the field gets mobbed before the building
+    let brT=null, brD=1e9;
+    B.brawlers.forEach(br=>{ const d=Math.abs(br.x-a.x); if(d<brD){ brD=d; brT=br; } });
+    if(brT){
+      a.state="march"; // re-approach the building once the field is clear
+      if(brD>34){
+        a.x += (brT.x>a.x?1:-1)*(55+a.z.spd*35)*dt;
+        if(Math.random()<dt*5) spawnParts(a.x-12,a.y,"#c9b48a",1);
+      } else {
+        a.atkT+=dt;
+        if(a.atkT>0.7){
+          a.atkT=0;
+          const hungerBonus = 1 + a.z.hunger/150;
+          const dmg=a.z.pow*hungerBonus*rnd(0.8,1.2);
+          brT.hp-=dmg; sfx.chomp();
+          addFloat(brT.x,brT.y-80,"-"+Math.round(dmg),"#b7e05c");
+          spawnParts((brT.x+a.x)/2,a.y-30,"#e8d8c0",5);
+          if(brT.hp<=0){
+            B.brawlers=B.brawlers.filter(x=>x!==brT);
+            addFloat(brT.x,brT.y-60,"defender down!","#b7e05c");
+            spawnParts(brT.x,brT.y-20,"#9a8a7a",8);
+          }
+        }
+      }
+      return;
+    }
+    if(a.state==="march"){
       a.x += (55+a.z.spd*35)*dt;
       if(Math.random()<dt*5) spawnParts(a.x-12,a.y,"#c9b48a",1);
       if(a.x>=stopX){ a.state="attack"; }
@@ -3068,6 +3158,130 @@ function drawBattle(dt){
   cx.moveTo(-20,H*0.78); cx.quadraticCurveTo(W*0.4,H*0.72,W*0.72,H*0.72);
   cx.lineTo(W*0.72,H*0.76); cx.quadraticCurveTo(W*0.4,H*0.78,-20,H*0.86);
   cx.closePath(); cx.fill();
+  // ---- world dressing: each battlefield lives in its own place ----
+  if(tg.scen==="farm"){
+    // tilled crop rows + a lazy windmill on the hill
+    cx.strokeStyle="rgba(90,60,25,.35)"; cx.lineWidth=5;
+    for(let k=0;k<5;k++){ cx.beginPath(); cx.moveTo(W*0.02,H*(0.84+k*0.032)); cx.lineTo(W*0.44,H*(0.8+k*0.032)); cx.stroke(); }
+    cx.fillStyle="rgba(255,140,46,.8)";
+    for(let k=0;k<4;k++) blob(cx,W*(0.08+k*0.09),H*(0.845+ (k%2)*0.03),4);
+    const wmx=W*0.48, wmy=H*0.62;
+    cx.fillStyle="#6e4e2a"; cx.beginPath(); cx.moveTo(wmx-9,H*0.7); cx.lineTo(wmx-4,wmy); cx.lineTo(wmx+4,wmy); cx.lineTo(wmx+9,H*0.7); cx.closePath(); cx.fill();
+    cx.strokeStyle="#e8d8c0"; cx.lineWidth=4; cx.lineCap="round";
+    for(let k=0;k<4;k++){ const an=pnow*0.8+k*Math.PI/2; cx.beginPath(); cx.moveTo(wmx,wmy); cx.lineTo(wmx+Math.cos(an)*20,wmy+Math.sin(an)*20); cx.stroke(); }
+  } else if(tg.scen==="office"){
+    // downtown sidewalk: crosswalk, streetlight, hydrant
+    cx.fillStyle="rgba(120,124,138,.5)"; cx.fillRect(0,H*0.74,W,H*0.05);
+    cx.fillStyle="rgba(240,240,240,.55)";
+    for(let k=0;k<6;k++) cx.fillRect(W*(0.06+k*0.055),H*0.745,W*0.028,H*0.04);
+    cx.strokeStyle="#3a3a44"; cx.lineWidth=5;
+    cx.beginPath(); cx.moveTo(W*0.12,H*0.72); cx.lineTo(W*0.12,H*0.5); cx.quadraticCurveTo(W*0.12,H*0.46,W*0.16,H*0.46); cx.stroke();
+    cx.fillStyle="#ffe9a8"; blob(cx,W*0.165,H*0.46,7);
+    cx.fillStyle="rgba(255,233,168,.2)"; blob(cx,W*0.165,H*0.46,16);
+    cx.fillStyle="#c0392e"; cx.beginPath(); cx.roundRect(W*0.3-8,H*0.76,16,20,4); cx.fill();
+    blob(cx,W*0.3,H*0.755,7); cx.fillStyle="#8a2a20"; blob(cx,W*0.3-9,H*0.77,3.4); blob(cx,W*0.3+9,H*0.77,3.4);
+  } else if(tg.scen==="pirate"){
+    // beach: shells, starfish, palm, distant ship on the horizon
+    cx.fillStyle="#e8b8c8"; // starfish
+    drawStar(cx,W*0.18,H*0.86,9);
+    cx.fillStyle="#f6f3ea"; // shells
+    [[0.3,0.9],[0.42,0.83],[0.09,0.8]].forEach(sh=>{
+      cx.beginPath(); cx.arc(W*sh[0],H*sh[1],5,Math.PI,0); cx.closePath(); cx.fill();
+    });
+    const pmx=W*0.07, pmy=H*0.72; // palm
+    cx.strokeStyle="#8a6d3b"; cx.lineWidth=7; cx.lineCap="round";
+    cx.beginPath(); cx.moveTo(pmx,pmy); cx.quadraticCurveTo(pmx+10,H*0.56,pmx+26,H*0.5); cx.stroke();
+    cx.strokeStyle="#4a8a3a"; cx.lineWidth=5;
+    for(let k=0;k<5;k++){ const an=-0.4-k*0.5; cx.beginPath(); cx.moveTo(pmx+26,H*0.5); cx.quadraticCurveTo(pmx+26+Math.cos(an)*30,H*0.5+Math.sin(an)*18-8,pmx+26+Math.cos(an)*44,H*0.5+Math.sin(an)*26); cx.stroke(); }
+    cx.fillStyle="rgba(40,36,48,.8)"; // distant ship
+    const shx=((pnow*6)%(W+200))-100;
+    cx.beginPath(); cx.moveTo(shx-16,H*0.615); cx.quadraticCurveTo(shx,H*0.635,shx+16,H*0.615); cx.lineTo(shx+12,H*0.6); cx.lineTo(shx-12,H*0.6); cx.closePath(); cx.fill();
+    cx.fillRect(shx-1.5,H*0.575,3,H*0.03);
+  } else if(tg.scen==="ninja"){
+    // stepping stones, a torii gate, drifting petals
+    cx.fillStyle="rgba(140,140,150,.5)";
+    for(let k=0;k<5;k++){ cx.beginPath(); cx.ellipse(W*(0.1+k*0.12),H*(0.8+(k%2)*0.04),16,6,0,0,TAU); cx.fill(); }
+    const tx2=W*0.14, ty2=H*0.72; // torii silhouette
+    cx.strokeStyle="#8a2f3e"; cx.lineWidth=7; cx.lineCap="round";
+    cx.beginPath(); cx.moveTo(tx2-26,ty2); cx.lineTo(tx2-22,ty2-H*0.16); cx.stroke();
+    cx.beginPath(); cx.moveTo(tx2+26,ty2); cx.lineTo(tx2+22,ty2-H*0.16); cx.stroke();
+    cx.beginPath(); cx.moveTo(tx2-38,ty2-H*0.155); cx.quadraticCurveTo(tx2,ty2-H*0.18,tx2+38,ty2-H*0.155); cx.stroke();
+    cx.lineWidth=5; cx.beginPath(); cx.moveTo(tx2-28,ty2-H*0.115); cx.lineTo(tx2+28,ty2-H*0.115); cx.stroke();
+    cx.fillStyle="rgba(255,190,210,.85)"; // petals on the wind
+    for(let k=0;k<8;k++){
+      const px2=((pnow*(24+k*6)+k*160)%(W+60))-30;
+      const py2=H*(0.2+seedRnd(k,5)*0.45)+Math.sin(pnow*2+k)*14;
+      cx.beginPath(); cx.ellipse(px2,py2,4,2.4,pnow*3+k,0,TAU); cx.fill();
+    }
+  } else if(tg.scen==="robot"){
+    // factory yard: hazard stripes, rivets, sparking cable
+    for(let k=0;k<8;k++){
+      cx.fillStyle=k%2?"#e0b83a":"#3a3a3a";
+      cx.save(); cx.translate(W*(0.04+k*0.055),H*0.755); cx.rotate(-0.3);
+      cx.fillRect(0,0,W*0.03,10); cx.restore();
+    }
+    cx.fillStyle="rgba(60,60,70,.6)";
+    for(let k=0;k<10;k++) blob(cx,W*(0.05+k*0.07),H*(0.86+(k%3)*0.03),3);
+    const cbx=W*0.34; // sparking severed cable
+    cx.strokeStyle="#3a3a44"; cx.lineWidth=5;
+    cx.beginPath(); cx.moveTo(cbx-30,H); cx.quadraticCurveTo(cbx-10,H*0.84,cbx,H*0.82); cx.stroke();
+    if(Math.sin(pnow*9)>0.4){
+      cx.fillStyle="#ffe97a";
+      drawStar(cx,cbx+3,H*0.815,7+Math.sin(pnow*30)*2);
+    }
+  } else if(tg.scen==="mall"){
+    // lamp posts with moths, painted arrows, waiting bench
+    [[0.12,0],[0.4,1]].forEach(lp=>{
+      const lx=W*lp[0];
+      cx.strokeStyle="#3a3a44"; cx.lineWidth=5;
+      cx.beginPath(); cx.moveTo(lx,H*0.74); cx.lineTo(lx,H*0.48); cx.stroke();
+      cx.fillStyle="#ffe9a8"; blob(cx,lx,H*0.47,6);
+      cx.fillStyle="rgba(255,233,168,.18)"; blob(cx,lx,H*0.47,20);
+      cx.fillStyle="rgba(80,70,60,.9)"; // moth orbiting
+      const ma=pnow*5+lp[1]*3;
+      blob(cx,lx+Math.cos(ma)*12,H*0.47+Math.sin(ma)*7,2);
+    });
+    cx.fillStyle="rgba(255,220,80,.5)";
+    for(let k=0;k<3;k++){
+      const ax=W*(0.16+k*0.14), ay=H*0.83;
+      cx.beginPath(); cx.moveTo(ax,ay); cx.lineTo(ax+18,ay-6); cx.lineTo(ax+18,ay-2); cx.lineTo(ax+26,ay-7); cx.lineTo(ax+18,ay-12); cx.lineTo(ax+18,ay-8); cx.lineTo(ax,ay-2); cx.closePath(); cx.fill();
+    }
+    cx.fillStyle="#5e4426"; cx.fillRect(W*0.52,H*0.77,44,5); cx.fillRect(W*0.52,H*0.785,5,12); cx.fillRect(W*0.52+39,H*0.785,5,12);
+  } else if(tg.scen==="wizard"){
+    // glowing rune stones, ground fog, a fairy-ring of mushrooms
+    for(let k=0;k<4;k++){
+      const rx=W*(0.12+k*0.14), ry=H*(0.8+(k%2)*0.05);
+      const gl=0.4+Math.sin(pnow*2+k*1.7)*0.3;
+      cx.fillStyle="#6e6e78"; cx.beginPath(); cx.ellipse(rx,ry,10,7,0,0,TAU); cx.fill();
+      cx.strokeStyle="rgba(160,240,140,"+gl+")"; cx.lineWidth=2;
+      cx.beginPath(); cx.moveTo(rx-3,ry-3); cx.lineTo(rx+3,ry+3); cx.moveTo(rx+3,ry-3); cx.lineTo(rx-3,ry+3); cx.stroke();
+    }
+    for(let k=0;k<5;k++){ // fairy ring
+      const an=k/5*TAU, mx=W*0.34+Math.cos(an)*24, my=H*0.9+Math.sin(an)*8;
+      cx.fillStyle="#e8dcc8"; cx.fillRect(mx-1.5,my-6,3,6);
+      cx.fillStyle="#b06fd0"; cx.beginPath(); cx.arc(mx,my-6,5,Math.PI,0); cx.closePath(); cx.fill();
+    }
+    cx.fillStyle="rgba(200,210,230,.14)"; // creeping fog
+    for(let k=0;k<3;k++){
+      const fx=((pnow*10+k*250)%(W+300))-150;
+      cx.beginPath(); cx.ellipse(fx,H*(0.86+k*0.04),120,16,0,0,TAU); cx.fill();
+    }
+  } else if(tg.scen==="moon"){
+    // scattered rocks, a footprint trail, a satellite blinking past
+    cx.fillStyle="#8a8e9a";
+    [[0.1,0.84,7],[0.26,0.92,5],[0.44,0.8,6],[0.55,0.93,4]].forEach(rk=>{
+      cx.beginPath(); cx.moveTo(W*rk[0]-rk[2],H*rk[1]); cx.lineTo(W*rk[0]-rk[2]*0.3,H*rk[1]-rk[2]);
+      cx.lineTo(W*rk[0]+rk[2]*0.8,H*rk[1]-rk[2]*0.6); cx.lineTo(W*rk[0]+rk[2],H*rk[1]); cx.closePath(); cx.fill();
+    });
+    cx.fillStyle="rgba(70,74,90,.6)"; // bootprints wandering off
+    for(let k=0;k<6;k++){
+      cx.beginPath(); cx.ellipse(W*(0.16+k*0.05),H*(0.87-k*0.008)+(k%2?4:-4),5,2.6,-0.2,0,TAU); cx.fill();
+    }
+    const stx=((pnow*30)%(W+120))-60; // satellite
+    cx.fillStyle="#c8ccd6"; cx.fillRect(stx-5,H*0.12,10,6);
+    cx.fillStyle="#3a6ab0"; cx.fillRect(stx-13,H*0.125,6,4); cx.fillRect(stx+7,H*0.125,6,4);
+    if(Math.sin(pnow*4)>0){ cx.fillStyle="#ff5a4a"; blob(cx,stx,H*0.11,1.6); }
+  }
   const shx = B.shake>0? rnd(-4,4)*B.shake : 0;
   cx.save(); cx.translate(shx,0);
   // building + name + hp bar
