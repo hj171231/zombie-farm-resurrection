@@ -60,7 +60,7 @@ console.log("\n== economy ==");
   });
   check("harvesting a ripe carrot pays sell price (18g) + xp + stat", () => {
     G.S.gold = 0; const xp0 = G.S.xp; const crops0 = G.S.stats.crops;
-    backdate(G, 24, 21);
+    backdate(G, 24, 26);
     G.tapTile(24);
     eq(G.S.gold, 18); eq(G.S.tiles[24].st, "plot");
     eq(G.S.stats.crops, crops0 + 1);
@@ -70,7 +70,7 @@ console.log("\n== economy ==");
     G.S.gold = 100;
     G.plantAt(24, "crop", "carrot");
     G.S.tiles[24].fert = true;
-    backdate(G, 24, 21);
+    backdate(G, 24, 26);
     const before = G.S.gold;
     G.tapTile(24);
     eq(G.S.gold, before + 36);
@@ -101,16 +101,16 @@ console.log("\n== growth & wilt ==");
     ok(g.prog < 0.05); ok(!g.ready); ok(!g.wilted);
   });
   check("ready exactly when grow time elapses", () => {
-    backdate(G, 10, 20);
+    backdate(G, 10, 25);
     const g = G.growthInfo(G.S.tiles[10]);
     ok(g.ready); eq(g.prog, 1);
   });
-  check("not wilted at 7.9x grow time", () => {
-    backdate(G, 10, 20 * 7.9);
+  check("not wilted at 10.3x grow time (wilt is lenient now)", () => {
+    backdate(G, 10, 25 * 10.3);
     ok(!G.growthInfo(G.S.tiles[10]).wilted);
   });
-  check("wilted at 8x grow time", () => {
-    backdate(G, 10, 20 * 8.05);
+  check("wilted at 10.4x grow time", () => {
+    backdate(G, 10, 25 * 10.45);
     ok(G.growthInfo(G.S.tiles[10]).wilted);
   });
   check("tapping a wilted crop plows it under (no gold)", () => {
@@ -482,14 +482,14 @@ console.log("\n== offline growth (timestamps survive save/load) ==");
     G.save();
     // simulate returning later: rewrite the stored timestamp 25s into the past
     const st = G.load();
-    st.tiles[12].at = Date.now() - 25 * 1000;
+    st.tiles[12].at = Date.now() - 27 * 1000;
     G.startGame(st);
     const g = G.growthInfo(G.S.tiles[12]);
     ok(g.ready, "ripe after offline time");
   });
   check("'away' past 8x grow time => wilted on return", () => {
     const st = G.load();
-    st.tiles[12] = { st: "planted", kind: "crop", plant: "carrot", at: Date.now() - 20 * 8.5 * 1000, fert: false };
+    st.tiles[12] = { st: "planted", kind: "crop", plant: "carrot", at: Date.now() - 25 * 11 * 1000, fert: false };
     G.startGame(st);
     ok(G.growthInfo(G.S.tiles[12]).wilted);
   });
@@ -502,7 +502,7 @@ function mutationRoll(lifeForce, roll) {
   G.S.gold = 100000; G.S.level = 99;
   forcePlot(G, 24); G.plantAt(24, "zombie", "shambler");
   forcePlot(G, 23); G.plantAt(23, "crop", "carrot");
-  G.S.tiles[23].at = Date.now() - 0.7 * 20 * 1000; // 70% grown
+  G.S.tiles[23].at = Date.now() - 0.7 * 25 * 1000; // 70% grown
   backdate(G, 24, 31);
   G.S.lifeForce = lifeForce;
   const restore = G.setRandom(() => roll);
@@ -528,7 +528,7 @@ function mutationRoll(lifeForce, roll) {
     G.S.gold = 100000;
     forcePlot(G, 24); G.plantAt(24, "zombie", "shambler");
     forcePlot(G, 23); G.plantAt(23, "crop", "carrot");
-    G.S.tiles[23].at = Date.now() - 20 * 9 * 1000; // long dead
+    G.S.tiles[23].at = Date.now() - 25 * 11 * 1000; // long dead
     backdate(G, 24, 31);
     const restore = G.setRandom(() => 0);
     G.harvest(24);
@@ -680,6 +680,146 @@ console.log("\n== sanitizeState (save repair & migration) ==");
     eq(G.load(), null);
     G.startGame(G.load());
     eq(G.S.gold, 200);
+  });
+}
+
+console.log("\n== content pack: data ==");
+{
+  const { G } = boot();
+  check("content counts: 10 crops, 11 zombies, 5 trees, 8 targets, 16 goals", () => {
+    eq(G.CROPS.length, 10); eq(G.ZTYPES.length, 11);
+    eq(G.TREES.length, 5); eq(G.TARGETS.length, 8); eq(G.GOALS.length, 16);
+  });
+  check("crop grow times are the approved nice numbers", () => {
+    const want = [25, 50, 100, 200, 330, 540, 780, 1320, 1980, 3000];
+    eq(JSON.stringify(G.CROPS.map(c => c.time)), JSON.stringify(want));
+  });
+  check("every crop's mutation label is unique (visual zone ownership)", () => {
+    const labels = G.CROPS.map(c => c.mut.label);
+    eq(new Set(labels).size, labels.length);
+  });
+  check("unlocks escalate to level 24 (Lunar Lab is the finale)", () => {
+    eq(Math.max(...G.TARGETS.map(t => t.unlock)), 24);
+    eq(G.TARGETS[7].scen, "moon");
+  });
+  check("new premium items cost brains: Lantern Tree 3, Gravemound 5", () => {
+    eq(G.TREES.find(t => t.id === "lantern").brains, 3);
+    eq(G.ZTYPES.find(z => z.id === "gravemound").brains, 5);
+  });
+}
+
+console.log("\n== content pack: battle traits ==");
+function traitArmy(G, type, n) {
+  G.S.zombies = [];
+  const zd = G.ZTYPES.find(t => t.id === type);
+  for (let k = 0; k < n; k++) G.S.zombies.push({ type, name: "T" + k, pow: zd.pow, hp: 70, maxhp: 70, spd: 1, hunger: 100, x: 0, y: 0, tx: 0, ty: 0, wob: 0, mut: [], kills: 0 });
+}
+function projectileHit(G, type) {
+  traitArmy(G, type, 6);
+  G.startBattle(G.TARGETS[0]);
+  G.nextAttacker();
+  const a = G.B.active;
+  G.B.projectiles.push({ x: a.x, y: a.y - 20, vx: 0, vy: 0, g: 0, born: 0 });
+  const restore = G.setRandom(() => 0); // ri(4,9) -> 4 damage before traits
+  G.updateBattle(0.001);
+  restore();
+  const hp = a.z.hp;
+  G.scene = "farm"; G.B = null;
+  return 70 - hp; // damage taken
+}
+{
+  const { G } = boot();
+  check("Grave Digger's hardhat blocks 30% of projectile damage", () => {
+    eq(projectileHit(G, "shambler"), 4);
+    eq(projectileHit(G, "digger"), 3); // ceil(4 * 0.7)
+  });
+  check("Jester confuses defenders into throwing slower", () => {
+    // with rolls forced to 0 the throw gap is 1.4s (jester: 1.4*1.7 = 2.38s)
+    traitArmy(G, "shambler", 6);
+    G.startBattle(G.TARGETS[0]); G.nextAttacker();
+    let restore = G.setRandom(() => 0);
+    G.B.t = 2.0; G.B.lastThrow = 0;
+    G.updateBattle(0.001);
+    restore();
+    eq(G.B.projectiles.length, 1, "shambler gets thrown at");
+    G.scene = "farm"; G.B = null;
+    traitArmy(G, "jester", 6);
+    G.startBattle(G.TARGETS[0]); G.nextAttacker();
+    restore = G.setRandom(() => 0);
+    G.B.t = 2.0; G.B.lastThrow = 0;
+    G.updateBattle(0.001);
+    restore();
+    eq(G.B.projectiles.length, 0, "defender still winding up at the jester");
+    G.scene = "farm"; G.B = null;
+  });
+  check("a surviving Chef doubles post-victory healing (8 -> 16)", () => {
+    traitArmy(G, "shambler", 5);
+    G.S.zombies.forEach(z => { z.hp = 20; });
+    G.S.zombies.push({ type: "chef", name: "Cook", pow: 28, hp: 20, maxhp: 80, spd: 1, hunger: 100, x: 0, y: 0, tx: 0, ty: 0, wob: 0, mut: [], kills: 0 });
+    G.startBattle(G.TARGETS[0]);
+    G.B.hp = 0; G.updateBattle(0.01); // instant win
+    eq(G.S.zombies[0].hp, 36, "20 + 16 with chef");
+    G.scene = "farm"; G.B = null;
+    traitArmy(G, "shambler", 6);
+    G.S.zombies.forEach(z => { z.hp = 20; });
+    G.startBattle(G.TARGETS[0]);
+    G.B.hp = 0; G.updateBattle(0.01);
+    eq(G.S.zombies[0].hp, 28, "20 + 8 without chef");
+    G.scene = "farm"; G.B = null;
+  });
+}
+
+console.log("\n== content pack: new stats & goals ==");
+{
+  const { G } = boot();
+  check("harvesting a Wormy Apple counts the apples stat + completes its goal", () => {
+    G.S.level = 99; G.S.gold = 100000;
+    forcePlot(G, 5); G.plantAt(5, "crop", "wormapple");
+    backdate(G, 5, 800);
+    G.tapTile(5);
+    eq(G.S.stats.apples, 1);
+    ok(G.S.goalsDone.includes("apple1"));
+  });
+  check("raising the Gravemound counts its stat + goal", () => {
+    G.S.brains = 5;
+    forcePlot(G, 6); G.plantAt(6, "zombie", "gravemound");
+    backdate(G, 6, 700);
+    G.tapTile(6);
+    eq(G.S.stats.gmound, 1);
+    ok(G.S.goalsDone.includes("gmound1"));
+  });
+  check("300 life force completes the lf300 goal (special stat)", () => {
+    G.S.lifeForce = 300;
+    G.checkGoals();
+    ok(G.S.goalsDone.includes("lf300"));
+  });
+  check("winning at a new target counts mallwin/moonwin", () => {
+    traitArmy(G, "shambler", 6);
+    G.startBattle(G.TARGETS[5]); // mega-mall
+    G.B.hp = 0; G.updateBattle(0.01);
+    eq(G.S.stats.mallwin, 1);
+    ok(G.S.goalsDone.includes("mall1"));
+    G.scene = "farm"; G.B = null;
+  });
+}
+
+console.log("\n== zombie roaming ==");
+{
+  const { G } = boot();
+  check("zombies mostly pick strolling spots outside the fenced field", () => {
+    let outside = 0;
+    for (let k = 0; k < 300; k++) {
+      const p = G.randRoamPos();
+      if (!G.inFieldDiamond(p.x, p.y, 1.05)) outside++;
+    }
+    ok(outside > 180, "only " + outside + "/300 outside — should be ~80%");
+    ok(outside < 300, "some walks should still cross the field, got " + outside + "/300 outside");
+  });
+  check("roam spots stay on screen", () => {
+    for (let k = 0; k < 100; k++) {
+      const p = G.randRoamPos();
+      ok(p.x >= -G.TW && p.x <= G.W + G.TW && p.y >= 0 && p.y <= G.H + 40, JSON.stringify(p));
+    }
   });
 }
 

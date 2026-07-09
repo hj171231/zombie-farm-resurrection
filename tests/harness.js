@@ -36,7 +36,7 @@ globalThis.__game = {
   // logic
   freshState, save, load, sanitizeState, backupSave, startGame, BUILD,
   xpNeeded, gainXP, calcLF, neighbors, growthInfo, fmtTime,
-  cellXY, tileAt, layout, resize,
+  cellXY, tileAt, layout, resize, randRoamPos, inFieldDiamond,
   tapTile, plantAt, harvest, setPlantMode, clearPlantMode, checkGoals, hud,
   startBattle, nextAttacker, updateBattle, endBattle, battleTap,
   gardenerTick, hungerTick,

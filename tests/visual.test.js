@@ -104,30 +104,26 @@ check("every battle target scene renders without throwing", () => {
   });
 });
 
-check("all 6 single mutations + all 15 pairs render uniquely (21 combos)", () => {
-  const MUTS = [
-    { label: "Speedy", col: "#ff8c2e" },
-    { label: "Kernel-Powered", col: "#ffd94d" },
-    { label: "Gourd-Headed", col: "#ff7f1e" },
-    { label: "Sporified", col: "#c98ee0" },
-    { label: "Flaming", col: "#e03c2e" },
-    { label: "Moon-Touched", col: "#8ee0b0" },
-  ];
+check("every mutation combo renders uniquely (all singles + all pairs)", () => {
+  // build the mutation list straight from the crop table — new crops auto-covered
+  const MUTS = G.CROPS.map(c => ({ label: c.mut.label, col: c.col }));
   const combos = [];
-  for (let a = 0; a < 6; a++) {
+  for (let a = 0; a < MUTS.length; a++) {
     combos.push([MUTS[a]]);
-    for (let b = a + 1; b < 6; b++) combos.push([MUTS[a], MUTS[b]]);
+    for (let b = a + 1; b < MUTS.length; b++) combos.push([MUTS[a], MUTS[b]]);
   }
-  ok(combos.length === 21, "expected 21 combos");
+  const expected = MUTS.length * (MUTS.length + 1) / 2;
+  ok(combos.length === expected, "expected " + expected + " combos");
   const zd = G.ZTYPES.find(t => t.id === "shambler");
-  const sheet = createCanvas(7 * 90, 3 * 110);
+  const cols = 11, rows = Math.ceil(combos.length / cols);
+  const sheet = createCanvas(cols * 90, rows * 110);
   const sg = sheet.getContext("2d");
   sg.fillStyle = "#3a5522"; sg.fillRect(0, 0, sheet.width, sheet.height);
   const imgs = combos.map((muts, k) => {
     const cell = createCanvas(90, 110);
     const g = cell.getContext("2d");
     G.drawZombie(g, 45, 100, 0.9, zd, muts, 1, 0.5, true);
-    sg.drawImage(cell, (k % 7) * 90, Math.floor(k / 7) * 110);
+    sg.drawImage(cell, (k % cols) * 90, Math.floor(k / cols) * 110);
     return { name: muts.map(m => m.label).join("+"), d: g.getImageData(0, 0, 90, 110).data };
   });
   savePNG(sheet, "mutations-21.png");
@@ -146,24 +142,26 @@ check("all 6 single mutations + all 15 pairs render uniquely (21 combos)", () =>
   }
 });
 
-check("all 7 zombie types render (incl. headless carrying head, gardener hat)", () => {
-  const sheet = createCanvas(7 * 100, 120);
+check("all zombie types render (hats, props, colossus and all)", () => {
+  const n = G.ZTYPES.length;
+  const sheet = createCanvas(n * 100, 150);
   const g = sheet.getContext("2d");
   g.fillStyle = "#3a5522"; g.fillRect(0, 0, sheet.width, sheet.height);
   G.ZTYPES.forEach((zd, k) => {
-    G.drawZombie(g, 50 + k * 100, 110, 0.9, zd, [], 1, k * 0.3, k % 2 === 0);
+    G.drawZombie(g, 50 + k * 100, 138, 0.9, zd, [], 1, k * 0.3, k % 2 === 0);
   });
   savePNG(sheet, "zombie-types.png");
   ok(uniqueColors(sheet) > 20);
 });
 
-check("all 6 produce + 3 trees + 3 gravestone shapes render", () => {
-  const sheet = createCanvas(12 * 70, 100);
+check("all produce + trees + gravestone shapes render", () => {
+  const nC = G.CROPS.length, nT = G.TREES.length;
+  const sheet = createCanvas((nC + nT + 3) * 70, 110);
   const g = sheet.getContext("2d");
   g.fillStyle = "#6a5228"; g.fillRect(0, 0, sheet.width, sheet.height);
-  G.CROPS.forEach((c, k) => G.drawProduce(g, c.id, 35 + k * 70, 55, 26));
-  G.TREES.forEach((t, k) => G.drawTree(g, t, 35 + (6 + k) * 70, 88, 22));
-  for (let k = 0; k < 3; k++) G.drawGravestone(g, 35 + (9 + k) * 70, 80, 40, 1, 0, k);
+  G.CROPS.forEach((c, k) => G.drawProduce(g, c.id, 35 + k * 70, 60, 26));
+  G.TREES.forEach((t, k) => G.drawTree(g, t, 35 + (nC + k) * 70, 95, 22));
+  for (let k = 0; k < 3; k++) G.drawGravestone(g, 35 + (nC + nT + k) * 70, 88, 40, 1, 0, k);
   savePNG(sheet, "produce-trees-graves.png");
   ok(uniqueColors(sheet) > 15);
 });
