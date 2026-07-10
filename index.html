@@ -255,7 +255,17 @@ const GOALS = [
  {id:"lunar3",  desc:"Conquer the Lunar Lab 3 times", n:3, stat:"moonwin", gold:30000, xp:500}
 ];
 
-const BUILD = "build 25 · 2026-07-10"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 26 · 2026-07-10"; // rewritten by scripts/deploy.sh at each publish
+// ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
+const PAL={
+  grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
+  dirtDry:"#A9744C", dirtTilled:"#7A4E33", dirtMoist:"#5E3A26",
+  zClassic:"#96C24E", zPale:"#B7DA8B", zMint:"#9FDDB4", zDeep:"#6B9B3E", zBruise:"#9B7BC8", bansheeBlue:"#A8C8E8",
+  woodLight:"#C98F55", woodMid:"#9C6B3D", woodDark:"#6E4527",
+  uiGold:"#F6C445", uiCream:"#FDF6E3", dangerRed:"#E0523F",
+  magicPurple:"#9C5FD4", nightSky:"#45509E", nightDeep:"#2A2E5C",
+  outlinePlum:"#33244A", moonCream:"#F2EFD9", sunsetOrange:"#F5934B"
+};
 const GRID = 7;
 const MAX_Z = 16;
 const INVADE_MIN = 6;
@@ -2719,7 +2729,7 @@ function drawYardDecor(dp){
 function drawFarm(dt){
   const dp=dayPhase();
   const grd=cx.createLinearGradient(0,0,0,H);
-  grd.addColorStop(0,"#88bb54"); grd.addColorStop(0.55,"#75a847"); grd.addColorStop(1,"#64953b");
+  grd.addColorStop(0,"#8fd166"); grd.addColorStop(0.55,PAL.grassDay); grd.addColorStop(1,PAL.grassShade);
   cx.fillStyle=grd; cx.fillRect(0,0,W,H);
   const fieldCX=ISOX, fieldCY=ISOY+GRID*TH/2;
   for(let k=0;k<30;k++){
@@ -2734,9 +2744,9 @@ function drawFarm(dt){
   // field dirt diamond
   cx.fillStyle="rgba(20,30,10,.25)";
   diamond(cx,fieldCX,fieldCY+5,GRID*TW+TW*0.95,GRID*TH+TH*0.95); cx.fill();
-  cx.fillStyle="#553d15";
+  cx.fillStyle=PAL.dirtMoist;
   diamond(cx,fieldCX,fieldCY,GRID*TW+TW*0.85,GRID*TH+TH*0.85); cx.fill();
-  cx.fillStyle="#694d1d";
+  cx.fillStyle=PAL.dirtTilled;
   diamond(cx,fieldCX,fieldCY,GRID*TW+TW*0.4,GRID*TH+TH*0.4); cx.fill();
   for(let k=0;k<26;k++){
     const mc=seedRnd(k,91)*GRID, mr=seedRnd(k,57)*GRID;
@@ -2748,11 +2758,11 @@ function drawFarm(dt){
   for(let i=0;i<GRID*GRID;i++){
     const t=S.tiles[i], p=cellXY(i);
     if(t.st==="plot"||t.st==="planted"){
-      cx.fillStyle="#48310f";
+      cx.fillStyle=PAL.dirtMoist;
       diamond(cx,p.x,p.y,TW*0.94,TH*0.94); cx.fill();
       cx.strokeStyle="rgba(0,0,0,.3)"; cx.lineWidth=1.4;
       diamond(cx,p.x,p.y,TW*0.94,TH*0.94); cx.stroke();
-      cx.strokeStyle="#6d4f1e"; cx.lineWidth=Math.max(2.4,TH*0.17); cx.lineCap="round";
+      cx.strokeStyle=PAL.dirtDry; cx.lineWidth=Math.max(2.4,TH*0.17); cx.lineCap="round";
       for(let k=-1;k<=1;k++){
         const sx=p.x-TW*0.19-k*TW*0.15, sy=p.y-TH*0.19+k*TH*0.15;
         const ex2=p.x+TW*0.19-k*TW*0.15, ey2=p.y+TH*0.19+k*TH*0.15;
@@ -2904,7 +2914,7 @@ function drawFarm(dt){
   cx.beginPath(); cx.ellipse((ct*5+200)%(W+300)-150, H*0.65, 100,32,0,0,TAU); cx.fill();
   // night overlay + stars + fireflies
   if(dp.dark>0.02){
-    cx.fillStyle="rgba(24,30,80,"+(dp.dark*0.26)+")"; // moonlit, not pitch black
+    cx.fillStyle="rgba(42,46,92,"+(dp.dark*0.26)+")"; // Night Deep, moonlit not pitch black
     cx.fillRect(0,0,W,H);
     // bats crossing the night sky
     cx.strokeStyle="rgba(30,24,48,"+(dp.dark*0.9)+")"; cx.lineWidth=2.4;
