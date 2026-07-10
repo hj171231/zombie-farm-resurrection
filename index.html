@@ -38,14 +38,14 @@
   #menuItems { display:none; flex-direction:column; gap:8px; align-items:flex-end; }
   #menuItems.open { display:flex; animation:menuPop .16s ease-out; }
   @keyframes menuPop { from{ opacity:0; transform:translateY(8px);} to{ opacity:1; transform:translateY(0);} }
-  #menuBtn { font-size:20px; padding:9px 16px; min-width:54px; }
+  #menuBtn { font-size:30px; line-height:0.85; padding:5px 12px 7px; min-width:54px; }
   #menuBtn.open { background:linear-gradient(#ffd97a 0%,#e0a83a 45%,#b07a1e 100%); border-color:#5e440c; }
   .btnbar-l { position:absolute; bottom:10px; left:10px; display:flex; flex-direction:column; gap:8px; z-index:5; align-items:flex-start; }
   .gbtn { background:linear-gradient(#b8e262 0%, #7fb33c 45%, #5d8a2a 100%); border:3px solid #2f4a12; border-radius:16px; color:#fff; font-weight:bold; font-size:15px; padding:9px 15px; cursor:pointer; box-shadow:inset 0 3px 0 rgba(255,255,255,.35), 0 4px 0 #24390d, 0 6px 10px rgba(0,0,0,.4); text-shadow:0 2px 2px rgba(0,0,0,.45); font-family:"Luckiest Guy","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-weight:400; letter-spacing:.5px; }
   .gbtn:active { transform:translateY(3px); box-shadow:inset 0 3px 0 rgba(255,255,255,.25), 0 1px 0 #24390d; }
   .gbtn.red { background:linear-gradient(#ff9a6a 0%, #e0603a 45%, #b03a1e 100%); border-color:#5e1c0c; box-shadow:inset 0 3px 0 rgba(255,255,255,.35), 0 4px 0 #4a1508, 0 6px 10px rgba(0,0,0,.4); }
   .gbtn.small { font-size:13px; padding:6px 11px; }
-  #invadeBtn { font-size:17px; }
+  #invadeBtn { font-size:17px; display:flex; align-items:center; justify-content:center; gap:7px; }
   .gbtn:disabled { filter:grayscale(.8); opacity:.7; }
   .gbtn.toggled { outline:3px solid #ffd94d; }
 
@@ -115,7 +115,7 @@
   <div class="pill" id="goldPill" title="GOLD — earned from selling crops and winning invasions. Spends on plowing, planting and zombies."><span class="ico" id="goldIco">&#x1FA99;</span><span id="goldTxt">0</span></div>
   <div class="pill" id="brainPill" title="BRAINS — rare invasion loot. Buys premium zombies and trees. Never sold, only won."><span class="ico" id="brainIco">&#x1F9E0;</span><span id="brainTxt">0</span></div>
   <div class="pill" id="zedPill" title="HORDE — zombies roaming your farm right now / the max the farm can hold (16)."><span class="ico" id="zedIco">&#x1F9DF;</span><span id="zcountTxt">0/16</span></div>
-  <div class="pill" id="lfPill" title="LIFE FORCE — radiated by trees. Boosts mutation odds and is REQUIRED for zombies to heal."><span class="ico" id="leafIco">&#x2764;&#xFE0F;</span><span id="lfTxt">0</span></div>
+  <div class="pill" id="lfPill" title="HORDE HEALTH — total HP across all your zombies right now. Trees radiate life force, which heals them and boosts mutations."><span class="ico" id="leafIco">&#x2764;&#xFE0F;</span><span id="lfTxt">0</span></div>
   <div id="xpwrap"><div id="xpbarBg"><div id="xpbar"></div><div id="xptext">Lv 1</div></div></div>
 </div>
 
@@ -251,7 +251,7 @@ const GOALS = [
  {id:"lunar3",  desc:"Conquer the Lunar Lab 3 times", n:3, stat:"moonwin", gold:30000, xp:500}
 ];
 
-const BUILD = "build 18 · 2026-07-09"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 19 · 2026-07-10"; // rewritten by scripts/deploy.sh at each publish
 const GRID = 7;
 const MAX_Z = 16;
 const INVADE_MIN = 6;
@@ -322,11 +322,12 @@ function sanitizeState(raw){
       .filter(z=>z && typeof z==="object" && ZTYPES.some(t=>t.id===z.type))
       .slice(0,MAX_Z)
       .map(z=>{
-        const zd=ZTYPES.find(t=>t.id===z.type);
+        const zd=zdefFor(z);
         return { type:z.type, name:typeof z.name==="string"?z.name:pick(ZNAMES),
           pow:num(z.pow,zd.pow), hp:num(z.hp,zd.hp), maxhp:num(z.maxhp,zd.hp), spd:num(z.spd,zd.spd),
           hunger:num(z.hunger,30), x:z.x, y:z.y, tx:z.tx, ty:z.ty, wob:num(z.wob,0),
           mut:Array.isArray(z.mut)?z.mut.filter(m=>m&&typeof m.label==="string").slice(0,2):[],
+          awakened:!!z.awakened,
           kills:num(z.kills,0) };
       });
   }
@@ -682,7 +683,7 @@ function harvest(i){
         if(nt.st==="planted" && nt.kind==="crop"){
           const ng=growthInfo(nt);
           if(ng.prog>0.5 && !ng.wilted){
-            const chance = 0.35 + Math.min(S.lifeForce,100)/250;
+            const chance = mutationChance();
             if(Math.random()<chance){
               const m=ng.def.mut;
               if(!z.mut.find(x=>x.label===m.label)){
@@ -702,6 +703,13 @@ function harvest(i){
       if(zd.id==="gravemound") S.stats.gmound++;
       if(mutated){
         S.stats.muts++; sfx.brain(); toast("&#x1F9EA; <b>MUTATION!</b> "+z.name+" is "+z.mut.map(m=>m.label).join(" & ")+"!",2800);
+        if(zd.id==="gardener" && z.mut.some(m=>m.label==="All-Seeing")){
+          // (unwritten anywhere, untold to anyone: the gardener who Sees
+          //  stops tending the crops and starts tending the BATTLEFIELD)
+          z.awakened=true;
+          z.pow=75; z.hp=300; z.maxhp=300; z.spd=1.2;
+          setTimeout(()=>{ toast("&#x1F441;&#xFE0F; <b>"+z.name+"</b> has seen EVERYTHING.",3800); sfx.brain(); sfx.zomb(); },1400);
+        }
         if(z.mut.length===2){ // a combo! log it in the almanac
           if(!S.pairSeen) S.pairSeen={};
           const key=z.mut.map(m=>m.label).sort().join(" + ");
@@ -747,9 +755,13 @@ function plantAt(i, kind, id){
 
 let lastFert=0;
 function gardenerTick(){
-  if(now()-lastFert<20000) return;
   const gardeners=S.zombies.filter(z=>z.type==="gardener");
   if(!gardeners.length) return;
+  // base gardeners take their sweet time (40s). A gardener with a worm pal
+  // (Wormfriend mutation) composts at double speed. The Awakened... help too.
+  const interval = gardeners.some(z=>z.mut&&z.mut.some(m=>m.label==="Wormfriend")) ? 20000
+                 : gardeners.some(z=>z.awakened) ? 30000 : 40000;
+  if(now()-lastFert<interval) return;
   const growing=[];
   S.tiles.forEach((t,i)=>{ if(t.st==="planted"&&t.kind==="crop"&&!t.fert) growing.push(i); });
   if(!growing.length) return;
@@ -785,6 +797,13 @@ function healTick(){
 }
 
 // ---------- goals ----------
+// The hidden green math: mutation odds grow with TOTAL life force on a
+// square-root curve. 0 LF = 35%. A typical grove (~10 mixed trees, ~600 LF)
+// lands around 61%. A fanatic with ~20 Lantern Trees (3600 LF) hits a
+// guaranteed 100%. Nobody sees this number — they just feel the farm humming.
+function mutationChance(){
+  return Math.min(1, 0.35 + 0.65*Math.sqrt(Math.min(S.lifeForce,3600)/3600));
+}
 function goalProgress(g){
   switch(g.stat){
     case "lf": return S.lifeForce;
@@ -817,7 +836,7 @@ function hud(){
   $("goldTxt").textContent = Math.floor(S.gold);
   $("brainTxt").textContent = S.brains;
   $("zcountTxt").textContent = S.zombies.length+"/"+MAX_Z;
-  $("lfTxt").textContent = S.lifeForce;
+  $("lfTxt").textContent = Math.round(S.zombies.reduce((a,z)=>a+z.hp,0));
   const need=xpNeeded(S.level);
   $("xpbar").style.width = clamp(S.xp/need*100,0,100)+"%";
   $("xptext").textContent = "Lv "+S.level+"  ("+S.xp+"/"+need+" xp)";
@@ -1168,6 +1187,11 @@ function drawTree(g,tr,x,y,s){
 
 // ---- zombie (bobblehead cartoon style, v3) ----
 function mutHas(muts,label){ return muts && muts.some(m=>m.label===label); }
+function zdefFor(z){
+  const base=ZTYPES.find(t=>t.id===z.type);
+  if(z && z.awakened) return Object.assign({},base,{big:true,small:false,awk:true,shirt:"#2e352a"});
+  return base;
+}
 function nameHash(n){ let h=0; for(let i=0;i<n.length;i++) h=(h*31+n.charCodeAt(i))>>>0; return h%1000/1000; }
 function drawStar(g,x,y,r){
   g.beginPath();
@@ -1191,6 +1215,12 @@ function drawZombie(g,x,y,s,zd,muts,wob,seed,hungry){
   if(moon){
     g.globalAlpha=0.22; g.fillStyle="#baffe0";
     blob(g,x,y-10*s-bh*0.6+bob,bw*1.5);
+    g.globalAlpha=1;
+  }
+  if(zd.awk){
+    // something old and green hums around this one
+    g.globalAlpha=0.16; g.fillStyle="#7dffa0";
+    blob(g,x,y-10*s-bh*0.6+bob,bw*1.4);
     g.globalAlpha=1;
   }
   g.fillStyle="rgba(20,25,10,.3)";
@@ -1327,6 +1357,13 @@ function drawZombie(g,x,y,s,zd,muts,wob,seed,hungry){
       outline(g,0.8*s); g.stroke();
     }
   }
+  if(zd.awk){
+    // battle scars raked across the chest
+    g.strokeStyle="#3e5e3a"; g.lineWidth=1.6*s; g.lineCap="round";
+    g.beginPath(); g.moveTo(-bw*0.32,-10*s-bh*0.85); g.lineTo(-bw*0.05,-10*s-bh*0.4); g.stroke();
+    g.beginPath(); g.moveTo(-bw*0.2,-10*s-bh*0.88); g.lineTo(bw*0.06,-10*s-bh*0.44); g.stroke();
+    g.beginPath(); g.moveTo(bw*0.14,-10*s-bh*0.7); g.lineTo(bw*0.38,-10*s-bh*0.32); g.stroke();
+  }
   if(zd.colossus){
     // mossy shoulders + stitched patch
     g.fillStyle="#5f8f36";
@@ -1426,6 +1463,16 @@ function drawZombie(g,x,y,s,zd,muts,wob,seed,hungry){
     outline(g,1.2*s);
     g.beginPath(); g.arc(-bw*0.36-16*s,armY+3*s+sw,3.6*s,0,TAU); g.stroke();
     g.beginPath(); g.arc(bw*0.36+14*s,armY+5*s-sw,3.4*s,0,TAU); g.stroke();
+    if(zd.awk){
+      // talons
+      g.strokeStyle="#f0ede2"; g.lineWidth=1.4*s; g.lineCap="round";
+      [[-bw*0.36-16*s,armY+3*s+sw],[bw*0.36+14*s,armY+5*s-sw]].forEach(hd=>{
+        for(let k=-1;k<=1;k++){
+          g.beginPath(); g.moveTo(hd[0]+k*2.2*s,hd[1]+2.5*s);
+          g.lineTo(hd[0]+k*3*s,hd[1]+6.5*s); g.stroke();
+        }
+      });
+    }
     if(zd.prop==="ladle"){
       // trusty ladle in the right hand
       const hx3=bw*0.36+14*s, hy3=armY+5*s-sw;
@@ -1736,6 +1783,15 @@ function drawZHead(g,hx,hy,hr,skin,skinD,skinL,zd,muts,s,wob,seed){
     g.lineTo(hx+hr*0.6,hy-hr*0.95); g.stroke();
     g.strokeStyle="#d8d2c0"; g.lineWidth=1.1*s; // pleats
     for(let k=-1;k<=1;k++){ g.beginPath(); g.moveTo(hx+k*hr*0.25,hy-hr*1.0); g.lineTo(hx+k*hr*0.28,hy-hr*1.3); g.stroke(); }
+  }
+  if(zd.awk && !pump){
+    // the gardener's gentle face is gone: furious brows and small fangs
+    g.strokeStyle=OUT; g.lineWidth=2*s; g.lineCap="round";
+    g.beginPath(); g.moveTo(hx-hr*0.6,hy-hr*0.52); g.lineTo(hx-hr*0.12,hy-hr*0.3); g.stroke();
+    g.beginPath(); g.moveTo(hx+hr*0.55,hy-hr*0.5); g.lineTo(hx+hr*0.1,hy-hr*0.3); g.stroke();
+    g.fillStyle="#fffbe8";
+    g.beginPath(); g.moveTo(hx-hr*0.3,hy+hr*0.42); g.lineTo(hx-hr*0.22,hy+hr*0.62); g.lineTo(hx-hr*0.14,hy+hr*0.42); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(hx+hr*0.3,hy+hr*0.4); g.lineTo(hx+hr*0.24,hy+hr*0.6); g.lineTo(hx+hr*0.16,hy+hr*0.4); g.closePath(); g.fill();
   }
   // ---- new mutation zones (2026 content pack) ----
   const worm=mutHas(muts,"Wormfriend"), eye3=mutHas(muts,"All-Seeing"), pung=mutHas(muts,"Pungent");
@@ -2755,7 +2811,7 @@ function drawFarm(dt){
       z.bubbleUntil=now()+4500;
     }
     items.push({y:z.y, f:function(){
-      const zd=ZTYPES.find(t=>t.id===z.type);
+      const zd=zdefFor(z);
       const sc=TILE/66;
       drawZombie(cx,z.x,z.y,sc,zd,z.mut,z.wob,nameHash(z.name),z.hunger>=40);
       if(z.yellUntil && now()<z.yellUntil){
@@ -2909,7 +2965,7 @@ function renderMarket(tab){
     let ds="";
     if(tab===0) ds="Grows in "+fmtTime(item.time)+" &middot; sells "+item.sell+"g &middot; +"+item.xp+"xp<br><i>Mutation gift: "+item.mut.label+"</i>";
     else if(tab===1) ds=item.desc+"<br>PWR "+item.pow+" &middot; HP "+item.hp+" &middot; rises in "+fmtTime(item.time);
-    else ds="+"+item.lf+" life force &mdash; better mutation odds, and the horde CANNOT heal without it.";
+    else ds="+"+item.lf+" life force &mdash; strengthens mutations, and the horde CANNOT heal without it.";
     inf.innerHTML="<div class='nm'>"+item.name+" <span style='font-weight:normal;font-size:12px'>&mdash; "+costStr+"</span></div><div class='ds'>"+(locked?("Unlocks at level "+item.unlock):ds)+"</div>";
     div.appendChild(inf);
     if(!locked){
@@ -2962,7 +3018,7 @@ $("zombiesBtn").onclick=()=>{
   if(!S.zombies.length){ b.innerHTML="<p style='padding:20px;text-align:center'>No zombies yet! Plant some from the Market. &#x26B0;&#xFE0F;</p>"; return; }
   b.innerHTML="";
   S.zombies.forEach((z,ix)=>{
-    const zd=ZTYPES.find(t=>t.id===z.type);
+    const zd=zdefFor(z);
     const row=document.createElement("div"); row.className="zrow";
     row.appendChild(artCanvasSized((g,x,y,r)=>drawZombie(g,x,y+r*1.05,0.78,zd,z.mut,0.5),84));
     const hungry = z.hunger>=70?"<b style='color:#ff9a7a'>STARVING &#x1F9E0;</b>":z.hunger>=40?"peckish":"content";
@@ -3091,8 +3147,9 @@ function openAlmanac(){
   intro.innerHTML=
     "<div style='text-align:center;font-size:14px;margin-bottom:4px'><b style='color:#ffe9a8'>Discovered "+discovered+"/"+CROPS.length+"</b> &middot; <b style='color:#c9f'>Mastered "+mastered+"/"+CROPS.length+"</b> &middot; <b style='color:#7dffa0'>Combos raised "+combosRaised+"/"+totalCombos+"</b></div>"+
     "<b>&#x1F52C; How mutations work:</b> plant a <b>zombie</b> in a plot right <b>next to</b> a crop that's <b>over half grown</b>. "+
-    "When the zombie rises, each ripening neighbor gives a chance to gift its mutation "+
-    "(<b>35%</b> base, up to <b>75%</b> with 100 life force from trees). "+
+    "When the zombie rises, each ripening neighbor gives a chance to gift its mutation &mdash; "+
+    "and the more <b>life force</b> your trees radiate, the better the odds. A farm truly packed "+
+    "with the finest trees can make mutation a <b>certainty</b>. "+
     "A zombie can carry <b>up to 2</b> mutations at once &mdash; a <b>combo</b>! Stats AND looks stack. Wilted crops gift nothing.<br>"+
     "<b>&#x1F4D6; Reading this almanac:</b> raise <b>1</b> zombie with a mutation to discover it &middot; raise <b>3</b> to master it and reveal its full combo chart below.";
   b.appendChild(intro);
@@ -3177,7 +3234,8 @@ function openAlmanac(){
       const inf=document.createElement("div"); inf.className="inf";
       let html="<div class='nm'>"+label+" <span style='font-weight:normal;font-size:12px'>&mdash; "+statTxt+"</span></div>"+
         "<div class='ds'><b>Made by:</b> "+c.name+" (grows in "+fmtTime(c.time)+")"+
-        " &middot; <b>You've raised:</b> "+seen+" zombie"+(seen===1?"":"s")+" with this</div>";
+        " &middot; <b>You've raised:</b> "+seen+" zombie"+(seen===1?"":"s")+" with this"+
+        (c.id==="wormapple"?"<br><i>&#x1FAB1; Gardeners with a worm pal compost twice as fast.</i>":"")+"</div>";
       div.appendChild(inf);
       if(tier===2){
         // full combo chart: this mutation x every other, discovered or not
@@ -3268,7 +3326,7 @@ function openSquadPicker(target){
   info.innerHTML="Tap zombies to enlist a squad of up to <b>"+SQUAD_MAX+"</b>. In battle, tap squad cards to send them in &mdash; <b>3 fight at once</b>!";
   b.appendChild(info);
   S.zombies.forEach((z,ix)=>{
-    const zd=ZTYPES.find(t=>t.id===z.type);
+    const zd=zdefFor(z);
     const row=document.createElement("div"); row.className="zrow";
     row.style.cursor="pointer";
     // big unmistakable indicator: green GO arrow when enlisted
@@ -4092,7 +4150,7 @@ function drawBattle(dt){
   });
   // active fighters
   B.actives.forEach(a=>{
-    const zd=ZTYPES.find(t=>t.id===a.z.type);
+    const zd=zdefFor(a.z);
     const lunge = a.state==="attack" ? Math.max(0,Math.sin(a.atkT/0.7*Math.PI))*16 : 0;
     drawZombie(cx,a.x+lunge,a.y,0.95,zd,a.z.mut, a.state==="march"?B.t*8:B.t*2, nameHash(a.z.name), a.z.hunger>=40);
     cx.fillStyle="rgba(0,0,0,.45)";
@@ -4160,7 +4218,7 @@ function drawBattle(dt){
       cx.strokeStyle=dead?"#5a4a4a":fielded?"#9ccf3e":out?"#555":"#ffd94d";
       cx.lineWidth=fielded?3:2;
       cx.beginPath(); cx.roundRect(rx,ry,cardW,cardH,9); cx.stroke();
-      const zd=ZTYPES.find(t=>t.id===z.type);
+      const zd=zdefFor(z);
       cx.save();
       if(dead||out&&!fielded) cx.globalAlpha=0.45;
       drawZombie(cx,rx+cardW/2,ry+cardH-24,0.42,zd,z.mut,B.t*2+k,nameHash(z.name));
@@ -4580,8 +4638,8 @@ function drawHeartMini(g,x,y,r){
  ["lfPill",()=>{
    const cur=Math.round(S.zombies.reduce((a,z)=>a+z.hp,0));
    const max=S.zombies.reduce((a,z)=>a+z.maxhp,0);
-   const hp=S.zombies.length?("<br>Horde health right now: <b>"+cur+" / "+max+"</b>"+(cur<max?" (roam to heal!)":" &mdash; everyone's in fighting shape!")):"";
-   return iconHTML(drawHeartMini)+"<b>LIFE FORCE</b> &mdash; radiated by trees. Better mutation odds, and zombies can't heal without it."+hp;
+   const hp=S.zombies.length?("Horde health: <b>"+cur+" / "+max+"</b>"+(cur<max?" (roam near trees to heal!)":" &mdash; everyone's in fighting shape!")):"No zombies yet &mdash; grow some!";
+   return iconHTML(drawHeartMini)+"<b>HORDE HEALTH</b> &mdash; "+hp+"<br>Trees radiate <b>life force</b> ("+S.lifeForce+" on your farm): it heals the horde and strengthens mutation odds.";
  }]].forEach(pr=>{
   const el=$(pr[0]);
   if(el&&el.addEventListener) el.addEventListener("click",()=>{ toast(pr[1](),3600); sfx.tap(); });

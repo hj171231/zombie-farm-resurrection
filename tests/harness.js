@@ -39,7 +39,7 @@ globalThis.__game = {
   cellXY, tileAt, layout, resize, randRoamPos, inFieldDiamond, roamTargetFrom, pathAvoidsField,
   tapTile, plantAt, harvest, setPlantMode, clearPlantMode, checkGoals, hud,
   startBattle, sendZombie, updateBattle, endBattle, battleTap, openSquadPicker, MAX_ACTIVE,
-  renameZombie, releaseZombie, mutTier, openAlmanac, pairKey, pairRaised, SQUAD_MAX,
+  renameZombie, releaseZombie, mutTier, openAlmanac, pairKey, pairRaised, SQUAD_MAX, mutationChance, zdefFor,
   screenToWorld, zoomAt, resetCam, clampCam,
   get camZ(){ return camZ; }, set camZ(v){ camZ = v; },
   get camCX(){ return camCX; }, get camCY(){ return camCY; },

@@ -694,16 +694,23 @@ function mutationRoll(lifeForce, roll) {
   return G.S.zombies[0].mut.length;
 }
 {
-  check("base chance is 35%: roll 0.34 mutates, 0.36 doesn't (0 life force)", () => {
+  check("mutation odds: 35% base with no trees (0.34 hits, 0.36 misses)", () => {
     eq(mutationRoll(0, 0.34), 1);
     eq(mutationRoll(0, 0.36), 0);
   });
-  check("life force caps at +40%: with 100 LF, roll 0.74 mutates, 0.76 doesn't", () => {
-    eq(mutationRoll(100, 0.74), 1);
-    eq(mutationRoll(100, 0.76), 0);
+  check("sqrt curve: 900 LF => 67.5% (0.67 hits, 0.68 misses)", () => {
+    eq(mutationRoll(900, 0.67), 1);
+    eq(mutationRoll(900, 0.68), 0);
   });
-  check("more life force than 100 doesn't help further", () => {
-    eq(mutationRoll(100000, 0.76), 0);
+  check("a lantern-tree fanatic (3600 LF) reaches GUARANTEED mutations", () => {
+    eq(mutationRoll(3600, 0.999), 1);
+    eq(mutationRoll(999999, 0.999), 1, "capped at 100%, no overflow");
+  });
+  check("mutationChance formula exact at key points", () => {
+    const { G } = boot();
+    G.S.lifeForce = 0;   ok(Math.abs(G.mutationChance() - 0.35) < 1e-9);
+    G.S.lifeForce = 900; ok(Math.abs(G.mutationChance() - 0.675) < 1e-9);
+    G.S.lifeForce = 3600; eq(G.mutationChance(), 1);
   });
   check("a wilted neighbor never gifts a mutation (even lucky roll)", () => {
     const inst = loadGame(); const G = inst.G;
@@ -1078,6 +1085,59 @@ console.log("\n== new goals & the mystery ==");
     }
     ok(seen.size >= 2, "aim should rotate targets, saw " + [...seen].join(","));
     G.scene = "farm"; G.B = null;
+  });
+}
+
+console.log("\n== the gardener who Sees (shh) ==");
+function raiseGardenerWith(cropId, roll) {
+  const inst = loadGame(); const G = inst.G;
+  G.startGame(null);
+  G.S.gold = 1000000; G.S.level = 99;
+  forcePlot(G, 24); G.plantAt(24, "zombie", "gardener");
+  forcePlot(G, 23); G.plantAt(23, "crop", cropId);
+  const def = G.CROPS.find(c => c.id === cropId);
+  G.S.tiles[23].at = Date.now() - def.time * 700;
+  backdate(G, 24, 46);
+  const restore = G.setRandom(roll);
+  G.harvest(24);
+  restore();
+  return G;
+}
+{
+  check("gardener + Eyeball Berries => the Awakened (75 pow, 300 hp)", () => {
+    const G = raiseGardenerWith("eyeberry", () => 0);
+    const z = G.S.zombies[0];
+    ok(z.awakened === true);
+    eq(z.pow, 75); eq(z.hp, 300); eq(z.maxhp, 300);
+    ok(z.mut.some(m => m.label === "All-Seeing"), "still carries the mutation");
+    const zd = G.zdefFor(z);
+    ok(zd.awk && zd.big, "draws on the heavy Awakened frame");
+    eq(zd.hat, "straw", "keeps the hat");
+    eq(zd.col, G.ZTYPES.find(t=>t.id==="gardener").col, "keeps the skin");
+  });
+  check("gardener + any OTHER mutation stays a humble gardener", () => {
+    const G = raiseGardenerWith("carrot", () => 0);
+    ok(!G.S.zombies[0].awakened);
+    eq(G.S.zombies[0].pow, 2);
+  });
+  check("non-gardeners with All-Seeing do NOT awaken", () => {
+    const G = zombieWithNeighbors(["eyeberry"], 0.7, () => 0);
+    ok(!G.S.zombies[0].awakened);
+  });
+  check("the Awakened survive save/load (sanitizeState keeps the mark)", () => {
+    const G = raiseGardenerWith("eyeberry", () => 0);
+    G.save();
+    const s2 = G.sanitizeState(G.load());
+    ok(s2.zombies[0].awakened === true);
+    eq(s2.zombies[0].pow, 75); eq(s2.zombies[0].maxhp, 300);
+  });
+  check("heart pill reads LIVE total horde hp", () => {
+    const inst = loadGame(); const G = inst.G; const els = inst.els;
+    G.startGame(null);
+    G.S.zombies.push({type:"shambler",name:"A",pow:5,hp:10,maxhp:22,spd:1,hunger:30,x:0,y:0,tx:0,ty:0,wob:0,mut:[],kills:0});
+    G.S.zombies.push({type:"bruiser",name:"B",pow:15,hp:44.6,maxhp:60,spd:0.7,hunger:30,x:0,y:0,tx:0,ty:0,wob:0,mut:[],kills:0});
+    G.hud();
+    eq(els["lfTxt"].textContent, 55); // round(10+44.6)
   });
 }
 
