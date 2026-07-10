@@ -255,7 +255,7 @@ const GOALS = [
  {id:"lunar3",  desc:"Conquer the Lunar Lab 3 times", n:3, stat:"moonwin", gold:30000, xp:500}
 ];
 
-const BUILD = "build 28 · 2026-07-10"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 29 · 2026-07-10"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -1284,10 +1284,32 @@ function drawZombie(g,x,y,s,zd,muts,wob,seed,hungry,pose){
   const skin=zd.col, skinD=shade(zd.col,-28), skinL=shade(zd.col,24);
   const speedy=mutHas(muts,"Speedy"), kernel=mutHas(muts,"Kernel-Powered"), moon=mutHas(muts,"Moon-Touched");
   // ---- Wave-2 sprite path: official character art when loaded ----
-  const sprBase = zd.awk ? "zombie-awakened" : (SPRITE_IDS[zd.id] ? "zombie-"+SPRITE_IDS[zd.id] : null);
-  const spr = sprBase ? (pose==="lunge" ? SPRITES[sprBase+"-lunge"]
-              : pose==="idle" ? SPRITES[sprBase+"-idle"]
-              : SPRITES[sprBase+"-walk-2f"]) : null;
+  // Mutation sheets are FULL characters wearing the gear (not attachments),
+  // so a mutated zombie swaps its whole sprite — never stacks two bodies.
+  // Sheets exist for the shambler (all 10 muts + 3 special combos) and the
+  // gardener's mushroom straw hat; every other mutated body renders via the
+  // procedural art, which handles all 55 combos on every frame.
+  let spr=null;
+  if(zd.awk){
+    const b="zombie-awakened";
+    spr = pose==="lunge"?SPRITES[b+"-lunge"] : pose==="idle"?SPRITES[b+"-idle"] : SPRITES[b+"-walk-2f"];
+  } else if(muts && muts.length){
+    const L=l=>muts.some(m=>m.label===l);
+    let sheet=null;
+    if(zd.id==="shambler"){
+      if(muts.length===2){
+        if(L("Gourd-Headed")&&L("Flaming")) sheet="combo-gourd-flaming-2f";
+        else if(L("Sporified")&&L("Flaming")) sheet="combo-sporified-flaming-2f";
+        else if(L("All-Seeing")&&L("Gourd-Headed")) sheet="combo-allseeing-gourd-2f";
+      } else sheet=MUT_SPRITES[muts[0].label]||null;
+    } else if(zd.id==="gardener" && muts.length===1 && L("Sporified")){
+      sheet="combo-sporified-strawhat";
+    }
+    spr = sheet ? SPRITES[sheet] : null; // null => procedural fallback below
+  } else if(SPRITE_IDS[zd.id]){
+    const b="zombie-"+SPRITE_IDS[zd.id];
+    spr = pose==="lunge"?SPRITES[b+"-lunge"] : pose==="idle"?SPRITES[b+"-idle"] : SPRITES[b+"-walk-2f"];
+  }
   if(spr && spr.img){
     const k = s*73/630; // class scale is baked into each sprite canvas
     if(spr.pad===undefined) spr.pad=spritePad(spr); // trim empty px under the feet
@@ -1304,25 +1326,6 @@ function drawZombie(g,x,y,s,zd,muts,wob,seed,hungry,pose){
     const dw=fw*k, dh=spr.h*k;
     g.save(); g.translate(x,y+bob); g.rotate(lean*0.4); // sprites carry their own pose; sway stays subtle
     g.drawImage(spr.img, frame*fw, 0, fw, spr.h, -dw/2, -dh+2*s+spr.pad*k, dw, dh);
-    // mutation overlays (authored on the normal 540x630 frame; scaled to this
-    // zombie's height so zones land where the head/chest actually are)
-    if(!zd.awk && muts && muts.length){
-      const kO = k*(spr.h/630);
-      const has = l => muts.some(m=>m.label===l);
-      const used = new Set();
-      const drawOv = name => {
-        const o=SPRITES[name]; if(!o||!o.img) return;
-        if(o.pad===undefined) o.pad=spritePad(o);
-        const oF=o.w>o.h*1.3?2:1, oW=o.w/oF, oFr=oF>1?(Math.sin(wob)>0?0:1):0;
-        const ow=oW*kO, oh=o.h*kO;
-        g.drawImage(o.img, oFr*oW, 0, oW, o.h, -ow/2, -oh+2*s+o.pad*kO, ow, oh);
-      };
-      if(has("Gourd-Headed")&&has("Flaming")){ drawOv("combo-gourd-flaming-2f"); used.add("Gourd-Headed"); used.add("Flaming"); }
-      else if(has("Sporified")&&has("Flaming")){ drawOv("combo-sporified-flaming-2f"); used.add("Sporified"); used.add("Flaming"); }
-      else if(has("All-Seeing")&&has("Gourd-Headed")){ drawOv("combo-allseeing-gourd-2f"); used.add("All-Seeing"); used.add("Gourd-Headed"); }
-      if(has("Sporified")&&zd.hat==="straw"&&!used.has("Sporified")){ drawOv("combo-sporified-strawhat"); used.add("Sporified"); }
-      muts.forEach(m=>{ if(!used.has(m.label) && MUT_SPRITES[m.label]) drawOv(MUT_SPRITES[m.label]); });
-    }
     g.restore();
     if(hungry){
       for(let k2=0;k2<2;k2++){
