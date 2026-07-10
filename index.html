@@ -102,10 +102,10 @@
 <div id="game"><canvas id="cv"></canvas></div>
 
 <div class="hud" id="hud" style="display:none">
-  <div class="pill" id="goldPill" title="GOLD — earned from selling crops and winning invasions. Spends on plowing, planting and zombies."><span class="coinIco"></span><span id="goldTxt">0</span></div>
+  <div class="pill" id="goldPill" title="GOLD — earned from selling crops and winning invasions. Spends on plowing, planting and zombies."><span class="ico" id="goldIco">&#x1FA99;</span><span id="goldTxt">0</span></div>
   <div class="pill" id="brainPill" title="BRAINS — rare invasion loot. Buys premium zombies and trees. Never sold, only won."><span class="ico" id="brainIco">&#x1F9E0;</span><span id="brainTxt">0</span></div>
   <div class="pill" id="zedPill" title="HORDE — zombies roaming your farm right now / the max the farm can hold (16)."><span class="ico" id="zedIco">&#x1F9DF;</span><span id="zcountTxt">0/16</span></div>
-  <div class="pill" id="lfPill" title="LIFE FORCE — radiated by trees. Boosts mutation odds and is REQUIRED for zombies to heal."><span class="ico" id="leafIco">&#x1F343;</span><span id="lfTxt">0</span></div>
+  <div class="pill" id="lfPill" title="LIFE FORCE — radiated by trees. Boosts mutation odds and is REQUIRED for zombies to heal."><span class="ico" id="leafIco">&#x2764;&#xFE0F;</span><span id="lfTxt">0</span></div>
   <div id="xpwrap"><div id="xpbarBg"><div id="xpbar"></div><div id="xptext">Lv 1</div></div></div>
 </div>
 
@@ -241,7 +241,7 @@ const GOALS = [
  {id:"lunar3",  desc:"Conquer the Lunar Lab 3 times", n:3, stat:"moonwin", gold:30000, xp:500}
 ];
 
-const BUILD = "build 16 · 2026-07-09"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 17 · 2026-07-09"; // rewritten by scripts/deploy.sh at each publish
 const GRID = 7;
 const MAX_Z = 16;
 const INVADE_MIN = 6;
@@ -2848,21 +2848,6 @@ function drawFarm(dt){
       }
     }
   }
-  // sun / moon
-  const ix=26, iy=H-26;
-  if(dp.dark>0.1){
-    cx.fillStyle="#e8e4d0"; blob(cx,ix,iy,11);
-    cx.fillStyle="rgba(14,16,58,0.9)";
-    blob(cx,ix+5,iy-3,9);
-  } else {
-    cx.fillStyle="#ffdf6a"; blob(cx,ix,iy,10);
-    cx.strokeStyle="#ffdf6a"; cx.lineWidth=2.6;
-    for(let k=0;k<8;k++){
-      const a=k/8*TAU;
-      cx.beginPath(); cx.moveTo(ix+Math.cos(a)*13,iy+Math.sin(a)*13);
-      cx.lineTo(ix+Math.cos(a)*17,iy+Math.sin(a)*17); cx.stroke();
-    }
-  }
   const vg=cx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.45,W/2,H/2,Math.max(W,H)*0.75);
   vg.addColorStop(0,"rgba(0,0,0,0)"); vg.addColorStop(1,"rgba(10,20,5,.28)");
   cx.fillStyle=vg; cx.fillRect(0,0,W,H);
@@ -3319,7 +3304,9 @@ function openSquadPicker(target){
   b.appendChild(go);
 }
 
-const MAX_ACTIVE = 3;
+const MAX_ACTIVE = 5;      // whole squad can fight...
+const FREE_SENDS = 3;      // ...but only 3 charge instantly
+const SEND_COOLDOWN = 5;   // reinforcements arrive one per 5s after that
 function startBattle(target, squadIdxs){
   clearPlantMode(); sfx.zomb();
   const idxs = squadIdxs || S.zombies.map((z,ix)=>ix);
@@ -3329,6 +3316,7 @@ function startBattle(target, squadIdxs){
     target, t:0, timer:120,
     hp:target.hp, maxhp:target.hp,
     squad, sent:new Set(), actives:[], brawlers:[], nextBrawl:rnd(4,7),
+    sendCount:0, nextSendAt:0,
     projectiles:[], lastThrow:0, benchRects:[],
     result:null, deaths:[], goldWon:0, brainWon:false,
     shake:0
@@ -3340,12 +3328,15 @@ function startBattle(target, squadIdxs){
 function sendZombie(k){
   const z=B.squad[k];
   if(!z || z.hp<=0 || B.sent.has(z) || B.actives.length>=MAX_ACTIVE) return false;
-  const slot=[0,1,2].find(sl=>!B.actives.some(a=>a.slot===sl));
+  if(B.sendCount>=FREE_SENDS && B.t<B.nextSendAt) return false; // reinforcements still lacing boots
+  const slot=[0,1,2,3,4].find(sl=>!B.actives.some(a=>a.slot===sl));
   // ONE tap, ONE zombie, ZERO stalling: tap the card and they charge
   // straight into the fight. Hunger still matters — it feeds the damage
   // bonus — but nobody stops to daydream anymore.
-  const a={z, slot, x:-40, y:H*0.68-slot*14, state:"march", bubbleT:0, atkT:0};
+  const a={z, slot, x:-40, y:H*0.68-slot*10, state:"march", bubbleT:0, atkT:0};
   B.sent.add(z); B.actives.push(a); sfx.zomb();
+  B.sendCount++;
+  if(B.sendCount>=FREE_SENDS) B.nextSendAt=B.t+SEND_COOLDOWN;
   return true;
 }
 function removeActive(a){ B.actives=B.actives.filter(x=>x!==a); }
@@ -3359,7 +3350,7 @@ function updateBattle(dt){
   const targX=W*0.72;
   // actives: field defenders FIRST, then the building
   B.actives.slice().forEach(a=>{
-    const stopX=targX-58-a.slot*46;
+    const stopX=targX-58-a.slot*36;
     if(a.state==="distracted"){ a.bubbleT+=dt; return; }
     // priority one: any brawler on the field gets mobbed before the building
     let brT=null, brD=1e9;
@@ -3406,7 +3397,8 @@ function updateBattle(dt){
   // Jester trait: any jester on the field keeps defenders laughing (slower throws)
   const jesterOut = B.actives.some(a=>a.z.type==="jester" && a.state!=="distracted");
   const throwGap = rnd(1.4,2.2) * (jesterOut ? 1.7 : 1);
-  const targets = B.actives.filter(a=>a.state!=="distracted");
+  // defenders hold fire until someone crosses the halfway line
+  const targets = B.actives.filter(a=>a.state!=="distracted" && a.x>=targX*0.5);
   if(targets.length && B.t-B.lastThrow>throwGap){
     B.lastThrow=B.t;
     // the defender AIMS now: a different zombie every throw, ~70% on target
@@ -3523,7 +3515,10 @@ function battleTap(px,py){
   // tap a bench card to send that zombie into the fray
   for(const r of B.benchRects){
     if(px>=r.x && px<=r.x+r.w && py>=r.y && py<=r.y+r.h){
-      if(B.actives.length>=MAX_ACTIVE){ toast("Only "+MAX_ACTIVE+" can fight at once!"); sfx.bad(); }
+      if(B.actives.length>=MAX_ACTIVE){ toast("The whole squad is already out there!"); sfx.bad(); }
+      else if(B.sendCount>=FREE_SENDS && B.t<B.nextSendAt){
+        toast("&#x23F3; Reinforcements ready in "+Math.ceil(B.nextSendAt-B.t)+"s!"); sfx.bad();
+      }
       else if(!sendZombie(r.k)){ sfx.bad(); }
       return;
     }
@@ -4175,7 +4170,15 @@ function drawBattle(dt){
         cx.fillText("FIGHTING", rx+cardW/2, ry+22);
       } else if(!out){
         B.benchRects.push({x:rx,y:ry,w:cardW,h:cardH,k});
-        if(!B.actives.length){ // pulse hint when nobody's fighting
+        const locked=B.sendCount>=FREE_SENDS && B.t<B.nextSendAt;
+        if(locked){
+          cx.fillStyle="rgba(10,10,18,.55)";
+          cx.beginPath(); cx.roundRect(rx,ry,cardW,cardH,9); cx.fill();
+          cx.font="bold 12px 'Luckiest Guy','Arial Rounded MT Bold','Comic Sans MS',sans-serif";
+          cx.fillStyle="#ffd94d";
+          cx.fillText("WAIT",rx+cardW/2,ry+cardH/2-2);
+          cx.fillText(Math.ceil(B.nextSendAt-B.t)+"s",rx+cardW/2,ry+cardH/2+14);
+        } else if(!B.actives.length){ // pulse hint when nobody's fighting
           const pu=0.5+Math.sin(B.t*5)*0.5;
           cx.strokeStyle="rgba(255,217,77,"+pu+")"; cx.lineWidth=3.4;
           cx.beginPath(); cx.roundRect(rx-2,ry-2,cardW+4,cardH+4,10); cx.stroke();
@@ -4416,7 +4419,7 @@ function startGame(existing){
   $("hud").style.display="flex"; $("leftBar").style.display="flex"; $("rightBar").style.display="flex";
   hud();
   try{
-    [["brainIco",drawBrainMini],["zedIco",drawZedMini],["leafIco",drawLeafMini]].forEach(pair=>{
+    [["goldIco",drawGoldMini],["brainIco",drawBrainMini],["zedIco",drawZedMini],["leafIco",drawHeartMini]].forEach(pair=>{
       const sp=$(pair[0]); if(sp && !sp.__drawn){ sp.textContent=""; sp.appendChild(hudIcon(pair[1])); sp.__drawn=true; }
     });
   }catch(e){}
@@ -4426,54 +4429,146 @@ function startGame(existing){
 }
 // hand-drawn HUD icons (these replace the placeholder emoji)
 function hudIcon(drawFn){
-  const c=document.createElement("canvas"); c.width=40; c.height=40;
-  if(c.style){ c.style.width="19px"; c.style.height="19px"; c.style.verticalAlign="-4px"; }
-  const g=c.getContext("2d"); g.scale(2,2); drawFn(g,10,10,8);
+  const c=document.createElement("canvas"); c.width=44; c.height=44;
+  if(c.style){ c.style.width="21px"; c.style.height="21px"; c.style.verticalAlign="-5px"; }
+  const g=c.getContext("2d"); g.scale(2,2); drawFn(g,11,11,9);
   return c;
 }
+// same icon, as an <img> for use inside HTML toasts — pills and messages match
+function iconHTML(drawFn){
+  try{
+    const url=hudIcon(drawFn).toDataURL("image/png");
+    return "<img src='"+url+"' style='width:20px;height:20px;vertical-align:-5px'> ";
+  }catch(e){ return ""; }
+}
+function drawGoldMini(g,x,y,r){
+  // a proper faceted gold nugget
+  g.fillStyle="#f0b429";
+  g.beginPath();
+  g.moveTo(x-r*0.9,y+r*0.25); g.lineTo(x-r*0.55,y-r*0.55); g.lineTo(x-r*0.05,y-r*0.8);
+  g.lineTo(x+r*0.62,y-r*0.45); g.lineTo(x+r*0.9,y+r*0.15); g.lineTo(x+r*0.5,y+r*0.72);
+  g.lineTo(x-r*0.4,y+r*0.75); g.closePath(); g.fill();
+  // bright top facets
+  g.fillStyle="#ffd94d";
+  g.beginPath(); g.moveTo(x-r*0.55,y-r*0.55); g.lineTo(x-r*0.05,y-r*0.8); g.lineTo(x+r*0.1,y-r*0.15); g.lineTo(x-r*0.45,y-r*0.05); g.closePath(); g.fill();
+  g.beginPath(); g.moveTo(x+r*0.62,y-r*0.45); g.lineTo(x+r*0.9,y+r*0.15); g.lineTo(x+r*0.35,y+r*0.1); g.closePath(); g.fill();
+  // deep bottom facet
+  g.fillStyle="#c8892a";
+  g.beginPath(); g.moveTo(x-r*0.4,y+r*0.75); g.lineTo(x+r*0.5,y+r*0.72); g.lineTo(x+r*0.2,y+r*0.25); g.lineTo(x-r*0.5,y+r*0.3); g.closePath(); g.fill();
+  outline(g,1.5);
+  g.beginPath();
+  g.moveTo(x-r*0.9,y+r*0.25); g.lineTo(x-r*0.55,y-r*0.55); g.lineTo(x-r*0.05,y-r*0.8);
+  g.lineTo(x+r*0.62,y-r*0.45); g.lineTo(x+r*0.9,y+r*0.15); g.lineTo(x+r*0.5,y+r*0.72);
+  g.lineTo(x-r*0.4,y+r*0.75); g.closePath(); g.stroke();
+  // glints
+  g.fillStyle="#fff8d8";
+  g.beginPath(); g.moveTo(x-r*0.3,y-r*0.45); g.lineTo(x-r*0.22,y-r*0.28); g.lineTo(x-r*0.38,y-r*0.3); g.closePath(); g.fill();
+  blob(g,x+r*0.45,y-r*0.15,r*0.09);
+}
 function drawBrainMini(g,x,y,r){
-  g.fillStyle="#f2a0b8";
-  g.beginPath(); g.ellipse(x-r*0.35,y,r*0.62,r*0.8,0,0,TAU); g.fill();
-  g.beginPath(); g.ellipse(x+r*0.35,y,r*0.62,r*0.8,0,0,TAU); g.fill();
-  outline(g,1.6);
-  g.beginPath(); g.ellipse(x,y,r*0.98,r*0.8,0,0,TAU); g.stroke();
-  g.strokeStyle="#d87694"; g.lineWidth=1.4;
-  g.beginPath(); g.moveTo(x,y-r*0.7); g.lineTo(x,y+r*0.7); g.stroke();
-  g.beginPath(); g.arc(x-r*0.4,y-r*0.15,r*0.28,0.4,2.4); g.stroke();
-  g.beginPath(); g.arc(x+r*0.4,y+r*0.15,r*0.28,3.5,5.6); g.stroke();
+  // classic cartoon brain: two fat lobes, curly folds, a little stem
+  g.fillStyle="#e88aa8"; // under-shadow lobe
+  g.beginPath(); g.ellipse(x,y+r*0.18,r*0.92,r*0.62,0,0,TAU); g.fill();
+  g.fillStyle="#f6aec4";
+  g.beginPath(); g.ellipse(x-r*0.42,y-r*0.1,r*0.55,r*0.62,-0.15,0,TAU); g.fill();
+  g.beginPath(); g.ellipse(x+r*0.42,y-r*0.1,r*0.55,r*0.62,0.15,0,TAU); g.fill();
+  g.beginPath(); g.ellipse(x,y-r*0.32,r*0.5,r*0.42,0,0,TAU); g.fill();
+  // stem
+  g.fillStyle="#e88aa8";
+  g.beginPath(); g.roundRect(x-r*0.14,y+r*0.55,r*0.28,r*0.32,r*0.1); g.fill();
+  outline(g,1.5);
+  g.beginPath(); g.ellipse(x,y,r*0.96,r*0.78,0,0,TAU); g.stroke();
+  // midline + curly folds
+  g.strokeStyle="#c8637f"; g.lineWidth=1.5; g.lineCap="round";
+  g.beginPath(); g.moveTo(x,y-r*0.72); g.quadraticCurveTo(x+r*0.08,y,x,y+r*0.55); g.stroke();
+  g.beginPath(); g.arc(x-r*0.5,y-r*0.25,r*0.2,2.8,5.6); g.stroke();
+  g.beginPath(); g.arc(x-r*0.35,y+r*0.25,r*0.18,3.6,6.1); g.stroke();
+  g.beginPath(); g.arc(x+r*0.45,y-r*0.2,r*0.2,3.4,6.0); g.stroke();
+  g.beginPath(); g.arc(x+r*0.32,y+r*0.28,r*0.17,0.2,2.8); g.stroke();
+  // wet shine
+  g.fillStyle="rgba(255,255,255,.65)";
+  g.beginPath(); g.ellipse(x-r*0.3,y-r*0.42,r*0.18,r*0.1,0.5,0,TAU); g.fill();
 }
 function drawZedMini(g,x,y,r){
-  g.fillStyle="#82c356";
-  g.beginPath(); g.ellipse(x,y+r*0.1,r*0.95,r*0.88,0,0,TAU); g.fill();
-  outline(g,1.6); g.stroke();
-  g.strokeStyle="#5a9038"; g.lineWidth=1.4; // hair sprigs
-  g.beginPath(); g.moveTo(x-r*0.3,y-r*0.7); g.lineTo(x-r*0.42,y-r*1.0); g.stroke();
-  g.beginPath(); g.moveTo(x+r*0.05,y-r*0.8); g.lineTo(x+r*0.1,y-r*1.1); g.stroke();
-  g.fillStyle="#fff"; // googly eyes
-  g.beginPath(); g.ellipse(x-r*0.32,y-r*0.1,r*0.32,r*0.36,0,0,TAU); g.fill();
-  g.beginPath(); g.ellipse(x+r*0.3,y-r*0.06,r*0.28,r*0.3,0,0,TAU); g.fill();
-  g.fillStyle="#1e1828"; blob(g,x-r*0.26,y-r*0.06,r*0.1); blob(g,x+r*0.34,y-r*0.02,r*0.09);
-  g.strokeStyle=OUT; g.lineWidth=1.3;
-  g.beginPath(); g.moveTo(x-r*0.4,y+r*0.42); g.quadraticCurveTo(x,y+r*0.6,x+r*0.42,y+r*0.34); g.stroke();
-  g.fillStyle="#fffbe8"; g.fillRect(x+r*0.02,y+r*0.42,r*0.14,r*0.16);
-}
-function drawLeafMini(g,x,y,r){
-  g.fillStyle="#7fbf4a";
-  g.beginPath(); g.moveTo(x-r*0.8,y+r*0.6);
-  g.quadraticCurveTo(x-r*0.9,y-r*0.7,x+r*0.7,y-r*0.75);
-  g.quadraticCurveTo(x+r*0.75,y+r*0.4,x-r*0.8,y+r*0.6);
+  // an unmistakable zombie mug: flat-top hair, uneven googly eyes, stitches
+  g.fillStyle="#82c356"; // head
+  g.beginPath(); g.moveTo(x-r*0.85,y+r*0.5);
+  g.quadraticCurveTo(x-r*0.95,y-r*0.5,x-r*0.5,y-r*0.72);
+  g.lineTo(x+r*0.55,y-r*0.72);
+  g.quadraticCurveTo(x+r*0.95,y-r*0.45,x+r*0.85,y+r*0.5);
+  g.quadraticCurveTo(x,y+r*0.95,x-r*0.85,y+r*0.5);
   g.closePath(); g.fill();
-  outline(g,1.5); g.stroke();
-  g.strokeStyle="#4e8a2e"; g.lineWidth=1.4;
-  g.beginPath(); g.moveTo(x-r*0.7,y+r*0.5); g.quadraticCurveTo(x,y-r*0.1,x+r*0.6,y-r*0.65); g.stroke();
+  // messy dark flat-top hair with a jagged fringe
+  g.fillStyle="#3e6e2a";
+  g.beginPath(); g.moveTo(x-r*0.88,y-r*0.35);
+  g.quadraticCurveTo(x-r*0.9,y-r*0.85,x-r*0.3,y-r*0.92);
+  g.lineTo(x+r*0.6,y-r*0.9);
+  g.quadraticCurveTo(x+r*0.92,y-r*0.75,x+r*0.88,y-r*0.4);
+  g.lineTo(x+r*0.55,y-r*0.55); g.lineTo(x+r*0.3,y-r*0.38);
+  g.lineTo(x+r*0.05,y-r*0.6); g.lineTo(x-r*0.25,y-r*0.4);
+  g.lineTo(x-r*0.55,y-r*0.6); g.closePath(); g.fill();
+  outline(g,1.5);
+  g.beginPath(); g.moveTo(x-r*0.85,y+r*0.5);
+  g.quadraticCurveTo(x-r*0.95,y-r*0.5,x-r*0.5,y-r*0.72);
+  g.lineTo(x+r*0.55,y-r*0.72);
+  g.quadraticCurveTo(x+r*0.95,y-r*0.45,x+r*0.85,y+r*0.5);
+  g.quadraticCurveTo(x,y+r*0.95,x-r*0.85,y+r*0.5);
+  g.closePath(); g.stroke();
+  // uneven googly eyes
+  g.fillStyle="#fff";
+  g.beginPath(); g.ellipse(x-r*0.34,y-r*0.02,r*0.34,r*0.38,0,0,TAU); g.fill();
+  g.beginPath(); g.ellipse(x+r*0.33,y+r*0.04,r*0.26,r*0.28,0,0,TAU); g.fill();
+  outline(g,1.1);
+  g.beginPath(); g.ellipse(x-r*0.34,y-r*0.02,r*0.34,r*0.38,0,0,TAU); g.stroke();
+  g.beginPath(); g.ellipse(x+r*0.33,y+r*0.04,r*0.26,r*0.28,0,0,TAU); g.stroke();
+  g.fillStyle="#1e1828"; blob(g,x-r*0.28,y+r*0.04,r*0.11); blob(g,x+r*0.38,y+r*0.08,r*0.08);
+  // forehead stitch
+  g.strokeStyle="#3e6e2a"; g.lineWidth=1.2;
+  g.beginPath(); g.moveTo(x+r*0.05,y-r*0.32); g.lineTo(x+r*0.5,y-r*0.24); g.stroke();
+  for(let k=0;k<3;k++){ const sx=x+r*(0.12+k*0.15);
+    g.beginPath(); g.moveTo(sx,y-r*0.42); g.lineTo(sx+r*0.04,y-r*0.16); g.stroke(); }
+  // crooked hungry grin with one proud tooth
+  g.strokeStyle=OUT; g.lineWidth=1.4;
+  g.beginPath(); g.moveTo(x-r*0.42,y+r*0.5); g.quadraticCurveTo(x-r*0.05,y+r*0.72,x+r*0.4,y+r*0.44); g.stroke();
+  g.fillStyle="#fffbe8"; g.fillRect(x-r*0.05,y+r*0.5,r*0.17,r*0.2);
+  outline(g,0.9); g.strokeRect(x-r*0.05,y+r*0.5,r*0.17,r*0.2);
+  // decay spot on the cheek
+  g.fillStyle="#5a9038"; blob(g,x-r*0.6,y+r*0.3,r*0.1);
 }
-// tap a HUD pill to learn what it tracks (hover shows the same via tooltip)
-[["goldPill","&#x1FA99; <b>GOLD</b> &mdash; sell crops &amp; win invasions to earn it; spends on plowing, seeds and zombies."],
- ["brainPill","&#x1F9E0; <b>BRAINS</b> &mdash; rare invasion loot. Buys premium zombies &amp; trees. Never sold, only won."],
- ["zedPill","&#x1F9DF; <b>HORDE</b> &mdash; zombies roaming your farm now / max the farm holds (16)."],
- ["lfPill","&#x1F343; <b>LIFE FORCE</b> &mdash; radiated by trees. Better mutation odds, and zombies can't heal without it."]].forEach(pr=>{
+function drawHeartMini(g,x,y,r){
+  // a glossy health heart with a zombie stitch — life force in one glance
+  g.fillStyle="#e8425a";
+  g.beginPath(); g.moveTo(x,y+r*0.78);
+  g.bezierCurveTo(x-r*1.05,y+r*0.05,x-r*0.75,y-r*0.78,x-r*0.02,y-r*0.3);
+  g.bezierCurveTo(x+r*0.72,y-r*0.8,x+r*1.05,y+r*0.02,x,y+r*0.78);
+  g.closePath(); g.fill();
+  // darker right lobe for depth
+  g.fillStyle="#c22b45";
+  g.beginPath(); g.moveTo(x,y+r*0.74);
+  g.bezierCurveTo(x+r*0.3,y+r*0.3,x+r*0.5,y-r*0.1,x+r*0.05,y-r*0.28);
+  g.bezierCurveTo(x+r*0.7,y-r*0.75,x+r*1.0,y+r*0.02,x,y+r*0.74);
+  g.closePath(); g.fill();
+  outline(g,1.5);
+  g.beginPath(); g.moveTo(x,y+r*0.78);
+  g.bezierCurveTo(x-r*1.05,y+r*0.05,x-r*0.75,y-r*0.78,x-r*0.02,y-r*0.3);
+  g.bezierCurveTo(x+r*0.72,y-r*0.8,x+r*1.05,y+r*0.02,x,y+r*0.78);
+  g.closePath(); g.stroke();
+  // the stitch (it's a ZOMBIE health heart, after all)
+  g.strokeStyle="#7a1f30"; g.lineWidth=1.3; g.lineCap="round";
+  g.beginPath(); g.moveTo(x-r*0.05,y-r*0.25); g.quadraticCurveTo(x+r*0.15,y+r*0.1,x+r*0.02,y+r*0.45); g.stroke();
+  for(let k=0;k<3;k++){ const ty=y-r*0.1+k*r*0.22;
+    g.beginPath(); g.moveTo(x-r*0.12,ty); g.lineTo(x+r*0.22,ty+r*0.04); g.stroke(); }
+  // gleam
+  g.fillStyle="rgba(255,255,255,.75)";
+  g.beginPath(); g.ellipse(x-r*0.42,y-r*0.28,r*0.2,r*0.12,0.6,0,TAU); g.fill();
+}
+// tap a HUD pill to learn what it tracks — with the SAME drawn icons
+[["goldPill",()=>iconHTML(drawGoldMini)+"<b>GOLD</b> &mdash; sell crops &amp; win invasions to earn it; spends on plowing, seeds and zombies."],
+ ["brainPill",()=>iconHTML(drawBrainMini)+"<b>BRAINS</b> &mdash; rare invasion loot. Buys premium zombies &amp; trees. Never sold, only won."],
+ ["zedPill",()=>iconHTML(drawZedMini)+"<b>HORDE</b> &mdash; zombies roaming your farm now / max the farm holds (16)."],
+ ["lfPill",()=>iconHTML(drawHeartMini)+"<b>LIFE FORCE</b> &mdash; radiated by trees. Better mutation odds, and zombies can't heal without it."]].forEach(pr=>{
   const el=$(pr[0]);
-  if(el&&el.addEventListener) el.addEventListener("click",()=>{ toast(pr[1],3600); sfx.tap(); });
+  if(el&&el.addEventListener) el.addEventListener("click",()=>{ toast(pr[1](),3600); sfx.tap(); });
 });
 $("startBtn").onclick=()=>{ startGame(load()); };
 $("newBtn").onclick=()=>{

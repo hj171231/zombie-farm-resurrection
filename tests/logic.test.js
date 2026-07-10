@@ -318,13 +318,35 @@ function simulate(G, maxSteps) {
     eq(G.scene, "battle");
     G.scene = "farm"; G.B = null;
   });
-  check("up to 3 zombies fight at once — the 4th send is refused", () => {
+  check("reinforcement waves: 3 instant, then one per 5s, up to 5 total", () => {
     armyOf(G, 5, 100, 5);
     G.startBattle(G.TARGETS[0]);
     ok(G.sendZombie(0)); ok(G.sendZombie(1)); ok(G.sendZombie(2));
     eq(G.B.actives.length, 3);
-    ok(G.sendZombie(3) === false, "cap enforced");
+    ok(G.sendZombie(3) === false, "4th must wait out the cooldown");
+    G.B.t += 5.01;
+    ok(G.sendZombie(3), "4th arrives after 5s");
+    ok(G.sendZombie(4) === false, "5th needs ANOTHER 5s");
+    G.B.t += 5.01;
+    ok(G.sendZombie(4), "5th arrives");
+    eq(G.B.actives.length, 5);
     ok(G.sendZombie(0) === false, "no double-sending");
+    G.scene = "farm"; G.B = null;
+  });
+  check("defenders hold fire until a zombie crosses the halfway line", () => {
+    armyOf(G, 1, 100, 5);
+    G.startBattle(G.TARGETS[0]);
+    G.B.nextBrawl = 999;
+    G.sendZombie(0);
+    const a = G.B.actives[0];
+    a.x = G.W * 0.2; // well short of halfway to the fort
+    G.B.t = 5; G.B.lastThrow = 0;
+    G.updateBattle(0.001);
+    eq(G.B.projectiles.length, 0, "no throws at long range");
+    a.x = G.W * 0.72 * 0.5 + 5; // just past halfway
+    G.B.lastThrow = 0;
+    G.updateBattle(0.001);
+    eq(G.B.projectiles.length, 1, "throws once in range");
     G.scene = "farm"; G.B = null;
   });
   check("EVERYONE marches immediately on send — no off-screen dawdling", () => {
@@ -909,6 +931,7 @@ function projectileHit(G, type) {
     // with rolls forced to 0 the throw gap is 1.4s (jester: 1.4*1.7 = 2.38s)
     traitArmy(G, "shambler", 6);
     G.startBattle(G.TARGETS[0]); G.sendZombie(0);
+    G.B.actives[0].x = G.W * 0.6; // in throwing range
     let restore = G.setRandom(() => 0);
     G.B.t = 2.0; G.B.lastThrow = 0;
     G.updateBattle(0.001);
@@ -917,6 +940,7 @@ function projectileHit(G, type) {
     G.scene = "farm"; G.B = null;
     traitArmy(G, "jester", 6);
     G.startBattle(G.TARGETS[0]); G.sendZombie(0);
+    G.B.actives[0].x = G.W * 0.6;
     restore = G.setRandom(() => 0);
     G.B.t = 2.0; G.B.lastThrow = 0;
     G.updateBattle(0.001);
