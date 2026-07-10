@@ -847,9 +847,9 @@ console.log("\n== sanitizeState (save repair & migration) ==");
 console.log("\n== content pack: data ==");
 {
   const { G } = boot();
-  check("content counts: 10 crops, 11 zombies, 5 trees, 8 targets, 16 goals", () => {
-    eq(G.CROPS.length, 10); eq(G.ZTYPES.length, 11);
-    eq(G.TREES.length, 5); eq(G.TARGETS.length, 8); eq(G.GOALS.length, 16);
+  check("content counts: 10 crops, 12 zombies (1 secret), 5 trees, 8 targets, 27 goals", () => {
+    eq(G.CROPS.length, 10); eq(G.ZTYPES.length, 12);
+    eq(G.TREES.length, 5); eq(G.TARGETS.length, 8); eq(G.GOALS.length, 27);
   });
   check("crop grow times are the approved nice numbers", () => {
     const want = [25, 50, 100, 200, 330, 540, 780, 1320, 1980, 3000];
@@ -862,7 +862,7 @@ console.log("\n== content pack: data ==");
     eq(JSON.stringify(G.CROPS.map(c => c.sell)), JSON.stringify(wantSell));
   });
   check("zombie & tree price ladders (first item + brains prices untouched)", () => {
-    const wantZ = [50, 35, 160, 230, 560, 1200, 0, 3200, 7600, 16000, 0];
+    const wantZ = [50, 35, 160, 230, 560, 1200, 0, 3200, 7600, 16000, 0, 5000];
     eq(JSON.stringify(G.ZTYPES.map(z => z.cost)), JSON.stringify(wantZ));
     eq(JSON.stringify(G.TREES.map(t => t.cost)), JSON.stringify([100, 350, 0, 3000, 0]));
   });
@@ -998,6 +998,62 @@ console.log("\n== zombie roaming ==");
       const p = G.randRoamPos();
       ok(p.x >= -G.TW && p.x <= G.W + G.TW && p.y >= 0 && p.y <= G.H + 40, JSON.stringify(p));
     }
+  });
+}
+
+console.log("\n== new goals & the mystery ==");
+{
+  const { G } = boot();
+  check("goals can reward brains and xp (not just gold)", () => {
+    G.S.brains = 5; // brainy5: hold 5 brains
+    G.checkGoals();
+    ok(G.S.goalsDone.includes("brainy5"));
+    ok(G.S.xp >= 200 || G.S.level > 1, "xp reward granted");
+  });
+  check("bank goals track live values (goldbank via S.gold)", () => {
+    G.S.gold = 50000;
+    G.checkGoals();
+    ok(G.S.goalsDone.includes("rich50k"));
+    eq(G.S.brains, 5 + 1, "rich50k pays a brain");
+  });
+  check("the Golden Shambler stays secret until 3 double-mutants raised", () => {
+    forcePlot(G, 5); G.S.gold = 100000;
+    ok(G.plantAt(5, "zombie", "golden") === false, "locked before the goal");
+    G.S.stats.doubles = 3;
+    G.checkGoals();
+    ok(G.S.goalsDone.includes("combo3"));
+    ok(G.plantAt(5, "zombie", "golden") === true, "unlocked after the goal");
+  });
+  check("zoo goal counts distinct zombie types", () => {
+    ["shambler","mini","headless","gardener","bruiser","banshee"].forEach(t=>{
+      const zd=G.ZTYPES.find(z=>z.id===t);
+      G.S.zombies.push({type:t,name:t,pow:zd.pow,hp:zd.hp,maxhp:zd.hp,spd:zd.spd,hunger:30,x:0,y:0,tx:0,ty:0,wob:0,mut:[],kills:0});
+    });
+    G.checkGoals();
+    ok(G.S.goalsDone.includes("zoo6"));
+  });
+  check("renaming a zombie counts its goal", () => {
+    G.renameZombie(0, "Goalworthy");
+    ok(G.S.goalsDone.includes("rename1"));
+  });
+  check("invade cooldown is now 5 minutes", () => {
+    eq(G.INVADE_CD, 300);
+  });
+  check("defender aim rotates between targets", () => {
+    G.S.zombies = [];
+    for (let k = 0; k < 3; k++) G.S.zombies.push({ type:"shambler", name:"A"+k, pow:5, hp:60, maxhp:60, spd:1, hunger:100, x:0,y:0,tx:0,ty:0,wob:0,mut:[],kills:0 });
+    G.startBattle(G.TARGETS[0]);
+    G.B.nextBrawl = 999;
+    G.sendZombie(0); G.sendZombie(1); G.sendZombie(2);
+    G.B.actives.forEach(a=>{ a.state="attack"; a.x=G.W*0.6; });
+    const seen=new Set();
+    for (let k=0;k<3;k++){
+      G.B.t = 10+k; G.B.lastThrow = 0;
+      G.updateBattle(0.001);
+      seen.add(G.B.aimIx);
+    }
+    ok(seen.size >= 2, "aim should rotate targets, saw " + [...seen].join(","));
+    G.scene = "farm"; G.B = null;
   });
 }
 

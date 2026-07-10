@@ -23,7 +23,7 @@
   #cv { touch-action:none; } /* we handle pinch-zoom & drag-pan ourselves */
 
   .hud { position:absolute; top:0; left:0; right:0; display:flex; gap:6px; padding:6px; align-items:center; pointer-events:none; flex-wrap:wrap; z-index:5; }
-  .pill { background:linear-gradient(rgba(34,42,14,.92),rgba(18,24,8,.92)); border:2px solid #5d7a30; border-radius:18px; color:#ffe97a; padding:4px 12px; font-size:15px; font-family:"Lilita One","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-weight:400; letter-spacing:.5px; display:flex; align-items:center; gap:6px; white-space:nowrap; box-shadow:0 3px 5px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,200,.14); text-shadow:0 1px 2px rgba(0,0,0,.7); }
+  .pill { pointer-events:auto; cursor:help; background:linear-gradient(rgba(34,42,14,.92),rgba(18,24,8,.92)); border:2px solid #5d7a30; border-radius:18px; color:#ffe97a; padding:4px 12px; font-size:15px; font-family:"Lilita One","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-weight:400; letter-spacing:.5px; display:flex; align-items:center; gap:6px; white-space:nowrap; box-shadow:0 3px 5px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,200,.14); text-shadow:0 1px 2px rgba(0,0,0,.7); }
   .pill .ico { font-size:15px; filter:drop-shadow(0 1px 1px rgba(0,0,0,.4)); }
   #xpwrap { flex:1; min-width:110px; }
   #xpbarBg { background:#3d2810; border:2px solid #3d2810; border-radius:12px; height:22px; position:relative; overflow:hidden; box-shadow:inset 0 2px 4px rgba(0,0,0,.6), 0 2px 3px rgba(0,0,0,.4); }
@@ -42,7 +42,7 @@
   .gbtn:active { transform:translateY(3px); box-shadow:inset 0 3px 0 rgba(255,255,255,.25), 0 1px 0 #24390d; }
   .gbtn.red { background:linear-gradient(#ff9a6a 0%, #e0603a 45%, #b03a1e 100%); border-color:#5e1c0c; box-shadow:inset 0 3px 0 rgba(255,255,255,.35), 0 4px 0 #4a1508, 0 6px 10px rgba(0,0,0,.4); }
   .gbtn.small { font-size:13px; padding:6px 11px; }
-  #invadeBtn { padding-right:28px; clip-path:polygon(0 0,100% 0,calc(100% - 14px) 50%,100% 100%,0 100%); font-size:17px; }
+  #invadeBtn { font-size:17px; }
   .gbtn:disabled { filter:grayscale(.8); opacity:.7; }
   .gbtn.toggled { outline:3px solid #ffd94d; }
 
@@ -102,10 +102,10 @@
 <div id="game"><canvas id="cv"></canvas></div>
 
 <div class="hud" id="hud" style="display:none">
-  <div class="pill"><span class="coinIco"></span><span id="goldTxt">0</span></div>
-  <div class="pill"><span class="ico" id="brainIco">&#x1F9E0;</span><span id="brainTxt">0</span></div>
-  <div class="pill"><span class="ico" id="zedIco">&#x1F9DF;</span><span id="zcountTxt">0/16</span></div>
-  <div class="pill"><span class="ico" id="leafIco">&#x1F343;</span><span id="lfTxt">0</span></div>
+  <div class="pill" id="goldPill" title="GOLD — earned from selling crops and winning invasions. Spends on plowing, planting and zombies."><span class="coinIco"></span><span id="goldTxt">0</span></div>
+  <div class="pill" id="brainPill" title="BRAINS — rare invasion loot. Buys premium zombies and trees. Never sold, only won."><span class="ico" id="brainIco">&#x1F9E0;</span><span id="brainTxt">0</span></div>
+  <div class="pill" id="zedPill" title="HORDE — zombies roaming your farm right now / the max the farm can hold (16)."><span class="ico" id="zedIco">&#x1F9DF;</span><span id="zcountTxt">0/16</span></div>
+  <div class="pill" id="lfPill" title="LIFE FORCE — radiated by trees. Boosts mutation odds and is REQUIRED for zombies to heal."><span class="ico" id="leafIco">&#x1F343;</span><span id="lfTxt">0</span></div>
   <div id="xpwrap"><div id="xpbarBg"><div id="xpbar"></div><div id="xptext">Lv 1</div></div></div>
 </div>
 
@@ -191,7 +191,8 @@ const ZTYPES = [
  {id:"digger",   name:"Grave Digger",cost:3200,brains:0,time:240, pow:24, hp:70, spd:0.9, unlock:11,col:"#a8b060", shirt:"#c8842e", hat:"hardhat", prop:"shovel", desc:"Hardhat blocks 30% of projectile damage."},
  {id:"jester",   name:"Jester",    cost:7600,brains:0, time:300, pow:18, hp:50, spd:1.6, unlock:13,col:"#8fd8b8", shirt:"#7a3a9e", hat:"jester", motley:true, desc:"Confuses defenders &mdash; they throw much slower."},
  {id:"chef",     name:"Chef",      cost:16000,brains:0,time:360, pow:28, hp:80, spd:1.0, unlock:15,col:"#b8d86a", shirt:"#f0ede2", hat:"toque", prop:"ladle", desc:"After a won battle, survivors heal DOUBLE."},
- {id:"gravemound",name:"Gravemound",cost:0,  brains:5, time:600, pow:55, hp:220,spd:0.5, unlock:19,col:"#7a9a6a", shirt:"#4e5e42", big:true, colossus:true, desc:"A walking hillside. The ground remembers him."}
+ {id:"gravemound",name:"Gravemound",cost:0,  brains:5, time:600, pow:55, hp:220,spd:0.5, unlock:19,col:"#7a9a6a", shirt:"#4e5e42", big:true, colossus:true, desc:"A walking hillside. The ground remembers him."},
+ {id:"golden",   name:"Golden Shambler",cost:5000,brains:0,time:60, pow:26, hp:90, spd:1.3, unlock:1, col:"#e8c84a", shirt:"#b8912e", plaid:true, glow:true, secret:true, desc:"A legend in solid gold. Earned, never found."}
 ];
 const TREES = [
  {id:"oak",    name:"Gnarly Oak",   cost:100, brains:0, lf:10, unlock:2, col:"#4e8a2e"},
@@ -226,14 +227,25 @@ const GOALS = [
  {id:"lf300",   desc:"Reach 300 life force",      n:300,stat:"lf",        gold:3000},
  {id:"mall1",   desc:"Conquer the Haunted Mega-Mall",n:1,stat:"mallwin",  gold:4000},
  {id:"gmound1", desc:"Raise the Gravemound",      n:1,  stat:"gmound",    gold:5000},
- {id:"moon1",   desc:"Win at the Lunar Lab",      n:1,  stat:"moonwin",   gold:10000}
+ {id:"moon1",   desc:"Win at the Lunar Lab",      n:1,  stat:"moonwin",   gold:10000},
+ {id:"fert5",   desc:"Have a Gardener fertilize 5 crops", n:5, stat:"ferts", gold:600},
+ {id:"rename1", desc:"Rename a zombie (make it personal)", n:1, stat:"renames", gold:150},
+ {id:"garlic1", desc:"Harvest a Grave Garlic",     n:1,  stat:"garlics",   gold:15000},
+ {id:"horde16", desc:"Fill the horde: 16 zombies at once", n:16, stat:"hordesize", xp:150},
+ {id:"zoo6",    desc:"Keep 6 different zombie types at once", n:6, stat:"zoo", xp:250},
+ {id:"brainy5", desc:"Hold 5 brains at once",      n:5,  stat:"brainbank", xp:200},
+ {id:"rich50k", desc:"Hold 50,000 gold at once",   n:50000, stat:"goldbank", brains:1},
+ {id:"combo3",  desc:"Raise 3 double-mutation zombies", n:3, stat:"doubles", brains:1, secretUnlock:true},
+ {id:"allmut",  desc:"Discover all 10 mutations",  n:10, stat:"mutkinds",  brains:3},
+ {id:"wins25",  desc:"Win 25 invasions",           n:25, stat:"wins",      brains:2},
+ {id:"lunar3",  desc:"Conquer the Lunar Lab 3 times", n:3, stat:"moonwin", gold:30000, xp:500}
 ];
 
-const BUILD = "build 13 · 2026-07-09"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 14 · 2026-07-09"; // rewritten by scripts/deploy.sh at each publish
 const GRID = 7;
 const MAX_Z = 16;
 const INVADE_MIN = 6;
-const INVADE_CD = 180;
+const INVADE_CD = 300;
 const PLOW_COST = 10;
 const DAY_LEN = 240;
 
@@ -246,7 +258,7 @@ function freshState(){
     gold:200, brains:0, xp:0, level:1,
     tiles, zombies:[], lifeForce:0,
     lastInvade:0, muted:false,
-    stats:{plowed:0,crops:0,zombies:0,trees:0,wins:0,muts:0,apples:0,gmound:0,mallwin:0,moonwin:0},
+    stats:{plowed:0,crops:0,zombies:0,trees:0,wins:0,muts:0,apples:0,gmound:0,mallwin:0,moonwin:0,ferts:0,renames:0,doubles:0,garlics:0},
     goalsDone:[], claimed:[], mutSeen:{}, pairSeen:{}, created:now()
   };
 }
@@ -255,7 +267,9 @@ function renameZombie(ix,newName){
   const z=S.zombies[ix]; if(!z) return false;
   const nn=(newName||"").trim().slice(0,14);
   if(!nn) return false;
-  z.name=nn; save(); return true;
+  z.name=nn;
+  S.stats.renames=(S.stats.renames||0)+1; checkGoals();
+  save(); return true;
 }
 function releaseZombie(ix){
   const z=S.zombies[ix]; if(!z) return false;
@@ -431,8 +445,8 @@ function randRoamPos(){
 }
 // True if the straight walk from (x1,y1) to (x2,y2) never enters the field.
 function pathAvoidsField(x1,y1,x2,y2){
-  for(let t=0.12;t<1;t+=0.12){
-    if(inFieldDiamond(x1+(x2-x1)*t, y1+(y2-y1)*t, 1.0)) return false;
+  for(let t=0.07;t<1;t+=0.07){
+    if(inFieldDiamond(x1+(x2-x1)*t, y1+(y2-y1)*t, 1.08)) return false;
   }
   return true;
 }
@@ -440,16 +454,20 @@ function pathAvoidsField(x1,y1,x2,y2){
 // the grass — no more parades through the crops. ~1.5% take a deliberate
 // shortcut across the field, for old times' sake.
 function roamTargetFrom(x,y){
-  if(Math.random()<0.004) return randFieldPos(); // a true rarity now
+  // already ON the field? walk straight off — pathAvoidsField can never pass
+  // from an inside start, which used to leave crossers stranded out there
+  if(inFieldDiamond(x,y,1.06)) return randRoamPos();
+  const onField=S&&S.zombies?S.zombies.filter(zz=>inFieldDiamond(zz.x,zz.y,1.0)).length:0;
+  if(Math.random()<0.004 && onField<2) return randFieldPos(); // rare, and never a crowd
   for(let tries=0;tries<14;tries++){
     const p=randRoamPos();
     if(pathAvoidsField(x,y,p.x,p.y)) return p;
   }
   for(let tries=0;tries<14;tries++){ // fall back: short hop nearby
     const p={x:clamp(x+rnd(-TW*2,TW*2),W*0.04,W*0.96), y:clamp(y+rnd(-TH*2,TH*2),H*0.16,H*0.94)};
-    if(!inFieldDiamond(p.x,p.y,1.12) && pathAvoidsField(x,y,p.x,p.y)) return p;
+    if(!inFieldDiamond(p.x,p.y,1.12)) return p;
   }
-  return {x,y};
+  return randRoamPos();
 }
 
 // ---------- floating text & toast ----------
@@ -634,6 +652,7 @@ function harvest(i){
     if(t.fert){ val*=2; }
     gold(val); gainXP(g.def.xp); S.stats.crops++;
     if(t.plant==="wormapple") S.stats.apples++;
+    if(t.plant==="garlic") S.stats.garlics=(S.stats.garlics||0)+1;
     addFloat(px,py,"+"+val+"g", t.fert?"#7dffa0":"#ffe95c");
     spawnParts(px,py+10,"#ffe08a",10);
     popIcons.push({id:t.plant,x:px,y:py-4,t:0});
@@ -677,6 +696,7 @@ function harvest(i){
           if(!S.pairSeen) S.pairSeen={};
           const key=z.mut.map(m=>m.label).sort().join(" + ");
           S.pairSeen[key]=(S.pairSeen[key]||0)+1;
+          S.stats.doubles=(S.stats.doubles||0)+1;
         }
       }
       else sfx.zomb();
@@ -698,6 +718,7 @@ function plantAt(i, kind, id){
             : kind==="zombie" ? ZTYPES.find(x=>x.id===id)
             : kind==="tree" ? TREES.find(x=>x.id===id) : null;
   if(!def || S.level<def.unlock) return false;
+  if(def.secret && !S.goalsDone.includes("combo3")) return false; // mystery stays a mystery
   if(kind==="crop"){
     if(S.gold<def.cost){toast("Not enough gold!");sfx.bad();return false;}
     gold(-def.cost);
@@ -725,6 +746,7 @@ function gardenerTick(){
   lastFert=now();
   const i=pick(growing);
   S.tiles[i].fert=true; sfx.pop();
+  S.stats.ferts=(S.stats.ferts||0)+1; checkGoals();
   const cpf=cellXY(i); addFloat(cpf.x,cpf.y-TH,"fertilized! 2x","#7dffa0");
 }
 let lastHunger=0;
@@ -753,14 +775,29 @@ function healTick(){
 }
 
 // ---------- goals ----------
-function goalProgress(g){ return g.stat==="lf" ? S.lifeForce : (S.stats[g.stat]||0); }
+function goalProgress(g){
+  switch(g.stat){
+    case "lf": return S.lifeForce;
+    case "brainbank": return S.brains;
+    case "goldbank": return S.gold;
+    case "hordesize": return S.zombies.length;
+    case "zoo": return new Set(S.zombies.map(z=>z.type)).size;
+    case "mutkinds": return Object.keys(S.mutSeen||{}).length;
+    default: return S.stats[g.stat]||0;
+  }
+}
 function checkGoals(){
   GOALS.forEach(g=>{
     if(S.goalsDone.includes(g.id)) return;
     if(goalProgress(g)>=g.n){
       S.goalsDone.push(g.id);
-      gold(g.gold); sfx.win();
-      toast("&#x1F4DC; <b>Goal complete!</b> "+g.desc+" &mdash; +"+g.gold+"g",3000);
+      const bits=[];
+      if(g.gold){ gold(g.gold); bits.push("+"+g.gold+"g"); }
+      if(g.brains){ S.brains+=g.brains; bits.push("+"+g.brains+" &#x1F9E0;"); }
+      if(g.xp){ gainXP(g.xp); bits.push("+"+g.xp+" xp"); }
+      sfx.win(); if(g.brains) sfx.brain();
+      toast("&#x1F4DC; <b>Goal complete!</b> "+g.desc+" &mdash; "+bits.join(" "),3200);
+      if(g.secretUnlock) setTimeout(()=>toast("&#x2728; <b>MYSTERY UNLOCKED!</b> Something GOLDEN shambles into the Market...",4000),3400);
     }
   });
 }
@@ -780,7 +817,7 @@ function hud(){
   else if(cd>0){ btn.disabled=true; btn.innerHTML="&#x2694;&#xFE0F; "+fmtTime(cd); }
   else { btn.disabled=false; btn.innerHTML="&#x2694;&#xFE0F; INVADE!"; }
 }
-setInterval(()=>{ if(S&&scene==="farm")hud(); },1000);
+setInterval(()=>{ if(S&&scene==="farm"){ hud(); checkGoals(); } },1000);
 
 // ============================================================
 //  ART LIBRARY (all hand-drawn on canvas)
@@ -1029,10 +1066,21 @@ function drawTree(g,tr,x,y,s){
     g.strokeStyle="#4e3a24"; g.lineWidth=s*0.08;
     g.beginPath(); g.moveTo(x,y-s*0.55); g.quadraticCurveTo(x-s*0.35,y-s*0.8,x-s*0.5,y-s*0.7); g.stroke();
     g.beginPath(); g.moveTo(x,y-s*0.6); g.quadraticCurveTo(x+s*0.3,y-s*0.9,x+s*0.45,y-s*0.85); g.stroke();
+    const spDark=dayPhase().dark;
+    if(spDark>0.12){ // it wakes up after sundown
+      g.fillStyle="rgba(170,140,255,"+(spDark*0.3)+")";
+      blob(g,x,y-s*0.9,s*0.72);
+    }
     g.fillStyle=tr.col;
     blob(g,x-s*0.4,y-s*0.85,s*0.3); blob(g,x+s*0.38,y-s*0.95,s*0.32); blob(g,x,y-s*1.0,s*0.4);
-    g.fillStyle="rgba(220,210,255,.9)";
+    const spPulse=0.55+Math.sin(performance.now()/450+x*0.1)*0.35;
+    g.fillStyle="rgba(220,210,255,"+(0.5+spDark*0.5)+")";
     blob(g,x+s*0.15,y-s*1.05,s*0.06); blob(g,x-s*0.2,y-s*0.85,s*0.045);
+    if(spDark>0.12){ // drifting spirit motes
+      g.fillStyle="rgba(200,170,255,"+(spDark*spPulse)+")";
+      blob(g,x+Math.sin(performance.now()/700+x)*s*0.3,y-s*(1.1+spPulse*0.2),s*0.05);
+      blob(g,x-s*0.35,y-s*(0.7+spPulse*0.25),s*0.04);
+    }
   } else if(tr.id==="bonebirch"){
     // repaint the trunk as stacked bones
     g.fillStyle="#f0ede2";
@@ -1124,7 +1172,7 @@ function drawZombie(g,x,y,s,zd,muts,wob,seed,hungry){
   seed=seed||0;
   const small=zd.small, big=zd.big;
   const bw=(big?30:small?18:24)*s*(zd.colossus?1.15:zd.hulk?1.2:1);
-  const bh=(big?26:small?14:20)*s*(zd.colossus?1.1:1);
+  const bh=(big?26:small?14:20)*s*(zd.colossus?1.1:zd.hulk?1.24:1); // hulk stands taller
   const hr=(big?19:small?13:16)*s*(zd.colossus?0.62:zd.hulk?0.8:1); // colossus tiny head; hulk sunken head
   const bob=Math.sin(wob)*2.4*s;
   const lean=Math.sin(wob*0.7)*0.06;
@@ -1507,6 +1555,7 @@ function drawZHead(g,hx,hy,hr,skin,skinD,skinL,zd,muts,s,wob,seed){
     }
     g.strokeStyle=OUT; g.lineWidth=1.6*s;
     g.beginPath(); g.moveTo(hx-hr*0.6,hy-hr*0.42); g.lineTo(hx-hr*0.1,hy-hr*0.5); g.stroke();
+    if(!zd.hulk){ // hulk's underbite jaw replaces the standard mouth entirely
     g.beginPath(); g.moveTo(hx-hr*0.42,hy+hr*0.38);
     g.quadraticCurveTo(hx,hy+hr*0.6,hx+hr*0.5,hy+hr*0.3); g.stroke();
     g.lineWidth=1.2*s;
@@ -1517,6 +1566,7 @@ function drawZHead(g,hx,hy,hr,skin,skinD,skinL,zd,muts,s,wob,seed){
     }
     g.fillStyle="#fffbe8";
     g.fillRect(hx+hr*0.05,hy+hr*0.42,hr*0.12,hr*0.14);
+    }
     g.strokeStyle=OUT; g.lineWidth=1.3*s;
     g.beginPath(); g.moveTo(hx+hr*0.15,hy-hr*0.75); g.lineTo(hx+hr*0.55,hy-hr*0.5); g.stroke();
     for(let k=0;k<2;k++){
@@ -2678,9 +2728,15 @@ function drawFarm(dt){
   }
   S.zombies.forEach(z=>{
     z.wob+=dt*4*z.spd;
+    // bouncer rule: lingering on the field past a short visit? escorted out.
+    if(inFieldDiamond(z.x,z.y,1.02) && inFieldDiamond(z.tx,z.ty,1.02) &&
+       (!z.__fieldUntil || now()>z.__fieldUntil)){
+      const out=randRoamPos(); z.tx=out.x; z.ty=out.y;
+    }
     const d=Math.hypot(z.tx-z.x,z.ty-z.y);
     if(d<6 || Math.random()<0.002){
       const rp=roamTargetFrom(z.x,z.y); z.tx=rp.x; z.ty=rp.y;
+      if(inFieldDiamond(rp.x,rp.y,1.0)) z.__fieldUntil=now()+7000; // brief visit only
     } else {
       z.x+=(z.tx-z.x)/d*18*z.spd*dt; z.y+=(z.ty-z.y)/d*18*z.spd*dt;
     }
@@ -2758,8 +2814,20 @@ function drawFarm(dt){
   cx.beginPath(); cx.ellipse((ct*5+200)%(W+300)-150, H*0.65, 100,32,0,0,TAU); cx.fill();
   // night overlay + stars + fireflies
   if(dp.dark>0.02){
-    cx.fillStyle="rgba(14,16,58,"+(dp.dark*0.42)+")";
+    cx.fillStyle="rgba(24,30,80,"+(dp.dark*0.26)+")"; // moonlit, not pitch black
     cx.fillRect(0,0,W,H);
+    // bats crossing the night sky
+    cx.strokeStyle="rgba(30,24,48,"+(dp.dark*0.9)+")"; cx.lineWidth=2.4;
+    for(let k=0;k<2;k++){
+      const bxx=((ct*30+k*260)%(W+120))-60, byy=H*(0.16+k*0.09)+Math.sin(ct*3+k*2)*12;
+      cx.beginPath();
+      cx.arc(bxx-5,byy,5,Math.PI*1.1,Math.PI*1.9);
+      cx.arc(bxx+5,byy,5,Math.PI*1.1,Math.PI*1.9);
+      cx.stroke();
+    }
+    // soft moonbeam across the field
+    cx.fillStyle="rgba(210,225,255,"+(dp.dark*0.05)+")";
+    cx.beginPath(); cx.moveTo(W*0.1,0); cx.lineTo(W*0.35,0); cx.lineTo(W*0.75,H); cx.lineTo(W*0.5,H); cx.closePath(); cx.fill();
     for(let k=0;k<18;k++){
       const sx=seedRnd(k,101)*W, sy=seedRnd(k,203)*H*0.4;
       const tw=0.5+Math.sin(ct*2+k)*0.5;
@@ -2831,13 +2899,14 @@ function openMarket(targetTile){
 }
 function renderMarket(tab){
   const b=$("mBody"); b.innerHTML="";
-  const list = tab===0?CROPS : tab===1?ZTYPES : TREES;
+  let list = tab===0?CROPS : tab===1?ZTYPES : TREES;
+  list = list.filter(item=>!item.secret || S.goalsDone.includes("combo3"));
   list.forEach(item=>{
     const locked = S.level<item.unlock;
     const div=document.createElement("div"); div.className="shopitem"+(locked?" locked":"");
     let art;
     if(tab===0) art=artCanvas((g,x,y,r)=>drawProduce(g,item.id,x,y,34));
-    else if(tab===1) art=artCanvas((g,x,y,r)=>drawZombie(g,x,y+22,0.55,item,[],0.5));
+    else if(tab===1) art=artCanvas((g,x,y,r)=>drawZombie(g,x,y+23,0.68,item,[],0.5));
     else art=artCanvas((g,x,y,r)=>drawTree(g,item,x,y+20,22));
     div.appendChild(art);
     const inf=document.createElement("div"); inf.className="inf";
@@ -2900,9 +2969,9 @@ $("zombiesBtn").onclick=()=>{
   S.zombies.forEach((z,ix)=>{
     const zd=ZTYPES.find(t=>t.id===z.type);
     const row=document.createElement("div"); row.className="zrow";
-    row.appendChild(artCanvas((g,x,y,r)=>drawZombie(g,x,y+22,0.5,zd,z.mut,0.5)));
+    row.appendChild(artCanvasSized((g,x,y,r)=>drawZombie(g,x,y+r*1.05,0.78,zd,z.mut,0.5),84));
     const hungry = z.hunger>=70?"<b style='color:#ff9a7a'>STARVING &#x1F9E0;</b>":z.hunger>=40?"peckish":"content";
-    const txt=document.createElement("div"); txt.style.flex="1";
+    const txt=document.createElement("div"); txt.style.flex="1"; txt.style.fontSize="15px"; txt.style.lineHeight="1.5";
     txt.innerHTML="<b style='color:#ffe9a8'>"+z.name+"</b> the "+zd.name+
       (z.mut.length?" <span style='color:#c9f'>("+z.mut.map(m=>m.label).join(", ")+")</span>":"")+
       "<br>PWR "+z.pow+" &middot; HP "+Math.ceil(z.hp)+"/"+z.maxhp+" &middot; "+hungry+" &middot; "+z.kills+" wins";
@@ -2941,7 +3010,8 @@ $("goalsBtn").onclick=()=>{
     const done=S.goalsDone.includes(g.id);
     const p=Math.min(goalProgress(g), g.n);
     const div=document.createElement("div"); div.className="goal"+(done?" done":"");
-    div.innerHTML=g.desc+" <b>("+p+"/"+g.n+")</b><div class='rw'>Reward: "+g.gold+" gold</div>";
+    const rw=[g.gold?g.gold+" gold":null,g.brains?g.brains+" brain"+(g.brains>1?"s":""):null,g.xp?g.xp+" xp":null,g.secretUnlock?"+ a MYSTERY":null].filter(Boolean).join(" &middot; ");
+    div.innerHTML=g.desc+" <b>("+p+"/"+g.n+")</b><div class='rw'>Reward: "+rw+"</div>";
     b.appendChild(div);
   });
 };
@@ -3339,7 +3409,16 @@ function updateBattle(dt){
   const targets = B.actives.filter(a=>a.state!=="distracted");
   if(targets.length && B.t-B.lastThrow>throwGap){
     B.lastThrow=B.t;
-    B.projectiles.push({x:targX+10, y:H*0.55, vx:-(180+rnd(0,80)), vy:-rnd(120,220), g:400, born:B.t});
+    // the defender AIMS now: a different zombie every throw, ~70% on target
+    B.aimIx=((B.aimIx||0)+1)%targets.length;
+    const tgt=targets[B.aimIx];
+    const vy0=-rnd(120,220), y0=H*0.55;
+    const aq=200, bq=vy0, cq=y0-(tgt.y-20);
+    const tFly=(-bq+Math.sqrt(Math.max(0,bq*bq-4*aq*cq)))/(2*aq)||1;
+    const miss=Math.random()>=0.7;
+    const aimX=tgt.x+(miss?(35+rnd(0,45))*(Math.random()<0.5?-1:1):rnd(-9,9));
+    const vx=(aimX-(targX+10))/tFly;
+    B.projectiles.push({x:targX+10, y:y0, vx, vy:vy0, g:400, born:B.t});
   }
   B.projectiles.forEach(p=>{
     p.vy+=p.g*dt; p.x+=p.vx*dt; p.y+=p.vy*dt;
@@ -3568,19 +3647,22 @@ function drawBattle(dt){
     cx.beginPath(); cx.moveTo(cwx+12,cwy-16); cx.lineTo(cwx+18,cwy-24); cx.stroke();
     cx.fillStyle="#5a5a64"; blob(cx,cwx-8,cwy,3); blob(cx,cwx+8,cwy,3);
   }
-  // path to building
-  cx.fillStyle=tg.scen==="moon"?"rgba(70,74,90,.4)":"rgba(120,90,50,.5)";
-  cx.beginPath();
-  cx.moveTo(-20,H*0.78); cx.quadraticCurveTo(W*0.4,H*0.72,W*0.72,H*0.72);
-  cx.lineTo(W*0.72,H*0.76); cx.quadraticCurveTo(W*0.4,H*0.78,-20,H*0.86);
-  cx.closePath(); cx.fill();
   // ---- world dressing: each battlefield lives in its own place ----
+  const drawPath=()=>{
+    cx.fillStyle=tg.scen==="moon"?"rgba(70,74,90,.4)":"rgba(120,90,50,.5)";
+    cx.beginPath();
+    cx.moveTo(-20,H*0.78); cx.quadraticCurveTo(W*0.4,H*0.72,W*0.72,H*0.72);
+    cx.lineTo(W*0.72,H*0.76); cx.quadraticCurveTo(W*0.4,H*0.78,-20,H*0.86);
+    cx.closePath(); cx.fill();
+  };
+  if(tg.scen!=="farm") drawPath(); // farm draws its path OVER the crop rows below
   if(tg.scen==="farm"){
     // tilled crop rows + a lazy windmill on the hill
     cx.strokeStyle="rgba(90,60,25,.35)"; cx.lineWidth=5;
     for(let k=0;k<5;k++){ cx.beginPath(); cx.moveTo(W*0.02,H*(0.84+k*0.032)); cx.lineTo(W*0.44,H*(0.8+k*0.032)); cx.stroke(); }
     cx.fillStyle="rgba(255,140,46,.8)";
     for(let k=0;k<4;k++) blob(cx,W*(0.08+k*0.09),H*(0.845+ (k%2)*0.03),4);
+    drawPath(); // the farm track runs THROUGH the field
     const wmx=W*0.48, wmy=H*0.62;
     cx.fillStyle="#6e4e2a"; cx.beginPath(); cx.moveTo(wmx-9,H*0.7); cx.lineTo(wmx-4,wmy); cx.lineTo(wmx+4,wmy); cx.lineTo(wmx+9,H*0.7); cx.closePath(); cx.fill();
     cx.strokeStyle="#e8d8c0"; cx.lineWidth=4; cx.lineCap="round";
@@ -3647,7 +3729,7 @@ function drawBattle(dt){
     }
   } else if(tg.scen==="mall"){
     // lamp posts with moths, painted arrows, waiting bench
-    [[0.12,0],[0.4,1]].forEach(lp=>{
+    [[0.19,0],[0.42,1]].forEach(lp=>{
       const lx=W*lp[0];
       cx.strokeStyle="#3a3a44"; cx.lineWidth=5;
       cx.beginPath(); cx.moveTo(lx,H*0.74); cx.lineTo(lx,H*0.48); cx.stroke();
@@ -3778,16 +3860,16 @@ function drawBattle(dt){
     cx.beginPath(); cx.moveTo(W*0.55,H*0.72); cx.lineTo(W*0.55+Math.sin(sga)*W*0.3,0); cx.stroke();
     cx.beginPath(); cx.moveTo(W*0.62,H*0.72); cx.lineTo(W*0.62-Math.sin(sga+0.5)*W*0.3,0); cx.stroke();
     cx.strokeStyle="#3a3a44"; cx.lineWidth=7;
-    cx.beginPath(); cx.moveTo(W*0.09,H*0.72); cx.lineTo(W*0.09,H*0.34); cx.stroke();
+    cx.beginPath(); cx.moveTo(W*0.07,H*0.72); cx.lineTo(W*0.07,H*0.34); cx.stroke();
     cx.fillStyle="#2e4a78";
-    cx.beginPath(); cx.roundRect(W*0.09-46,H*0.2,92,H*0.14,8); cx.fill();
+    cx.beginPath(); cx.roundRect(W*0.07-44,H*0.2,88,H*0.14,8); cx.fill();
     outline(cx,3); cx.stroke();
     const flick2=Math.sin(pnow*6)>0.9?0.3:1;
     cx.fillStyle="rgba(255,90,160,"+flick2+")";
     cx.font="bold 15px 'Lilita One','Comic Sans MS',sans-serif"; cx.textAlign="center";
-    cx.fillText("MEGA",W*0.09,H*0.2+H*0.05);
+    cx.fillText("MEGA",W*0.07,H*0.2+H*0.05);
     cx.fillStyle="#7adcff";
-    cx.fillText("MALL",W*0.09,H*0.2+H*0.1);
+    cx.fillText("MALL",W*0.07,H*0.2+H*0.1);
   } else if(tg.scen==="wizard"){
     // aurora ribbons + a far-off crooked academy
     for(let k=0;k<3;k++){
@@ -3989,7 +4071,9 @@ function drawBattle(dt){
   cx.fillStyle="#e05a4a";
   cx.beginPath(); cx.roundRect(bx-63,by-190*bsc,126*clamp(B.hp/B.maxhp,0,1),9,5); cx.fill();
   // defender on top
-  drawDefender(cx,tg.scen,bx+(tg.scen==="pirate"?42:10)*bsc,by-(tg.scen==="pirate"?54:100)*bsc,bsc,B.t);
+  const DEF_POS={farm:[10,100],office:[-50,164],pirate:[42,54],ninja:[0,150],robot:[10,104],mall:[-72,107],wizard:[4,152],moon:[0,88]};
+  const dpz=DEF_POS[tg.scen]||[10,100];
+  drawDefender(cx,tg.scen,bx+dpz[0]*bsc,by-dpz[1]*bsc,bsc,B.t);
   // projectiles
   B.projectiles.forEach(p=>{ drawProjectile(cx,tg.scen,p.x,p.y,B.t-p.born); });
   // melee brawlers charging across the field
@@ -4340,6 +4424,57 @@ function startGame(existing){
   else toast("Welcome back, farmer. The dead missed you. &#x1F9DF;",2500);
   sfx.zomb();
 }
+// hand-drawn HUD icons (these replace the placeholder emoji)
+function hudIcon(drawFn){
+  const c=document.createElement("canvas"); c.width=40; c.height=40;
+  if(c.style){ c.style.width="19px"; c.style.height="19px"; c.style.verticalAlign="-4px"; }
+  const g=c.getContext("2d"); g.scale(2,2); drawFn(g,10,10,8);
+  return c;
+}
+function drawBrainMini(g,x,y,r){
+  g.fillStyle="#f2a0b8";
+  g.beginPath(); g.ellipse(x-r*0.35,y,r*0.62,r*0.8,0,0,TAU); g.fill();
+  g.beginPath(); g.ellipse(x+r*0.35,y,r*0.62,r*0.8,0,0,TAU); g.fill();
+  outline(g,1.6);
+  g.beginPath(); g.ellipse(x,y,r*0.98,r*0.8,0,0,TAU); g.stroke();
+  g.strokeStyle="#d87694"; g.lineWidth=1.4;
+  g.beginPath(); g.moveTo(x,y-r*0.7); g.lineTo(x,y+r*0.7); g.stroke();
+  g.beginPath(); g.arc(x-r*0.4,y-r*0.15,r*0.28,0.4,2.4); g.stroke();
+  g.beginPath(); g.arc(x+r*0.4,y+r*0.15,r*0.28,3.5,5.6); g.stroke();
+}
+function drawZedMini(g,x,y,r){
+  g.fillStyle="#82c356";
+  g.beginPath(); g.ellipse(x,y+r*0.1,r*0.95,r*0.88,0,0,TAU); g.fill();
+  outline(g,1.6); g.stroke();
+  g.strokeStyle="#5a9038"; g.lineWidth=1.4; // hair sprigs
+  g.beginPath(); g.moveTo(x-r*0.3,y-r*0.7); g.lineTo(x-r*0.42,y-r*1.0); g.stroke();
+  g.beginPath(); g.moveTo(x+r*0.05,y-r*0.8); g.lineTo(x+r*0.1,y-r*1.1); g.stroke();
+  g.fillStyle="#fff"; // googly eyes
+  g.beginPath(); g.ellipse(x-r*0.32,y-r*0.1,r*0.32,r*0.36,0,0,TAU); g.fill();
+  g.beginPath(); g.ellipse(x+r*0.3,y-r*0.06,r*0.28,r*0.3,0,0,TAU); g.fill();
+  g.fillStyle="#1e1828"; blob(g,x-r*0.26,y-r*0.06,r*0.1); blob(g,x+r*0.34,y-r*0.02,r*0.09);
+  g.strokeStyle=OUT; g.lineWidth=1.3;
+  g.beginPath(); g.moveTo(x-r*0.4,y+r*0.42); g.quadraticCurveTo(x,y+r*0.6,x+r*0.42,y+r*0.34); g.stroke();
+  g.fillStyle="#fffbe8"; g.fillRect(x+r*0.02,y+r*0.42,r*0.14,r*0.16);
+}
+function drawLeafMini(g,x,y,r){
+  g.fillStyle="#7fbf4a";
+  g.beginPath(); g.moveTo(x-r*0.8,y+r*0.6);
+  g.quadraticCurveTo(x-r*0.9,y-r*0.7,x+r*0.7,y-r*0.75);
+  g.quadraticCurveTo(x+r*0.75,y+r*0.4,x-r*0.8,y+r*0.6);
+  g.closePath(); g.fill();
+  outline(g,1.5); g.stroke();
+  g.strokeStyle="#4e8a2e"; g.lineWidth=1.4;
+  g.beginPath(); g.moveTo(x-r*0.7,y+r*0.5); g.quadraticCurveTo(x,y-r*0.1,x+r*0.6,y-r*0.65); g.stroke();
+}
+// tap a HUD pill to learn what it tracks (hover shows the same via tooltip)
+[["goldPill","&#x1FA99; <b>GOLD</b> &mdash; sell crops &amp; win invasions to earn it; spends on plowing, seeds and zombies."],
+ ["brainPill","&#x1F9E0; <b>BRAINS</b> &mdash; rare invasion loot. Buys premium zombies &amp; trees. Never sold, only won."],
+ ["zedPill","&#x1F9DF; <b>HORDE</b> &mdash; zombies roaming your farm now / max the farm holds (16)."],
+ ["lfPill","&#x1F343; <b>LIFE FORCE</b> &mdash; radiated by trees. Better mutation odds, and zombies can't heal without it."]].forEach(pr=>{
+  const el=$(pr[0]);
+  if(el&&el.addEventListener) el.addEventListener("click",()=>{ toast(pr[1],3600); sfx.tap(); });
+});
 $("startBtn").onclick=()=>{ startGame(load()); };
 $("newBtn").onclick=()=>{
   if(confirm("Start a brand new farm? This replaces your saved farm! (The old farm is kept as a backup — restorable from the ? Help menu.)")){
