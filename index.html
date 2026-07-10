@@ -251,7 +251,7 @@ const GOALS = [
  {id:"lunar3",  desc:"Conquer the Lunar Lab 3 times", n:3, stat:"moonwin", gold:30000, xp:500}
 ];
 
-const BUILD = "build 19 · 2026-07-10"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 20 · 2026-07-10"; // rewritten by scripts/deploy.sh at each publish
 const GRID = 7;
 const MAX_Z = 16;
 const INVADE_MIN = 6;
@@ -777,17 +777,20 @@ function hungerTick(){
   lastHunger=now();
   S.zombies.forEach(z=>{ z.hunger=clamp(z.hunger+1,0,100); });
 }
-// Roaming the farm slowly heals battle wounds — but ONLY if trees radiate
-// life force. No trees, no healing: the dead don't mend on their own.
-// With LF, recovering from half-health takes ~25 minutes at a sliver and
-// never less than ~10 minutes even at 300. Battle wounds are meant to STING.
+// TREES ARE THE HEART OF THE FARM: they heal the roaming horde AND raise
+// mutation odds, and both ride the SAME grove curve (sqrt of life force,
+// maxing at a 3600-LF full grove). No trees = NO healing at all. From a
+// sliver of life force, half-health recovery starts near ~25 minutes and
+// improves with every tree planted, down to a 10-minute floor at a full
+// grove. Battle wounds are meant to STING — trees are how you fight back.
 let lastHeal=0;
+function groveProgress(){ return Math.sqrt(Math.min(S.lifeForce,3600)/3600); } // 0..1
 function healTick(){
   if(now()-lastHeal<5000) return;
   lastHeal=now();
   if(!(S.lifeForce>0)) return; // no life force = no healing at all
-  const minutes = 25 - 15*Math.min(S.lifeForce,300)/300; // ~25min low LF -> 10min at 300
-  const frac = 0.5/(minutes*12);                          // fraction of maxhp per 5s tick
+  const minutes = 25 - 15*groveProgress(); // ~25min sliver -> 10min floor at a full grove
+  const frac = 0.5/(minutes*12);           // fraction of maxhp per 5s tick
   S.zombies.forEach(z=>{
     if(z.hp<z.maxhp){
       z.hp=Math.min(z.maxhp, z.hp + Math.max(0.04, z.maxhp*frac));
@@ -802,7 +805,7 @@ function healTick(){
 // lands around 61%. A fanatic with ~20 Lantern Trees (3600 LF) hits a
 // guaranteed 100%. Nobody sees this number — they just feel the farm humming.
 function mutationChance(){
-  return Math.min(1, 0.35 + 0.65*Math.sqrt(Math.min(S.lifeForce,3600)/3600));
+  return Math.min(1, 0.35 + 0.65*groveProgress());
 }
 function goalProgress(g){
   switch(g.stat){
@@ -2965,7 +2968,7 @@ function renderMarket(tab){
     let ds="";
     if(tab===0) ds="Grows in "+fmtTime(item.time)+" &middot; sells "+item.sell+"g &middot; +"+item.xp+"xp<br><i>Mutation gift: "+item.mut.label+"</i>";
     else if(tab===1) ds=item.desc+"<br>PWR "+item.pow+" &middot; HP "+item.hp+" &middot; rises in "+fmtTime(item.time);
-    else ds="+"+item.lf+" life force &mdash; strengthens mutations, and the horde CANNOT heal without it.";
+    else ds="+"+item.lf+" life force &mdash; every tree HEALS your roaming horde faster AND raises mutation odds. No trees, no healing!";
     inf.innerHTML="<div class='nm'>"+item.name+" <span style='font-weight:normal;font-size:12px'>&mdash; "+costStr+"</span></div><div class='ds'>"+(locked?("Unlocks at level "+item.unlock):ds)+"</div>";
     div.appendChild(inf);
     if(!locked){

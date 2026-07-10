@@ -1196,26 +1196,37 @@ function injuredHorde(lifeForce) {
     G.healTick(); G.healTick();
     eq(G.S.zombies[0].hp, 110, "wounded zombie must stay wounded without trees");
   });
-  check("a sliver of life force heals at the ~25-minute half-health rate", () => {
-    const G = injuredHorde(10); // minutes = 25 - 15*10/300 = 24.5
+  const healRate = (lf) => 220 * 0.5 / ((25 - 15 * Math.sqrt(Math.min(lf, 3600) / 3600)) * 12);
+  check("a sliver of life force heals near the ~25-minute half-health rate", () => {
+    const G = injuredHorde(10);
+    G.healTick();
+    ok(Math.abs((G.S.zombies[0].hp - 110) - healRate(10)) < 0.001);
+  });
+  check("EVERY tree keeps helping: 600 LF grove heals faster than 300", () => {
+    const g300 = injuredHorde(300); g300.healTick();
+    const g600 = injuredHorde(600); g600.healTick();
+    ok(g600.S.zombies[0].hp > g300.S.zombies[0].hp, "more trees = faster mending");
+    ok(Math.abs((g600.S.zombies[0].hp - 110) - healRate(600)) < 0.001, "matches the grove curve");
+  });
+  check("a full 3600-LF grove hits the 10-minute floor, never faster", () => {
+    const G = injuredHorde(3600);
     G.healTick();
     const gain = G.S.zombies[0].hp - 110;
-    ok(Math.abs(gain - 220 * 0.5 / (24.5 * 12)) < 0.001, "gain was " + gain);
+    ok(Math.abs(gain - 220 * 0.5 / 120) < 0.001, "exactly the 10-min rate");
+    const G2 = injuredHorde(99999);
+    G2.healTick();
+    ok(Math.abs((G2.S.zombies[0].hp - 110) - 220 * 0.5 / 120) < 0.001, "capped beyond the full grove");
   });
-  check("even at 300 life force, half-health takes AT LEAST 10 minutes", () => {
-    const G = injuredHorde(300);
-    G.healTick();
-    const gain = G.S.zombies[0].hp - 110;
-    ok(gain <= 220 * 0.5 / 120 + 1e-9, "gain " + gain + " would beat the 10-min floor");
-    ok(Math.abs(gain - 220 * 0.5 / 120) < 0.001, "should heal exactly the 10-min rate");
-  });
-  check("life force beyond 300 doesn't help further", () => {
-    const G = injuredHorde(99999);
-    G.healTick();
-    ok(Math.abs((G.S.zombies[0].hp - 110) - 220 * 0.5 / 120) < 0.001);
+  check("healing and mutations share ONE grove curve", () => {
+    const { G } = boot();
+    [0, 600, 1800, 3600].forEach(lf => {
+      G.S.lifeForce = lf;
+      const prog = Math.sqrt(Math.min(lf, 3600) / 3600);
+      ok(Math.abs(G.mutationChance() - Math.min(1, 0.35 + 0.65 * prog)) < 1e-9, "odds curve at " + lf);
+    });
   });
   check("healing is throttled to one tick per 5s", () => {
-    const G = injuredHorde(300);
+    const G = injuredHorde(3600);
     G.healTick(); G.healTick(); G.healTick();
     ok(Math.abs((G.S.zombies[0].hp - 110) - 220 * 0.5 / 120) < 0.001, "only the first tick counts");
   });
