@@ -58,22 +58,22 @@ console.log("\n== economy ==");
     ok(G.plantAt(30, "crop", "carrot") === false);
     eq(G.S.tiles[30].st, "plot");
   });
-  check("harvesting a ripe carrot pays sell price (12g) + xp + stat", () => {
+  check("harvesting a ripe carrot pays sell price (15g) + xp + stat", () => {
     G.S.gold = 0; const xp0 = G.S.xp; const crops0 = G.S.stats.crops;
     backdate(G, 24, 26);
     G.tapTile(24);
-    eq(G.S.gold, 12); eq(G.S.tiles[24].st, "plot");
+    eq(G.S.gold, 15); eq(G.S.tiles[24].st, "plot");
     eq(G.S.stats.crops, crops0 + 1);
     ok(G.S.xp > xp0 || G.S.level > 1, "xp gained");
   });
-  check("fertilized crop pays double (carrot 24g)", () => {
+  check("fertilized crop pays double (carrot 30g)", () => {
     G.S.gold = 100;
     G.plantAt(24, "crop", "carrot");
     G.S.tiles[24].fert = true;
     backdate(G, 24, 26);
     const before = G.S.gold;
     G.tapTile(24);
-    eq(G.S.gold, before + 24);
+    eq(G.S.gold, before + 30);
   });
   check("abomination costs brains, refused with 0, accepted with 2", () => {
     forcePlot(G, 31);
@@ -890,7 +890,7 @@ console.log("\n== content pack: data ==");
   });
   check("crop economy ladder: ~15% compounding per tier (carrot untouched)", () => {
     const wantCost = [10, 30, 80, 180, 440, 1000, 2100, 4800, 10500, 24500];
-    const wantSell = [12, 35, 100, 260, 700, 1700, 3600, 8800, 20000, 49000];
+    const wantSell = [15, 40, 120, 260, 700, 1700, 3600, 8800, 20000, 49000];
     eq(JSON.stringify(G.CROPS.map(c => c.cost)), JSON.stringify(wantCost));
     eq(JSON.stringify(G.CROPS.map(c => c.sell)), JSON.stringify(wantSell));
   });

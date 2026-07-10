@@ -25,6 +25,7 @@
   .hud { position:absolute; top:0; left:0; right:0; display:flex; gap:6px; padding:6px; align-items:center; pointer-events:none; flex-wrap:wrap; z-index:5; }
   .pill { pointer-events:auto; cursor:help; line-height:1; background:linear-gradient(rgba(34,42,14,.92),rgba(18,24,8,.92)); border:2px solid #5d7a30; border-radius:18px; color:#ffe97a; padding:4px 12px; font-size:15px; font-family:"Luckiest Guy","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-weight:400; letter-spacing:.5px; display:flex; align-items:center; gap:6px; white-space:nowrap; box-shadow:0 3px 5px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,200,.14); text-shadow:0 1px 2px rgba(0,0,0,.7); }
   .pill .ico { font-size:15px; filter:drop-shadow(0 1px 1px rgba(0,0,0,.4)); display:flex; align-items:center; }
+  #brainPill, #zedPill, #lfPill { width:92px; justify-content:center; padding-left:6px; padding-right:6px; }
   .pill > span { display:flex; align-items:center; line-height:1; }
   .pill canvas { display:block; }
   .gbtn { line-height:1.05; }
@@ -36,6 +37,7 @@
   .btnbar { position:absolute; bottom:10px; right:10px; display:flex; flex-direction:column; gap:8px; z-index:5; align-items:flex-end; }
   /* hamburger menu: one clean button on screen; the rest slide out on demand */
   #menuItems { display:none; flex-direction:column; gap:8px; align-items:flex-end; }
+  #menuItems .gbtn, #menuItems .gbtn.small { font-size:15px; padding:10px 0; width:138px; text-align:center; }
   #menuItems.open { display:flex; animation:menuPop .16s ease-out; }
   @keyframes menuPop { from{ opacity:0; transform:translateY(8px);} to{ opacity:1; transform:translateY(0);} }
   #menuBtn { font-size:30px; line-height:0.85; padding:5px 12px 7px; min-width:54px; }
@@ -179,9 +181,9 @@ const ZNAMES = ["Grubbs","Mortimer","Squelch","Petunia","Boggart","Lurleen","Fes
 
 // ---------- content data ----------
 const CROPS = [
- {id:"carrot",   name:"Carrot",       cost:10,  time:25,   sell:12,   xp:1, unlock:1, col:"#ff8c2e", mut:{stat:"spd", amt:0.6, label:"Speedy"}},
- {id:"corn",     name:"Corn",         cost:30,  time:50,   sell:35,   xp:2, unlock:2, col:"#ffd94d", mut:{stat:"pow", amt:2,   label:"Kernel-Powered"}},
- {id:"pumpkin",  name:"Pumpkin",      cost:80,  time:100,  sell:100,  xp:3, unlock:3, col:"#ff7f1e", mut:{stat:"hp",  amt:12,  label:"Gourd-Headed"}},
+ {id:"carrot",   name:"Carrot",       cost:10,  time:25,   sell:15,   xp:1, unlock:1, col:"#ff8c2e", mut:{stat:"spd", amt:0.6, label:"Speedy"}},
+ {id:"corn",     name:"Corn",         cost:30,  time:50,   sell:40,   xp:2, unlock:2, col:"#ffd94d", mut:{stat:"pow", amt:2,   label:"Kernel-Powered"}},
+ {id:"pumpkin",  name:"Pumpkin",      cost:80,  time:100,  sell:120,  xp:3, unlock:3, col:"#ff7f1e", mut:{stat:"hp",  amt:12,  label:"Gourd-Headed"}},
  {id:"shroom",   name:"Gloomshroom",  cost:180, time:200,  sell:260,  xp:5, unlock:5, col:"#c98ee0", mut:{stat:"pow", amt:4,   label:"Sporified"}},
  {id:"pepper",   name:"Ghost Pepper", cost:440, time:330,  sell:700,  xp:8, unlock:7, col:"#e03c2e", mut:{stat:"pow", amt:7,  label:"Flaming"}},
  {id:"melon",    name:"Moon Melon",   cost:1000,time:540,  sell:1700, xp:12,unlock:10,col:"#8ee0b0", mut:{stat:"hp",  amt:25,  label:"Moon-Touched"}},
@@ -251,7 +253,7 @@ const GOALS = [
  {id:"lunar3",  desc:"Conquer the Lunar Lab 3 times", n:3, stat:"moonwin", gold:30000, xp:500}
 ];
 
-const BUILD = "build 22 · 2026-07-10"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 23 · 2026-07-10"; // rewritten by scripts/deploy.sh at each publish
 const GRID = 7;
 const MAX_Z = 16;
 const INVADE_MIN = 6;
