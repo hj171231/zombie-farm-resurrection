@@ -255,7 +255,7 @@ const GOALS = [
  {id:"lunar3",  desc:"Conquer the Lunar Lab 3 times", n:3, stat:"moonwin", gold:30000, xp:500}
 ];
 
-const BUILD = "build 26 · 2026-07-10"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 27 · 2026-07-10"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -615,7 +615,7 @@ function iconDataURL(kind,id,size){
     const g=c.getContext("2d");
     if(kind==="crop") drawProduce(g,id,size/2,size*0.52,size*0.42);
     else if(kind==="tree"){ const tr=TREES.find(t=>t.id===id); drawTree(g,tr,size/2,size*0.86,size*0.3); }
-    else if(kind==="zombie"){ const zd=ZTYPES.find(t=>t.id===id); drawZombie(g,size/2,size*0.94,size*0.011,zd,[],1); }
+    else if(kind==="zombie"){ const zd=ZTYPES.find(t=>t.id===id); drawZombie(g,size/2,size*0.94,size*0.011,zd,[],1,0,false,"idle"); }
     else if(kind==="shovel") drawSpadeIcon(g,size);
     return c.toDataURL("image/png");
   }catch(e){ return null; }
@@ -1221,6 +1221,25 @@ function drawTree(g,tr,x,y,s){
 
 // ---- zombie (bobblehead cartoon style, v3) ----
 function mutHas(muts,label){ return muts && muts.some(m=>m.label===label); }
+// ---- ART WAVE 2: character sprite kit (procedural art remains the fallback) ----
+const SPRITES={};
+const SPRITE_IDS={shambler:"shambler",mini:"miniz",headless:"headless",gardener:"gardener",bruiser:"bruiser",banshee:"banshee",abom:"abomination",digger:"gravedigger",jester:"jester",chef:"chef",gravemound:"gravemound",golden:"golden"};
+const MUT_SPRITES={"Speedy":"mutation-speedy","Kernel-Powered":"mutation-kernel","Gourd-Headed":"mutation-gourd","Sporified":"mutation-sporified","Flaming":"mutation-flaming-2f","Moon-Touched":"mutation-moontouched","Wormfriend":"mutation-wormfriend","Big-Hearted":"mutation-bighearted-2f","All-Seeing":"mutation-allseeing-2f","Pungent":"mutation-pungent-2f"};
+function preloadSprites(){
+  if(typeof Image==="undefined") return; // test harness / old envs: procedural fallback
+  const names=[];
+  Object.values(SPRITE_IDS).concat(["awakened"]).forEach(n=>{
+    names.push("zombie-"+n+"-idle","zombie-"+n+"-lunge","zombie-"+n+"-walk-2f");
+  });
+  Object.values(MUT_SPRITES).forEach(n=>names.push(n));
+  names.push("combo-allseeing-gourd-2f","combo-gourd-flaming-2f","combo-sporified-flaming-2f","combo-sporified-strawhat");
+  names.forEach(n=>{
+    const im=new Image();
+    im.onload=()=>{ SPRITES[n]={img:im,w:im.width,h:im.height}; };
+    im.onerror=()=>{}; // missing file => that asset stays procedural
+    im.src="art/"+n+".png";
+  });
+}
 function zdefFor(z){
   const base=ZTYPES.find(t=>t.id===z.type);
   if(z && z.awakened) return Object.assign({},base,{big:true,small:false,awk:true,shirt:"#2e352a"});
@@ -1236,7 +1255,7 @@ function drawStar(g,x,y,r){
   }
   g.closePath(); g.fill();
 }
-function drawZombie(g,x,y,s,zd,muts,wob,seed,hungry){
+function drawZombie(g,x,y,s,zd,muts,wob,seed,hungry,pose){
   seed=seed||0;
   const small=zd.small, big=zd.big;
   const bw=(big?30:small?18:24)*s*(zd.colossus?1.15:zd.hulk?1.2:1);
@@ -1246,6 +1265,55 @@ function drawZombie(g,x,y,s,zd,muts,wob,seed,hungry){
   const lean=Math.sin(wob*0.7)*0.06;
   const skin=zd.col, skinD=shade(zd.col,-28), skinL=shade(zd.col,24);
   const speedy=mutHas(muts,"Speedy"), kernel=mutHas(muts,"Kernel-Powered"), moon=mutHas(muts,"Moon-Touched");
+  // ---- Wave-2 sprite path: official character art when loaded ----
+  const sprBase = zd.awk ? "zombie-awakened" : (SPRITE_IDS[zd.id] ? "zombie-"+SPRITE_IDS[zd.id] : null);
+  const spr = sprBase ? (pose==="lunge" ? SPRITES[sprBase+"-lunge"]
+              : pose==="idle" ? SPRITES[sprBase+"-idle"]
+              : SPRITES[sprBase+"-walk-2f"]) : null;
+  if(spr && spr.img){
+    const k = s*73/630; // class scale is baked into each sprite canvas
+    // ground shadow
+    g.fillStyle="rgba(20,25,10,.3)";
+    g.beginPath(); g.ellipse(x,y+2*s,bw*0.9,5.5*s,0,0,TAU); g.fill();
+    if(zd.glow){ g.globalAlpha=0.22; g.fillStyle="#cfe6ff"; blob(g,x,y-10*s-bh*0.6+bob,bw*1.15); g.globalAlpha=1; }
+    if(zd.awk){ g.globalAlpha=0.16; g.fillStyle="#7dffa0"; blob(g,x,y-10*s-bh*0.6+bob,bw*1.4); g.globalAlpha=1; }
+    const frames = spr.w > spr.h*1.3 ? 2 : 1;
+    const fw = spr.w/frames;
+    const frame = frames>1 ? Math.floor(wob*2)%2 : 0;
+    const dw=fw*k, dh=spr.h*k;
+    g.save(); g.translate(x,y+bob); g.rotate(lean);
+    g.drawImage(spr.img, frame*fw, 0, fw, spr.h, -dw/2, -dh+2*s, dw, dh);
+    // mutation overlays (authored on the normal 540x630 frame; scaled to this
+    // zombie's height so zones land where the head/chest actually are)
+    if(!zd.awk && muts && muts.length){
+      const kO = k*(spr.h/630);
+      const has = l => muts.some(m=>m.label===l);
+      const used = new Set();
+      const drawOv = name => {
+        const o=SPRITES[name]; if(!o||!o.img) return;
+        const oF=o.w>o.h*1.3?2:1, oW=o.w/oF, oFr=oF>1?Math.floor(wob*2)%2:0;
+        const ow=oW*kO, oh=o.h*kO;
+        g.drawImage(o.img, oFr*oW, 0, oW, o.h, -ow/2, -oh+2*s, ow, oh);
+      };
+      if(has("Gourd-Headed")&&has("Flaming")){ drawOv("combo-gourd-flaming-2f"); used.add("Gourd-Headed"); used.add("Flaming"); }
+      else if(has("Sporified")&&has("Flaming")){ drawOv("combo-sporified-flaming-2f"); used.add("Sporified"); used.add("Flaming"); }
+      else if(has("All-Seeing")&&has("Gourd-Headed")){ drawOv("combo-allseeing-gourd-2f"); used.add("All-Seeing"); used.add("Gourd-Headed"); }
+      if(has("Sporified")&&zd.hat==="straw"&&!used.has("Sporified")){ drawOv("combo-sporified-strawhat"); used.add("Sporified"); }
+      muts.forEach(m=>{ if(!used.has(m.label) && MUT_SPRITES[m.label]) drawOv(MUT_SPRITES[m.label]); });
+    }
+    g.restore();
+    if(hungry){
+      for(let k2=0;k2<2;k2++){
+        const a=wob*3.2+k2*2.7+seed*9;
+        const fx2=x+Math.cos(a)*(bw+6*s), fy2=y-10*s-bh*0.9+Math.sin(a*1.3)*10*s;
+        g.fillStyle="#2a2038"; blob(g,fx2,fy2,1.5*s);
+        g.fillStyle="rgba(255,255,255,.75)";
+        g.beginPath(); g.ellipse(fx2-1.6*s,fy2-1.4*s,1.6*s,0.8*s,-0.5,0,TAU); g.fill();
+        g.beginPath(); g.ellipse(fx2+1.6*s,fy2-1.4*s,1.6*s,0.8*s,0.5,0,TAU); g.fill();
+      }
+    }
+    return;
+  }
   if(moon){
     g.globalAlpha=0.22; g.fillStyle="#baffe0";
     blob(g,x,y-10*s-bh*0.6+bob,bw*1.5);
@@ -2991,7 +3059,7 @@ function renderMarket(tab){
     const div=document.createElement("div"); div.className="shopitem"+(locked?" locked":"");
     let art;
     if(tab===0) art=artCanvas((g,x,y,r)=>drawProduce(g,item.id,x,y,34));
-    else if(tab===1) art=artCanvas((g,x,y,r)=>drawZombie(g,x,y+23,0.68,item,[],0.5));
+    else if(tab===1) art=artCanvas((g,x,y,r)=>drawZombie(g,x,y+23,0.68,item,[],0.5,0,false,"idle"));
     else art=artCanvas((g,x,y,r)=>drawTree(g,item,x,y+20,22));
     div.appendChild(art);
     const inf=document.createElement("div"); inf.className="inf";
@@ -3054,7 +3122,7 @@ $("zombiesBtn").onclick=()=>{
   S.zombies.forEach((z,ix)=>{
     const zd=zdefFor(z);
     const row=document.createElement("div"); row.className="zrow";
-    row.appendChild(artCanvasSized((g,x,y,r)=>drawZombie(g,x,y+r*1.05,0.78,zd,z.mut,0.5),84));
+    row.appendChild(artCanvasSized((g,x,y,r)=>drawZombie(g,x,y+r*1.05,0.78,zd,z.mut,0.5,0,false,"idle"),84));
     const hungry = z.hunger>=70?"<b style='color:#ff9a7a'>STARVING &#x1F9E0;</b>":z.hunger>=40?"peckish":"content";
     const txt=document.createElement("div"); txt.style.flex="1"; txt.style.fontSize="15px"; txt.style.lineHeight="1.5";
     txt.innerHTML="<b style='color:#ffe9a8'>"+z.name+"</b> the "+zd.name+
@@ -3218,12 +3286,12 @@ function openAlmanac(){
     card.className="mutcard"+(got?" raised":" unknown");
     card.style.width="112px";
     if(got){
-      card.appendChild(artCanvasSized((g,x,y,r)=>drawZombie(g,x,y+r*0.9,0.72,zd,[{label:L.a,col:ca.col},{label:L.b,col:cb.col}],0.5),100));
+      card.appendChild(artCanvasSized((g,x,y,r)=>drawZombie(g,x,y+r*0.9,0.72,zd,[{label:L.a,col:ca.col},{label:L.b,col:cb.col}],0.5,0,false,"idle"),100));
     } else {
       card.appendChild(artCanvasSized((g,x,y,r)=>{
         // shadowy silhouette tease
         g.save(); g.globalAlpha=0.9;
-        drawZombie(g,x,y+r*0.9,0.72,zd,[{label:L.a,col:ca.col},{label:L.b,col:cb.col}],0.5);
+        drawZombie(g,x,y+r*0.9,0.72,zd,[{label:L.a,col:ca.col},{label:L.b,col:cb.col}],0.5,0,false,"idle");
         g.globalCompositeOperation="source-atop";
         g.fillStyle="#241a30"; g.fillRect(0,0,200,200);
         g.restore();
@@ -3283,7 +3351,7 @@ function openAlmanac(){
           if(oKnown){
             const raised=pairRaised(label,oLabel);
             card.className="mutcard"+(raised?" raised":"");
-            card.appendChild(artCanvasSized((g,x,y,r)=>drawZombie(g,x,y+r*0.9,0.6,zd,[{label,col:c.col},{label:oLabel,col:o.col}],0.5),84));
+            card.appendChild(artCanvasSized((g,x,y,r)=>drawZombie(g,x,y+r*0.9,0.6,zd,[{label,col:c.col},{label:oLabel,col:o.col}],0.5,0,false,"idle"),84));
             lbl.innerHTML="<b>+ "+oLabel+"</b><br>"+
               (raised?"<span style='color:#7dffa0'>&#x2713; RAISED!</span>"
                      :"<span style='opacity:.75'>possible &mdash; try "+c.name+" + "+o.name+"</span>");
@@ -3378,7 +3446,7 @@ function openSquadPicker(target){
       }
     };
     row.appendChild(sel);
-    row.appendChild(artCanvas((g,x,y,r)=>drawZombie(g,x,y+22,0.5,zd,z.mut,0.5)));
+    row.appendChild(artCanvas((g,x,y,r)=>drawZombie(g,x,y+22,0.5,zd,z.mut,0.5,0,false,"idle")));
     const txt=document.createElement("div"); txt.style.flex="1";
     const hungry = z.hunger>=70?"STARVING":z.hunger>=40?"peckish":"content";
     txt.innerHTML="<b style='color:#ffe9a8'>"+z.name+"</b> the "+zd.name+"<br>PWR "+z.pow+" &middot; HP "+Math.ceil(z.hp)+"/"+z.maxhp+" &middot; "+hungry;
@@ -4186,7 +4254,7 @@ function drawBattle(dt){
   B.actives.forEach(a=>{
     const zd=zdefFor(a.z);
     const lunge = a.state==="attack" ? Math.max(0,Math.sin(a.atkT/0.7*Math.PI))*16 : 0;
-    drawZombie(cx,a.x+lunge,a.y,0.95,zd,a.z.mut, a.state==="march"?B.t*8:B.t*2, nameHash(a.z.name), a.z.hunger>=40);
+    drawZombie(cx,a.x+lunge,a.y,0.95,zd,a.z.mut, a.state==="march"?B.t*8:B.t*2, nameHash(a.z.name), a.z.hunger>=40, a.state==="attack"?"lunge":"walk");
     cx.fillStyle="rgba(0,0,0,.45)";
     cx.beginPath(); cx.roundRect(a.x-26,a.y-100,52,9,5); cx.fill();
     cx.fillStyle="#7dffa0";
@@ -4692,6 +4760,7 @@ setInterval(()=>{ if(S)save(); },5000);
 document.addEventListener("visibilitychange",()=>{ if(S)save(); });
 
 resize();
+preloadSprites();
 try{ if(document.fonts&&document.fonts.load){ document.fonts.load("16px 'Luckiest Guy'").then(()=>{ try{drawSplash();}catch(e){} }); } }catch(e){}
 try{ drawSplash(); }catch(e){}
 requestAnimationFrame(loop);
