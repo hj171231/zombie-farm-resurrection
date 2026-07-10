@@ -335,34 +335,34 @@ function simulate(G, maxSteps) {
     eq(G.B.actives[1].state, "march", "even the peckish one starts marching");
     G.scene = "farm"; G.B = null;
   });
-  check("not-hungry zombies get distracted MID-march, ON screen (1 tap)", () => {
-    armyOf(G, 1, 50, 5);
-    G.startBattle(G.TARGETS[0]);
-    G.B.nextBrawl = 999; // keep the field clear for this test
-    G.sendZombie(0);
-    const a = G.B.actives[0];
-    let steps = 0;
-    while (a.state === "march" && steps++ < 400) G.updateBattle(0.05);
-    eq(a.state, "distracted");
-    eq(a.needTaps, 1);
-    ok(a.x > G.W * 0.15, "distraction happens on screen, x=" + Math.round(a.x));
-    G.battleTap(a.x, a.y - 105);
-    eq(a.state, "march", "one tap refocuses");
-    G.scene = "farm"; G.B = null;
+  check("sent zombies NEVER stall: one tap -> march -> attack, any hunger", () => {
+    [5, 45, 100].forEach(hunger => {
+      armyOf(G, 1, hunger, 5);
+      G.startBattle(G.TARGETS[0]);
+      G.B.nextBrawl = 999; // keep the field clear for this test
+      G.sendZombie(0);
+      const a = G.B.actives[0];
+      let steps = 0;
+      while (a.state !== "attack" && steps++ < 400) {
+        G.updateBattle(0.05);
+        ok(a.state !== "distracted", "hunger " + hunger + " zombie stalled mid-march");
+      }
+      eq(a.state, "attack", "hunger " + hunger + " zombie reached the building");
+      G.scene = "farm"; G.B = null;
+    });
   });
-  check("barely-hungry zombie (<40) needs 2 refocus taps", () => {
-    armyOf(G, 1, 10, 5);
+  check("hungrier zombies still bite harder (damage bonus intact)", () => {
+    // 1 + hunger/150 multiplier on attack damage
+    armyOf(G, 1, 100, 30);
     G.startBattle(G.TARGETS[0]);
-    G.B.nextBrawl = 999;
-    G.sendZombie(0);
+    G.B.nextBrawl = 999; G.sendZombie(0);
     const a = G.B.actives[0];
-    let steps = 0;
-    while (a.state === "march" && steps++ < 400) G.updateBattle(0.05);
-    eq(a.needTaps, 2);
-    G.battleTap(a.x, a.y - 105);
-    eq(a.needTaps, 1); eq(a.state, "distracted");
-    G.battleTap(a.x, a.y - 105);
-    eq(a.state, "march");
+    a.state = "attack"; a.atkT = 0.69;
+    const restore = G.setRandom(() => 0.5); // rnd(0.8,1.2) -> 1.0
+    G.updateBattle(0.02);
+    restore();
+    const dmgHungry = G.B.maxhp - G.B.hp;
+    ok(Math.abs(dmgHungry - 30 * (1 + 100 / 150)) < 0.5, "hungry dmg " + dmgHungry);
     G.scene = "farm"; G.B = null;
   });
   check("full sim: strong hungry horde wins, earns gold + xp + win stat", () => {
@@ -991,7 +991,7 @@ console.log("\n== zombie roaming ==");
       const p = G.roamTargetFrom(start.x, start.y);
       if (!G.pathAvoidsField(start.x, start.y, p.x, p.y)) crossings++;
     }
-    ok(crossings < 20, crossings + "/300 paths crossed the field — should be ~1.5%");
+    ok(crossings < 8, crossings + "/300 paths crossed the field — should be ~0.4%");
   });
   check("roam spots stay on screen", () => {
     for (let k = 0; k < 100; k++) {

@@ -229,7 +229,7 @@ const GOALS = [
  {id:"moon1",   desc:"Win at the Lunar Lab",      n:1,  stat:"moonwin",   gold:10000}
 ];
 
-const BUILD = "build 12 · 2026-07-09"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 13 · 2026-07-09"; // rewritten by scripts/deploy.sh at each publish
 const GRID = 7;
 const MAX_Z = 16;
 const INVADE_MIN = 6;
@@ -440,7 +440,7 @@ function pathAvoidsField(x1,y1,x2,y2){
 // the grass — no more parades through the crops. ~1.5% take a deliberate
 // shortcut across the field, for old times' sake.
 function roamTargetFrom(x,y){
-  if(Math.random()<0.015) return randFieldPos();
+  if(Math.random()<0.004) return randFieldPos(); // a true rarity now
   for(let tries=0;tries<14;tries++){
     const p=randRoamPos();
     if(pathAvoidsField(x,y,p.x,p.y)) return p;
@@ -1198,42 +1198,55 @@ function drawZombie(g,x,y,s,zd,muts,wob,seed,hungry){
     g.beginPath(); g.ellipse(bw*0.2-lp*0.3,0,5*s,2.6*s,0,0,TAU); g.fill();
   }
   if(zd.hulk){
-    // ---- ABOMINATION: a shirtless, stitched-together mountain of muscle ----
-    g.fillStyle=zd.shirt; g.fillRect(-bw*0.32,-10.5*s,bw*0.64,4*s); // trouser waistband
+    // ---- ABOMINATION v2: a huge, hunched, drooling patchwork oaf ----
+    // sewn together from whoever was lying around; too big, too dumb, too happy
+    const breathe=Math.sin(wob*1.6)*bh*0.02; // the belly heaves
     g.fillStyle=skin;
     g.beginPath();
-    g.moveTo(-bw*0.3,-8*s);                                                    // left hip (narrow waist)
-    g.bezierCurveTo(-bw*0.62,-10*s-bh*0.3,-bw*0.74,-10*s-bh*0.85,-bw*0.56,-10*s-bh*1.02); // flare out to shoulder
-    g.quadraticCurveTo(0,-10*s-bh*1.24,bw*0.56,-10*s-bh*1.02);                 // trap ridge
-    g.bezierCurveTo(bw*0.74,-10*s-bh*0.85,bw*0.62,-10*s-bh*0.3,bw*0.3,-8*s);
-    g.quadraticCurveTo(0,-6*s,-bw*0.3,-8*s);
+    g.moveTo(-bw*0.3,-10*s-bh*1.0);                                  // hunched left shoulder
+    g.quadraticCurveTo(-bw*0.82,-10*s-bh*0.62,-bw*0.72+breathe,-10*s-bh*0.14); // belly bulges way out
+    g.quadraticCurveTo(-bw*0.6,-5*s,0,-4.5*s);
+    g.quadraticCurveTo(bw*0.6,-5*s,bw*0.72-breathe,-10*s-bh*0.14);
+    g.quadraticCurveTo(bw*0.82,-10*s-bh*0.62,bw*0.3,-10*s-bh*1.0);
+    g.quadraticCurveTo(0,-10*s-bh*1.1,-bw*0.3,-10*s-bh*1.0);         // low hunched top
     g.closePath(); g.fill();
     outline(g,1.6*s); g.stroke();
-    // pec shelves + ab lines
-    g.strokeStyle=skinD; g.lineWidth=1.6*s; g.lineCap="round";
-    g.beginPath(); g.arc(-bw*0.22,-10*s-bh*0.74,bw*0.19,0.25,Math.PI*0.8); g.stroke();
-    g.beginPath(); g.arc(bw*0.22,-10*s-bh*0.74,bw*0.19,Math.PI*0.2,Math.PI*0.75); g.stroke();
-    g.beginPath(); g.moveTo(0,-10*s-bh*0.5); g.lineTo(0,-9*s); g.stroke();
+    // patches of OTHER zombies' skin, crudely stitched on
+    const patchStitch=(px2,py2,rx2,ry2,rot)=>{
+      outline(g,1.1*s);
+      g.beginPath(); g.ellipse(px2,py2,rx2,ry2,rot,0,TAU); g.stroke();
+      g.strokeStyle="#2a2438"; g.lineWidth=0.9*s;
+      for(let k=0;k<6;k++){
+        const a2=k/6*TAU+rot;
+        g.beginPath();
+        g.moveTo(px2+Math.cos(a2)*rx2*0.82,py2+Math.sin(a2)*ry2*0.82);
+        g.lineTo(px2+Math.cos(a2)*rx2*1.18,py2+Math.sin(a2)*ry2*1.18);
+        g.stroke();
+      }
+    };
+    g.fillStyle="#8fb36a"; // a shambler donated this one
+    g.beginPath(); g.ellipse(-bw*0.32,-10*s-bh*0.38,bw*0.2,bh*0.22,0.35,0,TAU); g.fill();
+    patchStitch(-bw*0.32,-10*s-bh*0.38,bw*0.2,bh*0.22,0.35);
+    g.fillStyle="#9a8bc0"; // ...and a bruiser this one
+    g.beginPath(); g.ellipse(bw*0.3,-10*s-bh*0.66,bw*0.15,bh*0.16,-0.3,0,TAU); g.fill();
+    patchStitch(bw*0.3,-10*s-bh*0.66,bw*0.15,bh*0.16,-0.3);
+    // crooked central seam wandering down the belly
+    g.strokeStyle="#7a3434"; g.lineWidth=1.7*s; g.lineCap="round";
+    g.beginPath(); g.moveTo(-bw*0.04,-10*s-bh*0.98);
+    g.quadraticCurveTo(bw*0.12,-10*s-bh*0.6,-bw*0.06,-10*s-bh*0.3);
+    g.quadraticCurveTo(-bw*0.14,-10*s-bh*0.12,0,-6*s); g.stroke();
     g.lineWidth=1.1*s;
-    g.beginPath(); g.moveTo(-bw*0.13,-10*s-bh*0.34); g.lineTo(bw*0.13,-10*s-bh*0.34); g.stroke();
-    g.beginPath(); g.moveTo(-bw*0.11,-10*s-bh*0.17); g.lineTo(bw*0.11,-10*s-bh*0.17); g.stroke();
-    // pec highlight
-    g.fillStyle=skinL;
-    g.beginPath(); g.ellipse(-bw*0.24,-10*s-bh*0.9,bw*0.12,bh*0.08,0.2,0,TAU); g.fill();
-    // the assembly scar: a great stapled seam across the chest
-    g.strokeStyle="#7a3434"; g.lineWidth=1.9*s;
-    g.beginPath(); g.moveTo(-bw*0.5,-10*s-bh*0.98); g.quadraticCurveTo(-bw*0.05,-10*s-bh*0.7,bw*0.36,-10*s-bh*0.48); g.stroke();
-    g.lineWidth=1.2*s;
-    for(let k=0;k<4;k++){
-      const tt=0.14+k*0.24;
-      const sx2=-bw*0.5+bw*0.86*tt, sy2=-10*s-bh*(0.98-0.5*tt*(2-tt)*0.55);
-      g.beginPath(); g.moveTo(sx2-2*s,sy2-2.8*s); g.lineTo(sx2+2*s,sy2+2.8*s); g.stroke();
-    }
-    // the one overall strap that survived leg day, with its button
-    g.strokeStyle=zd.shirt; g.lineWidth=4.6*s; g.lineCap="butt";
-    g.beginPath(); g.moveTo(bw*0.28,-10*s-bh*1.04); g.lineTo(-bw*0.15,-10*s-bh*0.1); g.stroke();
-    g.fillStyle="#ffd94d"; blob(g,-bw*0.12,-10*s-bh*0.15,1.9*s);
-    outline(g,0.9*s); g.beginPath(); g.arc(-bw*0.12,-10*s-bh*0.15,1.9*s,0,TAU); g.stroke();
+    [[0.02,0.85],[0.1,0.6],[0.0,0.38],[-0.08,0.18]].forEach(st2=>{
+      const sx2=bw*st2[0], sy2=-10*s-bh*st2[1];
+      g.beginPath(); g.moveTo(sx2-2.6*s,sy2-1*s); g.lineTo(sx2+2.6*s,sy2+1*s); g.stroke();
+    });
+    // belly button: a lazy X of thread
+    g.strokeStyle="#5e3a3a"; g.lineWidth=1.3*s;
+    g.beginPath(); g.moveTo(-bw*0.1,-10*s-bh*0.1); g.lineTo(-bw*0.02,-10*s-bh*0.02); g.stroke();
+    g.beginPath(); g.moveTo(-bw*0.02,-10*s-bh*0.1); g.lineTo(-bw*0.1,-10*s-bh*0.02); g.stroke();
+    // belly shine
+    g.fillStyle="rgba(255,255,255,.14)";
+    g.beginPath(); g.ellipse(-bw*0.3,-10*s-bh*0.2,bw*0.14,bh*0.1,0.5,0,TAU); g.fill();
   } else {
   g.fillStyle=zd.shirt;
   g.beginPath(); g.roundRect(-bw/2,-10*s-bh,bw,bh+2*s,5*s); g.fill();
@@ -1286,7 +1299,7 @@ function drawZombie(g,x,y,s,zd,muts,wob,seed,hungry){
     g.beginPath(); g.roundRect(-bw/2,-10*s-bh,bw,bh+2*s,5*s); g.stroke();
   }
   if(kernel){
-    const kx=zd.hulk?0.56:0.44, kx2=zd.hulk?0.38:0.28, ky=zd.hulk?1.04:0.92, ky2=zd.hulk?1.16:1.02;
+    const kx=zd.hulk?0.3:0.44, kx2=zd.hulk?0.16:0.28, ky=zd.hulk?1.06:0.92, ky2=zd.hulk?1.14:1.02;
     g.fillStyle="#ffd94d";
     blob(g,-bw*kx,-10*s-bh*ky,3*s); blob(g,-bw*kx2,-10*s-bh*ky2,2.6*s);
     blob(g,bw*kx,-10*s-bh*ky,3*s); blob(g,bw*kx2,-10*s-bh*ky2,2.6*s);
@@ -1296,35 +1309,36 @@ function drawZombie(g,x,y,s,zd,muts,wob,seed,hungry){
   }
   const armY=-8*s-bh*0.8, sw=Math.sin(wob+1)*2.5*s;
   if(zd.hulk){
-    // boulder biceps + knuckle-dragging fists (or corn-cob gauntlets)
+    // long limp noodle-arms swinging from the hunched shoulders,
+    // ending in comically oversized three-finger paws
     [-1,1].forEach(sd=>{
-      const shY=-10*s-bh*0.92+sd*sw*0.4;
-      const bx2=sd*bw*0.72, by2=shY+bh*0.14;
-      g.fillStyle=skin; blob(g,bx2,by2,7.4*s); // bicep boulder
-      g.strokeStyle=skin; g.lineWidth=8.6*s; g.lineCap="round"; // forearm slab
-      const fx=sd*bw*0.9, fy=-2.5*s+sd*sw*0.4;
-      g.beginPath(); g.moveTo(bx2,by2); g.lineTo(fx,fy-3*s); g.stroke();
-      outline(g,1.4*s);
-      g.beginPath(); g.arc(bx2,by2,7.4*s,0,TAU); g.stroke();
-      // bicep stitch seam
-      g.strokeStyle="#7a3434"; g.lineWidth=1.1*s;
-      g.beginPath(); g.moveTo(bx2-sd*4*s,by2-4*s); g.lineTo(bx2+sd*3*s,by2+2*s); g.stroke();
-      g.beginPath(); g.moveTo(bx2-sd*1.5*s,by2-3.5*s); g.lineTo(bx2-sd*0.2*s,by2-0.5*s); g.stroke();
+      const shX=sd*bw*0.36, shY=-10*s-bh*0.96;
+      const fx=sd*bw*0.82+sd*sw*0.5, fy=-3*s+Math.sin(wob*1.3+sd)*2*s;
+      g.strokeStyle=skin; g.lineWidth=6*s; g.lineCap="round";
+      g.beginPath(); g.moveTo(shX,shY);
+      g.quadraticCurveTo(sd*bw*0.85,shY+bh*0.5,fx,fy-2*s); g.stroke();
+      // a patch on one arm — even the arms are borrowed
+      if(sd<0){
+        g.strokeStyle="#8fb36a"; g.lineWidth=6*s;
+        g.beginPath(); g.moveTo(sd*bw*0.72,shY+bh*0.42); g.quadraticCurveTo(sd*bw*0.8,shY+bh*0.56,sd*bw*0.8,shY+bh*0.68); g.stroke();
+      }
       if(kernel){
-        // Kernel-Powered: the fists ARE giant corn cobs now
+        // Kernel-Powered: the paws ARE giant corn cobs now
         g.save(); g.translate(fx,fy); g.rotate(sd*0.85);
-        g.fillStyle="#ffd94d"; g.beginPath(); g.ellipse(0,0,10.5*s,6*s,0,0,TAU); g.fill();
+        g.fillStyle="#ffd94d"; g.beginPath(); g.ellipse(0,0,10*s,5.8*s,0,0,TAU); g.fill();
         outline(g,1.2*s); g.stroke();
         g.strokeStyle="#e0a818"; g.lineWidth=1*s;
         [-6,-1.5,3].forEach(kk=>{ g.beginPath(); g.moveTo(kk*s,-5*s); g.lineTo(kk*s,5*s); g.stroke(); });
-        g.fillStyle="#6fbf4a"; g.beginPath(); g.ellipse(-10*s,0,3.6*s,5.5*s,0.3,0,TAU); g.fill();
+        g.fillStyle="#6fbf4a"; g.beginPath(); g.ellipse(-9.5*s,0,3.5*s,5.4*s,0.3,0,TAU); g.fill();
         g.restore();
       } else {
         g.fillStyle=skin;
-        g.beginPath(); g.ellipse(fx,fy,6.2*s,5*s,0,0,TAU); g.fill(); // ground-dragging fist
+        g.beginPath(); g.ellipse(fx,fy,5.8*s,4.8*s,sd*0.2,0,TAU); g.fill(); // big dumb paw
         outline(g,1.4*s); g.stroke();
-        g.strokeStyle=skinD; g.lineWidth=1.1*s; // knuckles
-        for(let k=-1;k<=1;k++){ g.beginPath(); g.arc(fx+k*2.7*s,fy-3.6*s,1.5*s,Math.PI,0); g.stroke(); }
+        g.strokeStyle=OUT; g.lineWidth=1.1*s; // three stubby fingers
+        for(let k=0;k<2;k++){
+          g.beginPath(); g.moveTo(fx+sd*(1+k*2.6)*s,fy+4.6*s); g.lineTo(fx+sd*(1+k*2.6)*s,fy+1*s); g.stroke();
+        }
       }
     });
   } else if(kernel){
@@ -1366,21 +1380,30 @@ function drawZombie(g,x,y,s,zd,muts,wob,seed,hungry){
       g.fillStyle="#c8842e"; blob(g,hx3+3.5*s,hy3-12.5*s+Math.sin(wob*2)*s,1*s);
     }
   }
-  const headY=-10*s-bh-hr*(zd.hulk?0.42:0.82); // hulk: head sunk between the traps, no neck
-  if(zd.hulk && !zd.headless){
-    // neck bolts, naturally
-    g.fillStyle="#9aa4b0";
-    g.fillRect(-hr*1.02-4.5*s, headY+hr*0.42, 5*s, 3.2*s);
-    g.fillRect(hr*1.02-0.5*s, headY+hr*0.42, 5*s, 3.2*s);
-    outline(g,0.9*s);
-    g.strokeRect(-hr*1.02-4.5*s, headY+hr*0.42, 5*s, 3.2*s);
-    g.strokeRect(hr*1.02-0.5*s, headY+hr*0.42, 5*s, 3.2*s);
-    g.fillStyle="#c8ccd6";
-    blob(g,-hr*1.02-4.5*s,headY+hr*0.42+1.6*s,2.1*s);
-    blob(g,hr*1.02+4.5*s,headY+hr*0.42+1.6*s,2.1*s);
-  }
+  const headY=-10*s-bh-hr*(zd.hulk?0.4:0.82); // hulk: head sunk into the hunch, no neck
   if(!zd.headless){
     drawZHead(g,0,headY,hr,skin,skinD,skinL,zd,muts,s,wob,seed);
+    if(zd.hulk && !mutHas(muts,"Gourd-Headed")){
+      // enormous dopey underbite: jaw shelf, two snaggle tusks, honest drool
+      g.fillStyle=skinD;
+      g.beginPath();
+      g.moveTo(-hr*0.66,headY+hr*0.42);
+      g.quadraticCurveTo(0,headY+hr*1.0,hr*0.66,headY+hr*0.42);
+      g.quadraticCurveTo(0,headY+hr*0.58,-hr*0.66,headY+hr*0.42);
+      g.closePath(); g.fill();
+      outline(g,1.3*s); g.stroke();
+      g.fillStyle="#fffbe8"; // tusks poking UP over the lip
+      g.beginPath(); g.moveTo(-hr*0.42,headY+hr*0.52); g.lineTo(-hr*0.3,headY+hr*0.22); g.lineTo(-hr*0.18,headY+hr*0.5); g.closePath(); g.fill();
+      g.beginPath(); g.moveTo(hr*0.38,headY+hr*0.5); g.lineTo(hr*0.28,headY+hr*0.26); g.lineTo(hr*0.16,headY+hr*0.48); g.closePath(); g.fill();
+      outline(g,0.9*s);
+      g.beginPath(); g.moveTo(-hr*0.42,headY+hr*0.52); g.lineTo(-hr*0.3,headY+hr*0.22); g.lineTo(-hr*0.18,headY+hr*0.5); g.stroke();
+      g.beginPath(); g.moveTo(hr*0.38,headY+hr*0.5); g.lineTo(hr*0.28,headY+hr*0.26); g.lineTo(hr*0.16,headY+hr*0.48); g.stroke();
+      // drool, stretching with the wobble
+      const dl=(1+Math.sin(wob*1.8))*hr*0.14;
+      g.fillStyle="rgba(170,225,235,.85)";
+      g.beginPath(); g.ellipse(hr*0.1,headY+hr*0.78+dl*0.5,hr*0.06,hr*0.1+dl*0.5,0,0,TAU); g.fill();
+      blob(g,hr*0.1,headY+hr*0.82+dl,hr*0.055);
+    }
   } else {
     g.fillStyle=skinD;
     g.beginPath(); g.ellipse(0,-10*s-bh,6.5*s,3.4*s,0,0,TAU); g.fill();
@@ -2932,7 +2955,7 @@ $("helpBtn").onclick=()=>{
    "<b>&#x1F33E; Farm:</b> Tap grass to plow a plot (10g). Tap a plot to open the Market. After you pick a seed you stay in <b>planting mode</b> &mdash; keep tapping plots (even unplowed grass!) to plant the same thing again and again. Tap the green banner to stop. Zombies are the exception: they plant <b>one at a time</b>, on purpose &mdash; each one is a commitment. Tap ripe things to harvest. Crops wither if ignored too long!<br><br>"+
    "<b>&#x1F9DF; Zombies:</b> Harvested zombies join your horde (max "+MAX_Z+") and roam the farm, getting hungrier. Wounded zombies <b>only heal if trees give life force</b> &mdash; no trees, no healing! More life force = faster mending. If the horde is full, harvesting a zombie sells it for gold.<br><br>"+
    "<b>&#x1F9EA; Mutations:</b> Grow a zombie <i>next to</i> ripening crops for a chance it rises mutated with bonus stats &mdash; and a new look! More life force (trees) = better odds. <button class='gbtn small' id='mutBtn'>&#x1F9EC; Mutation Almanac</button><br><br>"+
-   "<b>&#x2694;&#xFE0F; Invasions:</b> With "+INVADE_MIN+"+ zombies, hit INVADE. Zombies march one by one. If one gets distracted (&#x1F308; bubble), <b>tap the bubble</b> to refocus it! Hungry zombies stay focused. Win gold, XP, and maybe a <b>brain</b>.<br><br>"+
+   "<b>&#x2694;&#xFE0F; Invasions:</b> With "+INVADE_MIN+"+ zombies, hit INVADE, pick a squad, then tap squad cards to send fighters in (up to 3 at once). <b>Hungrier zombies bite much harder</b> &mdash; starve them before a big raid! Win gold, XP, and maybe a <b>brain</b>.<br><br>"+
    "<b>&#x1F9E0; Brains:</b> Rare currency from invasions. Buys premium zombies &amp; trees.<br><br>"+
    "<b>&#x26CF;&#xFE0F; Shovel:</b> Toggle it, then tap anything to clear it.<br><br>"+
    "<b>&#x1F4BE; Saving:</b> Auto-saves in this browser every few seconds (and when you switch apps). Keep the game file in the same place and open it with the same browser, and your farm will be waiting. Crops even grow while you're away!<br><br>"+
@@ -3248,11 +3271,10 @@ function sendZombie(k){
   const z=B.squad[k];
   if(!z || z.hp<=0 || B.sent.has(z) || B.actives.length>=MAX_ACTIVE) return false;
   const slot=[0,1,2].find(sl=>!B.actives.some(a=>a.slot===sl));
-  // everyone charges the MOMENT you tap — no off-screen dawdling. Not-hungry
-  // zombies get distracted MID-march, on screen, where the bubble is tappable.
-  const a={z, slot, x:-40, y:H*0.68-slot*14, state:"march", bubbleT:0, atkT:0,
-           willDistract: z.hunger>=70?0 : (z.hunger>=40?1:2),
-           distractX: W*rnd(0.2,0.42)};
+  // ONE tap, ONE zombie, ZERO stalling: tap the card and they charge
+  // straight into the fight. Hunger still matters — it feeds the damage
+  // bonus — but nobody stops to daydream anymore.
+  const a={z, slot, x:-40, y:H*0.68-slot*14, state:"march", bubbleT:0, atkT:0};
   B.sent.add(z); B.actives.push(a); sfx.zomb();
   return true;
 }
@@ -3298,10 +3320,6 @@ function updateBattle(dt){
     if(a.state==="march"){
       a.x += (55+a.z.spd*35)*dt;
       if(Math.random()<dt*5) spawnParts(a.x-12,a.y,"#c9b48a",1);
-      if(a.willDistract && a.x>=a.distractX){ // something shiny, mid-field...
-        a.state="distracted"; a.needTaps=a.willDistract; a.willDistract=0;
-        return;
-      }
       if(a.x>=stopX){ a.state="attack"; }
     } else if(a.state==="attack"){
       a.atkT+=dt;
@@ -3805,6 +3823,111 @@ function drawBattle(dt){
     cx.strokeStyle="rgba(200,230,255,.5)"; cx.lineWidth=2.6;
     cx.beginPath(); cx.moveTo(cmx,cmy); cx.lineTo(cmx-34,cmy+10); cx.stroke();
     cx.fillStyle="#e8f4ff"; blob(cx,cmx,cmy,3.4);
+  }
+  // ---- ambient life: every battlefield has something living (or trying) ----
+  if(tg.scen==="farm"){
+    // two chickens pecking along the path, utterly unbothered by the siege
+    [[0.3,0.8,0],[0.38,0.84,1.6]].forEach(ch=>{
+      const chx=W*ch[0]+Math.sin(pnow*0.4+ch[2])*20, chy=H*ch[1];
+      const peck=Math.max(0,Math.sin(pnow*4+ch[2]))*4;
+      cx.fillStyle="#f6f3ea"; cx.beginPath(); cx.ellipse(chx,chy,8,6.5,0,0,TAU); cx.fill();
+      blob(cx,chx+6,chy-5+peck,4);
+      outline(cx,1.6); cx.beginPath(); cx.ellipse(chx,chy,8,6.5,0,0,TAU); cx.stroke();
+      cx.fillStyle="#e8a838"; cx.beginPath(); cx.moveTo(chx+9,chy-5+peck); cx.lineTo(chx+13,chy-4+peck); cx.lineTo(chx+9,chy-3+peck); cx.closePath(); cx.fill();
+      cx.fillStyle="#e04838"; blob(cx,chx+5,chy-8+peck,1.6);
+      cx.fillStyle="#2a2038"; blob(cx,chx+7,chy-6+peck,0.9);
+    });
+  } else if(tg.scen==="office"){
+    // pigeons on the sidewalk + steam huffing from a manhole
+    [[0.2,0],[0.24,1]].forEach(pg=>{
+      const px2=W*pg[0]+Math.sin(pnow*0.6+pg[1]*2)*10, py2=H*0.765;
+      cx.fillStyle="#8a92a2"; cx.beginPath(); cx.ellipse(px2,py2,6,4.6,0,0,TAU); cx.fill();
+      blob(cx,px2+4.5,py2-3.5,2.6);
+      cx.fillStyle="#2a2038"; blob(cx,px2+5.4,py2-4,0.7);
+      cx.fillStyle="#e8a838"; cx.fillRect(px2+7,py2-3.6,2.4,1);
+    });
+    cx.strokeStyle="#3a3a44"; cx.lineWidth=2.4;
+    cx.beginPath(); cx.ellipse(W*0.5,H*0.77,12,4,0,0,TAU); cx.stroke();
+    cx.fillStyle="rgba(230,230,240,.4)";
+    blob(cx,W*0.5,H*0.77-8-((pnow*16)%22),5+((pnow*3)%4));
+  } else if(tg.scen==="pirate"){
+    // a crab scuttling sideways + a bobbing buoy
+    const cbx=W*(0.25+Math.sin(pnow*0.35)*0.12), cby=H*0.85;
+    cx.fillStyle="#e05a4a";
+    cx.beginPath(); cx.ellipse(cbx,cby,7,5,0,0,TAU); cx.fill();
+    outline(cx,1.6); cx.stroke();
+    cx.strokeStyle="#e05a4a"; cx.lineWidth=2;
+    for(let k=0;k<3;k++){
+      const lw2=Math.sin(pnow*8+k)*2;
+      cx.beginPath(); cx.moveTo(cbx-6,cby+2+k); cx.lineTo(cbx-11,cby+4+k+lw2); cx.stroke();
+      cx.beginPath(); cx.moveTo(cbx+6,cby+2+k); cx.lineTo(cbx+11,cby+4+k-lw2); cx.stroke();
+    }
+    cx.fillStyle="#2a2038"; blob(cx,cbx-2,cby-4,1); blob(cx,cbx+2,cby-4,1);
+    const buy=H*0.64+Math.sin(pnow*1.4)*3;
+    cx.fillStyle="#e05a4a"; cx.beginPath(); cx.moveTo(W*0.3-6,buy); cx.lineTo(W*0.3,buy-12); cx.lineTo(W*0.3+6,buy); cx.closePath(); cx.fill();
+    cx.fillStyle="#f6f3ea"; cx.fillRect(W*0.3-5,buy-7,10,3);
+  } else if(tg.scen==="ninja"){
+    // paper lanterns drifting up into the dusk
+    for(let k=0;k<3;k++){
+      const ly=H*0.7-((pnow*12+k*90)%(H*0.55));
+      const lx=W*(0.15+k*0.1)+Math.sin(pnow+k*2)*12;
+      cx.fillStyle="rgba(255,180,90,.85)";
+      cx.beginPath(); cx.roundRect(lx-5,ly-7,10,14,4); cx.fill();
+      cx.fillStyle="rgba(255,235,150,.9)"; blob(cx,lx,ly,2.6);
+      cx.strokeStyle="rgba(60,45,30,.6)"; cx.lineWidth=1.4;
+      cx.strokeRect(lx-5,ly-7,10,14);
+    }
+  } else if(tg.scen==="robot"){
+    // a tiny patrol bot trundling back and forth, minding its beeswax
+    const rt=Math.sin(pnow*0.5);
+    const rbx=W*0.3+rt*W*0.12, rby=H*0.79;
+    cx.fillStyle="#9aa4b0"; cx.beginPath(); cx.roundRect(rbx-8,rby-14,16,12,3); cx.fill();
+    outline(cx,1.8); cx.stroke();
+    cx.fillStyle=Math.sin(pnow*6)>0?"#ff5a4a":"#5aff8a"; blob(cx,rbx,rby-17,2);
+    cx.strokeStyle="#5a626e"; cx.lineWidth=2; cx.beginPath(); cx.moveTo(rbx,rby-14); cx.lineTo(rbx,rby-16); cx.stroke();
+    cx.fillStyle="#3a4048";
+    blob(cx,rbx-5,rby-1,3); blob(cx,rbx+5,rby-1,3);
+    cx.fillStyle="#7adcff"; cx.fillRect(rbx-5,rby-12,10,4); // little face screen
+    cx.fillStyle="#2a2038"; blob(cx,rbx-2,rby-10,0.8); blob(cx,rbx+2,rby-10,0.8);
+  } else if(tg.scen==="mall"){
+    // an escaped balloon drifting skyward + a moth-mobbed OPEN sign
+    const bly=H*0.7-((pnow*9)%(H*0.6));
+    const blx=W*0.44+Math.sin(pnow*1.2)*14;
+    cx.fillStyle="#e05a9a"; cx.beginPath(); cx.ellipse(blx,bly,7,8.5,0,0,TAU); cx.fill();
+    cx.fillStyle="rgba(255,255,255,.5)"; blob(cx,blx-2.4,bly-3,2);
+    cx.strokeStyle="rgba(240,240,255,.6)"; cx.lineWidth=1.2;
+    cx.beginPath(); cx.moveTo(blx,bly+8); cx.quadraticCurveTo(blx+3,bly+16,blx-2,bly+24); cx.stroke();
+    const on=Math.sin(pnow*2.4)>-0.3;
+    cx.fillStyle=on?"rgba(122,220,255,.95)":"rgba(60,70,90,.8)";
+    cx.font="bold 11px 'Lilita One','Comic Sans MS',sans-serif"; cx.textAlign="center";
+    cx.fillText("OPEN 24/7",W*0.33,H*0.62);
+  } else if(tg.scen==="wizard"){
+    // a fat toad hopping between the rune stones + rising spell motes
+    const hopT=(pnow*0.7)%1, hopK=Math.floor(pnow*0.7)%3;
+    const tx3=W*(0.14+hopK*0.13)+hopT*W*0.13, ty3=H*0.82-Math.sin(hopT*Math.PI)*22;
+    cx.fillStyle="#5f8f36"; cx.beginPath(); cx.ellipse(tx3,ty3,7,5,0,0,TAU); cx.fill();
+    outline(cx,1.6); cx.stroke();
+    cx.fillStyle="#fff"; blob(cx,tx3-2.6,ty3-4,2); blob(cx,tx3+2.6,ty3-4,2);
+    cx.fillStyle="#2a2038"; blob(cx,tx3-2.6,ty3-4,0.9); blob(cx,tx3+2.6,ty3-4,0.9);
+    for(let k=0;k<5;k++){
+      const my2=H*0.78-((pnow*10+k*44)%(H*0.3));
+      cx.fillStyle="rgba(160,240,140,"+(0.5-((H*0.78-my2)/(H*0.3))*0.4)+")";
+      blob(cx,W*(0.1+k*0.09)+Math.sin(pnow*2+k)*6,my2,1.8);
+    }
+  } else if(tg.scen==="moon"){
+    // a dutiful little rover crawling the regolith, headlight blinking
+    const rvx=W*(0.3+((pnow*0.014)%0.2)), rvy=H*0.82;
+    cx.fillStyle="#c8ccd6"; cx.beginPath(); cx.roundRect(rvx-9,rvy-10,18,7,2); cx.fill();
+    outline(cx,1.6); cx.stroke();
+    cx.strokeStyle="#7e8894"; cx.lineWidth=1.6;
+    cx.beginPath(); cx.moveTo(rvx-3,rvy-10); cx.lineTo(rvx,rvy-15); cx.stroke();
+    cx.fillStyle="#7adcff"; blob(cx,rvx,rvy-16,1.4);
+    cx.fillStyle="#3a4048";
+    [[-6],[0],[6]].forEach(w2=>{ blob(cx,rvx+w2[0],rvy-2,2.6); });
+    if(Math.sin(pnow*3)>0){ cx.fillStyle="rgba(255,240,180,.5)";
+      cx.beginPath(); cx.moveTo(rvx+9,rvy-7); cx.lineTo(rvx+22,rvy-3); cx.lineTo(rvx+22,rvy-10); cx.closePath(); cx.fill(); }
+    // low-gravity dust puff behind it
+    cx.fillStyle="rgba(176,180,192,.4)"; blob(cx,rvx-11,rvy-4-((pnow*4)%6),2.4);
   }
   const shx = B.shake>0? rnd(-4,4)*B.shake : 0;
   cx.save(); cx.translate(shx,0);
