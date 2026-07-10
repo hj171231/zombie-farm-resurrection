@@ -255,7 +255,7 @@ const GOALS = [
  {id:"lunar3",  desc:"Conquer the Lunar Lab 3 times", n:3, stat:"moonwin", gold:30000, xp:500}
 ];
 
-const BUILD = "build 27 · 2026-07-10"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 28 · 2026-07-10"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -1225,6 +1225,24 @@ function mutHas(muts,label){ return muts && muts.some(m=>m.label===label); }
 const SPRITES={};
 const SPRITE_IDS={shambler:"shambler",mini:"miniz",headless:"headless",gardener:"gardener",bruiser:"bruiser",banshee:"banshee",abom:"abomination",digger:"gravedigger",jester:"jester",chef:"chef",gravemound:"gravemound",golden:"golden"};
 const MUT_SPRITES={"Speedy":"mutation-speedy","Kernel-Powered":"mutation-kernel","Gourd-Headed":"mutation-gourd","Sporified":"mutation-sporified","Flaming":"mutation-flaming-2f","Moon-Touched":"mutation-moontouched","Wormfriend":"mutation-wormfriend","Big-Hearted":"mutation-bighearted-2f","All-Seeing":"mutation-allseeing-2f","Pungent":"mutation-pungent-2f"};
+function spritePad(spr){
+  try{
+    const c=document.createElement("canvas");
+    const w=Math.min(spr.w,64), h=Math.min(spr.h,256);
+    c.width=w; c.height=h;
+    const g2=c.getContext("2d");
+    // sample the bottom strip, downscaled — enough to find the foot line
+    g2.drawImage(spr.img, 0, spr.h-Math.min(spr.h,120), spr.w, Math.min(spr.h,120), 0, 0, w, Math.min(h,60));
+    const d=g2.getImageData(0,0,w,Math.min(h,60)).data;
+    let last=-1;
+    for(let yy=Math.min(h,60)-1; yy>=0; yy--){
+      for(let xx=0; xx<w; xx++){ if(d[(yy*w+xx)*4+3]>10){ last=yy; break; } }
+      if(last>=0) break;
+    }
+    if(last<0) return 0;
+    return (Math.min(h,60)-1-last) * (Math.min(spr.h,120)/Math.min(h,60));
+  }catch(e){ return 0; } // tainted canvas (file://) etc: no trim, no harm
+}
 function preloadSprites(){
   if(typeof Image==="undefined") return; // test harness / old envs: procedural fallback
   const names=[];
@@ -1272,6 +1290,7 @@ function drawZombie(g,x,y,s,zd,muts,wob,seed,hungry,pose){
               : SPRITES[sprBase+"-walk-2f"]) : null;
   if(spr && spr.img){
     const k = s*73/630; // class scale is baked into each sprite canvas
+    if(spr.pad===undefined) spr.pad=spritePad(spr); // trim empty px under the feet
     // ground shadow
     g.fillStyle="rgba(20,25,10,.3)";
     g.beginPath(); g.ellipse(x,y+2*s,bw*0.9,5.5*s,0,0,TAU); g.fill();
@@ -1279,10 +1298,12 @@ function drawZombie(g,x,y,s,zd,muts,wob,seed,hungry,pose){
     if(zd.awk){ g.globalAlpha=0.16; g.fillStyle="#7dffa0"; blob(g,x,y-10*s-bh*0.6+bob,bw*1.4); g.globalAlpha=1; }
     const frames = spr.w > spr.h*1.3 ? 2 : 1;
     const fw = spr.w/frames;
-    const frame = frames>1 ? Math.floor(wob*2)%2 : 0;
+    // step flip synced to the bob cycle: the frame changes exactly at the
+    // footfall (bob zero-crossing) — a stride, not an 8Hz strobe
+    const frame = frames>1 ? (Math.sin(wob)>0?0:1) : 0;
     const dw=fw*k, dh=spr.h*k;
-    g.save(); g.translate(x,y+bob); g.rotate(lean);
-    g.drawImage(spr.img, frame*fw, 0, fw, spr.h, -dw/2, -dh+2*s, dw, dh);
+    g.save(); g.translate(x,y+bob); g.rotate(lean*0.4); // sprites carry their own pose; sway stays subtle
+    g.drawImage(spr.img, frame*fw, 0, fw, spr.h, -dw/2, -dh+2*s+spr.pad*k, dw, dh);
     // mutation overlays (authored on the normal 540x630 frame; scaled to this
     // zombie's height so zones land where the head/chest actually are)
     if(!zd.awk && muts && muts.length){
@@ -1291,9 +1312,10 @@ function drawZombie(g,x,y,s,zd,muts,wob,seed,hungry,pose){
       const used = new Set();
       const drawOv = name => {
         const o=SPRITES[name]; if(!o||!o.img) return;
-        const oF=o.w>o.h*1.3?2:1, oW=o.w/oF, oFr=oF>1?Math.floor(wob*2)%2:0;
+        if(o.pad===undefined) o.pad=spritePad(o);
+        const oF=o.w>o.h*1.3?2:1, oW=o.w/oF, oFr=oF>1?(Math.sin(wob)>0?0:1):0;
         const ow=oW*kO, oh=o.h*kO;
-        g.drawImage(o.img, oFr*oW, 0, oW, o.h, -ow/2, -oh+2*s, ow, oh);
+        g.drawImage(o.img, oFr*oW, 0, oW, o.h, -ow/2, -oh+2*s+o.pad*kO, ow, oh);
       };
       if(has("Gourd-Headed")&&has("Flaming")){ drawOv("combo-gourd-flaming-2f"); used.add("Gourd-Headed"); used.add("Flaming"); }
       else if(has("Sporified")&&has("Flaming")){ drawOv("combo-sporified-flaming-2f"); used.add("Sporified"); used.add("Flaming"); }
@@ -2901,6 +2923,15 @@ function drawFarm(dt){
        (!z.__fieldUntil || now()>z.__fieldUntil)){
       const out=randRoamPos(); z.tx=out.x; z.ty=out.y;
     }
+    // personal space: shoulder gently past packmates instead of stacking
+    S.zombies.forEach(o=>{
+      if(o===z) return;
+      const ddx=z.x-o.x, ddy=z.y-o.y, dd=Math.hypot(ddx,ddy);
+      if(dd>0.001 && dd<TILE*0.42){
+        const push=(TILE*0.42-dd)*0.5*dt*4;
+        z.x+=ddx/dd*push; z.y+=ddy/dd*push;
+      }
+    });
     const d=Math.hypot(z.tx-z.x,z.ty-z.y);
     if(d<6 || Math.random()<0.002){
       const rp=roamTargetFrom(z.x,z.y); z.tx=rp.x; z.ty=rp.y;
