@@ -58,22 +58,22 @@ console.log("\n== economy ==");
     ok(G.plantAt(30, "crop", "carrot") === false);
     eq(G.S.tiles[30].st, "plot");
   });
-  check("harvesting a ripe carrot pays sell price (16g) + xp + stat", () => {
+  check("harvesting a ripe carrot pays sell price (12g) + xp + stat", () => {
     G.S.gold = 0; const xp0 = G.S.xp; const crops0 = G.S.stats.crops;
     backdate(G, 24, 26);
     G.tapTile(24);
-    eq(G.S.gold, 16); eq(G.S.tiles[24].st, "plot");
+    eq(G.S.gold, 12); eq(G.S.tiles[24].st, "plot");
     eq(G.S.stats.crops, crops0 + 1);
     ok(G.S.xp > xp0 || G.S.level > 1, "xp gained");
   });
-  check("fertilized crop pays double (carrot 32g)", () => {
+  check("fertilized crop pays double (carrot 24g)", () => {
     G.S.gold = 100;
     G.plantAt(24, "crop", "carrot");
     G.S.tiles[24].fert = true;
     backdate(G, 24, 26);
     const before = G.S.gold;
     G.tapTile(24);
-    eq(G.S.gold, before + 32);
+    eq(G.S.gold, before + 24);
   });
   check("abomination costs brains, refused with 0, accepted with 2", () => {
     forcePlot(G, 31);
@@ -105,12 +105,12 @@ console.log("\n== growth & wilt ==");
     const g = G.growthInfo(G.S.tiles[10]);
     ok(g.ready); eq(g.prog, 1);
   });
-  check("not wilted at 10.3x grow time (wilt is lenient now)", () => {
-    backdate(G, 10, 25 * 10.3);
+  check("ripe crop survives 11h59m unpicked", () => {
+    backdate(G, 10, 25 + 12 * 3600 - 60);
     ok(!G.growthInfo(G.S.tiles[10]).wilted);
   });
-  check("wilted at 10.4x grow time", () => {
-    backdate(G, 10, 25 * 10.45);
+  check("crop withers 12 hours after ripening (offline clock too)", () => {
+    backdate(G, 10, 25 + 12 * 3600 + 60);
     ok(G.growthInfo(G.S.tiles[10]).wilted);
   });
   check("tapping a wilted crop plows it under (no gold)", () => {
@@ -118,9 +118,9 @@ console.log("\n== growth & wilt ==");
     G.tapTile(10);
     eq(G.S.tiles[10].st, "plot"); eq(G.S.gold, gold0);
   });
-  check("zombies never wilt (even at 10x)", () => {
+  check("zombies never wilt (even after a full day)", () => {
     forcePlot(G, 11); G.S.gold = 500; G.plantAt(11, "zombie", "shambler");
-    backdate(G, 11, 300);
+    backdate(G, 11, 24 * 3600);
     const g = G.growthInfo(G.S.tiles[11]);
     ok(g.ready); ok(!g.wilted);
   });
@@ -670,9 +670,9 @@ console.log("\n== offline growth (timestamps survive save/load) ==");
     const g = G.growthInfo(G.S.tiles[12]);
     ok(g.ready, "ripe after offline time");
   });
-  check("'away' past 8x grow time => wilted on return", () => {
+  check("'away' past the 12-hour ripe window => wilted on return", () => {
     const st = G.load();
-    st.tiles[12] = { st: "planted", kind: "crop", plant: "carrot", at: Date.now() - 25 * 11 * 1000, fert: false };
+    st.tiles[12] = { st: "planted", kind: "crop", plant: "carrot", at: Date.now() - (25 + 12 * 3600 + 300) * 1000, fert: false };
     G.startGame(st);
     ok(G.growthInfo(G.S.tiles[12]).wilted);
   });
@@ -722,7 +722,7 @@ function mutationRoll(lifeForce, roll) {
     G.S.gold = 100000;
     forcePlot(G, 24); G.plantAt(24, "zombie", "shambler");
     forcePlot(G, 23); G.plantAt(23, "crop", "carrot");
-    G.S.tiles[23].at = Date.now() - 25 * 11 * 1000; // long dead
+    G.S.tiles[23].at = Date.now() - (25 + 12 * 3600 + 300) * 1000; // long dead
     backdate(G, 24, 31);
     const restore = G.setRandom(() => 0);
     G.harvest(24);
@@ -890,7 +890,7 @@ console.log("\n== content pack: data ==");
   });
   check("crop economy ladder: ~15% compounding per tier (carrot untouched)", () => {
     const wantCost = [10, 30, 80, 180, 440, 1000, 2100, 4800, 10500, 24500];
-    const wantSell = [16, 50, 145, 370, 980, 2400, 5200, 12500, 29000, 70000];
+    const wantSell = [12, 35, 100, 260, 700, 1700, 3600, 8800, 20000, 49000];
     eq(JSON.stringify(G.CROPS.map(c => c.cost)), JSON.stringify(wantCost));
     eq(JSON.stringify(G.CROPS.map(c => c.sell)), JSON.stringify(wantSell));
   });
@@ -1071,8 +1071,8 @@ console.log("\n== new goals & the mystery ==");
     G.renameZombie(0, "Goalworthy");
     ok(G.S.goalsDone.includes("rename1"));
   });
-  check("invade cooldown is now 5 minutes", () => {
-    eq(G.INVADE_CD, 300);
+  check("invade cooldown is now 10 minutes", () => {
+    eq(G.INVADE_CD, 600);
   });
   check("defender aim rotates between targets", () => {
     G.S.zombies = [];
@@ -1192,6 +1192,7 @@ function injuredHorde(lifeForce) {
   G.S.lifeForce = lifeForce;
   G.S.zombies.push({ type: "gravemound", name: "Ouch", pow: 55, hp: 110, maxhp: 220, spd: 0.5, hunger: 30, x: 100, y: 100, tx: 100, ty: 100, wob: 0, mut: [], kills: 0 });
   G.S.zombies.push({ type: "mini", name: "Fine", pow: 3, hp: 12, maxhp: 12, spd: 1.7, hunger: 30, x: 100, y: 100, tx: 100, ty: 100, wob: 0, mut: [], kills: 0 });
+  G.S.lastHealAt = Date.now() - 5000; // one tick = one 5-second step
   return G;
 }
 {
@@ -1227,10 +1228,23 @@ function injuredHorde(lifeForce) {
     eq(G.mutationChance(), 1, "odds max out at the full grove");
     // healing floor at the same full grove is asserted above — one grove, two gifts
   });
-  check("healing is throttled to one tick per 5s", () => {
+  check("healing is throttled to one tick per 5s (then time must pass)", () => {
     const G = injuredHorde(3600);
     G.healTick(); G.healTick(); G.healTick();
-    ok(Math.abs((G.S.zombies[0].hp - 110) - 220 * 0.5 / 120) < 0.001, "only the first tick counts");
+    ok(Math.abs((G.S.zombies[0].hp - 110) - 220 * 0.5 / 120) < 0.001, "no time passed, no extra healing");
+  });
+  check("OFFLINE healing: an hour away heals the horde (timestamp-based)", () => {
+    const G = injuredHorde(3600);
+    G.S.lastHealAt = Date.now() - 3600 * 1000; // closed the app for an hour
+    G.healTick();
+    eq(G.S.zombies[0].hp, 220, "half-health at the 10-min rate = fully mended in an hour");
+  });
+  check("offline heal clock survives save/load", () => {
+    const G = injuredHorde(3600);
+    G.S.lastHealAt = Date.now() - 1234567;
+    G.save();
+    const s2 = G.sanitizeState(G.load());
+    eq(s2.lastHealAt, G.S.lastHealAt);
   });
   check("healing clamps at max hp; healthy zombies untouched", () => {
     const G = injuredHorde(300);

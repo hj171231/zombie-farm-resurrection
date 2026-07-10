@@ -179,16 +179,16 @@ const ZNAMES = ["Grubbs","Mortimer","Squelch","Petunia","Boggart","Lurleen","Fes
 
 // ---------- content data ----------
 const CROPS = [
- {id:"carrot",   name:"Carrot",       cost:10,  time:25,   sell:16,   xp:1, unlock:1, col:"#ff8c2e", mut:{stat:"spd", amt:0.6, label:"Speedy"}},
- {id:"corn",     name:"Corn",         cost:30,  time:50,   sell:50,   xp:2, unlock:2, col:"#ffd94d", mut:{stat:"pow", amt:2,   label:"Kernel-Powered"}},
- {id:"pumpkin",  name:"Pumpkin",      cost:80,  time:100,  sell:145,  xp:3, unlock:3, col:"#ff7f1e", mut:{stat:"hp",  amt:12,  label:"Gourd-Headed"}},
- {id:"shroom",   name:"Gloomshroom",  cost:180, time:200,  sell:370,  xp:5, unlock:5, col:"#c98ee0", mut:{stat:"pow", amt:4,   label:"Sporified"}},
- {id:"pepper",   name:"Ghost Pepper", cost:440, time:330,  sell:980,  xp:8, unlock:7, col:"#e03c2e", mut:{stat:"pow", amt:7,  label:"Flaming"}},
- {id:"melon",    name:"Moon Melon",   cost:1000,time:540,  sell:2400, xp:12,unlock:10,col:"#8ee0b0", mut:{stat:"hp",  amt:25,  label:"Moon-Touched"}},
- {id:"wormapple",name:"Wormy Apple",  cost:2100,time:780,  sell:5200, xp:16,unlock:12,col:"#e04838", mut:{stat:"hp",  amt:18,  label:"Wormfriend"}},
- {id:"beet",     name:"Beating Beet", cost:4800,time:1320, sell:12500,xp:22,unlock:14,col:"#c22b5a", mut:{stat:"hp",  amt:35,  label:"Big-Hearted"}},
- {id:"eyeberry", name:"Eyeball Berries",cost:10500,time:1980,sell:29000,xp:30,unlock:17,col:"#7ab8e0", mut:{stat:"spd", amt:0.8, label:"All-Seeing"}},
- {id:"garlic",   name:"Grave Garlic", cost:24500,time:3000,sell:70000,xp:40,unlock:20,col:"#e8e2d0", mut:{stat:"pow", amt:12,  label:"Pungent"}}
+ {id:"carrot",   name:"Carrot",       cost:10,  time:25,   sell:12,   xp:1, unlock:1, col:"#ff8c2e", mut:{stat:"spd", amt:0.6, label:"Speedy"}},
+ {id:"corn",     name:"Corn",         cost:30,  time:50,   sell:35,   xp:2, unlock:2, col:"#ffd94d", mut:{stat:"pow", amt:2,   label:"Kernel-Powered"}},
+ {id:"pumpkin",  name:"Pumpkin",      cost:80,  time:100,  sell:100,  xp:3, unlock:3, col:"#ff7f1e", mut:{stat:"hp",  amt:12,  label:"Gourd-Headed"}},
+ {id:"shroom",   name:"Gloomshroom",  cost:180, time:200,  sell:260,  xp:5, unlock:5, col:"#c98ee0", mut:{stat:"pow", amt:4,   label:"Sporified"}},
+ {id:"pepper",   name:"Ghost Pepper", cost:440, time:330,  sell:700,  xp:8, unlock:7, col:"#e03c2e", mut:{stat:"pow", amt:7,  label:"Flaming"}},
+ {id:"melon",    name:"Moon Melon",   cost:1000,time:540,  sell:1700, xp:12,unlock:10,col:"#8ee0b0", mut:{stat:"hp",  amt:25,  label:"Moon-Touched"}},
+ {id:"wormapple",name:"Wormy Apple",  cost:2100,time:780,  sell:3600, xp:16,unlock:12,col:"#e04838", mut:{stat:"hp",  amt:18,  label:"Wormfriend"}},
+ {id:"beet",     name:"Beating Beet", cost:4800,time:1320, sell:8800,xp:22,unlock:14,col:"#c22b5a", mut:{stat:"hp",  amt:35,  label:"Big-Hearted"}},
+ {id:"eyeberry", name:"Eyeball Berries",cost:10500,time:1980,sell:20000,xp:30,unlock:17,col:"#7ab8e0", mut:{stat:"spd", amt:0.8, label:"All-Seeing"}},
+ {id:"garlic",   name:"Grave Garlic", cost:24500,time:3000,sell:49000,xp:40,unlock:20,col:"#e8e2d0", mut:{stat:"pow", amt:12,  label:"Pungent"}}
 ];
 const ZTYPES = [
  {id:"shambler", name:"Shambler",  cost:50,  brains:0, time:30,  pow:5,  hp:22, spd:1.0, unlock:1, col:"#82c356", shirt:"#b23a2c", plaid:true, desc:"Your everyday hard-working corpse."},
@@ -251,13 +251,14 @@ const GOALS = [
  {id:"lunar3",  desc:"Conquer the Lunar Lab 3 times", n:3, stat:"moonwin", gold:30000, xp:500}
 ];
 
-const BUILD = "build 21 · 2026-07-10"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 22 · 2026-07-10"; // rewritten by scripts/deploy.sh at each publish
 const GRID = 7;
 const MAX_Z = 16;
 const INVADE_MIN = 6;
-const INVADE_CD = 300;
+const INVADE_CD = 600;
 const PLOW_COST = 10;
 const DAY_LEN = 240;
+const WILT_AFTER = 12*3600; // seconds a ripe crop survives unpicked
 
 // ---------- state ----------
 let S = null;
@@ -269,7 +270,7 @@ function freshState(){
     tiles, zombies:[], lifeForce:0,
     lastInvade:0, muted:false,
     stats:{plowed:0,crops:0,zombies:0,trees:0,wins:0,muts:0,apples:0,gmound:0,mallwin:0,moonwin:0,ferts:0,renames:0,doubles:0,garlics:0},
-    goalsDone:[], claimed:[], mutSeen:{}, pairSeen:{}, created:now()
+    goalsDone:[], claimed:[], mutSeen:{}, pairSeen:{}, lastHealAt:now(), created:now()
   };
 }
 // ---- horde management ----
@@ -303,6 +304,7 @@ function sanitizeState(raw){
   s.gold=num(raw.gold,s.gold); s.brains=num(raw.brains,s.brains);
   s.xp=num(raw.xp,s.xp); s.level=Math.max(1,Math.floor(num(raw.level,1)));
   s.lastInvade=num(raw.lastInvade,0); s.created=num(raw.created,s.created);
+  s.lastHealAt=num(raw.lastHealAt,now());
   s.muted=!!raw.muted;
   if(Array.isArray(raw.tiles)){
     for(let i=0;i<s.tiles.length;i++){
@@ -569,7 +571,9 @@ function growthInfo(t){
   const def = t.kind==="crop" ? CROPS.find(c=>c.id===t.plant) : ZTYPES.find(z=>z.id===t.plant);
   const el = (now()-t.at)/1000;
   const p = clamp(el/def.time,0,11.999);
-  return {def, el, prog:Math.min(p,1), ready:p>=1, wilted:(t.kind==="crop" && p>=10.4)};
+  // crops wither 12 real-world hours after ripening — the clock runs whether
+  // the game is open or closed. Zombies never wither.
+  return {def, el, prog:Math.min(p,1), ready:p>=1, wilted:(t.kind==="crop" && el>=def.time+WILT_AFTER)};
 }
 
 // ---- actions ----
@@ -783,17 +787,21 @@ function hungerTick(){
 // sliver of life force, half-health recovery starts near ~25 minutes and
 // improves with every tree planted, down to a 10-minute floor at a full
 // grove. Battle wounds are meant to STING — trees are how you fight back.
-let lastHeal=0;
 function groveProgress(){ return Math.sqrt(Math.min(S.lifeForce,3600)/3600); } // 0..1
+// Healing is TIMESTAMP-based (like crop growth), so the horde keeps mending
+// while the game is closed — on phones, laptops, anywhere. Each tick applies
+// however much real time has passed since the last one.
 function healTick(){
-  if(now()-lastHeal<5000) return;
-  lastHeal=now();
-  if(!(S.lifeForce>0)) return; // no life force = no healing at all
-  const minutes = 25 - 15*groveProgress(); // ~25min sliver -> 10min floor at a full grove
-  const frac = 0.5/(minutes*12);           // fraction of maxhp per 5s tick
+  if(!S.lastHealAt || S.lastHealAt>now()) S.lastHealAt=now();
+  const dtSec=(now()-S.lastHealAt)/1000;
+  if(dtSec<5) return;
+  S.lastHealAt=now();
+  if(!(S.lifeForce>0)) return; // no life force = no healing at all (clock still advances)
+  const minutes = 25 - 15*groveProgress();   // ~25min sliver -> 10min floor at a full grove
+  const perSec = 0.5/(minutes*60);           // fraction of maxhp per SECOND
   S.zombies.forEach(z=>{
     if(z.hp<z.maxhp){
-      z.hp=Math.min(z.maxhp, z.hp + Math.max(0.04, z.maxhp*frac));
+      z.hp=Math.min(z.maxhp, z.hp + Math.max(0.008*dtSec, z.maxhp*perSec*dtSec));
       if(Math.random()<0.15) spawnParts(z.x,z.y-30,"#7dffa0",2); // healing sparkle
     }
   });
@@ -2973,7 +2981,7 @@ function renderMarket(tab){
     else art=artCanvas((g,x,y,r)=>drawTree(g,item,x,y+20,22));
     div.appendChild(art);
     const inf=document.createElement("div"); inf.className="inf";
-    let costStr = item.brains>0 ? item.brains+" &#x1F9E0;" : item.cost+" <span class='coinIco'></span>";
+    let costStr = item.brains>0 ? item.brains+" &#x1F9E0;" : item.cost+" "+iconHTML(drawGoldMini);
     let ds="";
     if(tab===0) ds="Grows in "+fmtTime(item.time)+" &middot; sells "+item.sell+"g &middot; +"+item.xp+"xp<br><i>Mutation gift: "+item.mut.label+"</i>";
     else if(tab===1) ds=item.desc+"<br>PWR "+item.pow+" &middot; HP "+item.hp+" &middot; rises in "+fmtTime(item.time);
@@ -4499,7 +4507,7 @@ function startGame(existing){
   $("hud").style.display="flex"; $("leftBar").style.display="flex"; $("rightBar").style.display="flex";
   hud();
   try{
-    [["goldIco",drawGoldMini],["brainIco",drawBrainMini],["zedIco",drawZedMini],["leafIco",drawHeartMini]].forEach(pair=>{
+    [["goldIco",drawGoldMini],["zedIco",drawZedMini],["leafIco",drawHeartMini]].forEach(pair=>{
       const sp=$(pair[0]); if(sp && !sp.__drawn){ sp.textContent=""; sp.appendChild(hudIcon(pair[1])); sp.__drawn=true; }
     });
   }catch(e){}
@@ -4645,7 +4653,7 @@ function drawHeartMini(g,x,y,r){
 }
 // tap a HUD pill to learn what it tracks — with the SAME drawn icons
 [["goldPill",()=>iconHTML(drawGoldMini)+"<b>GOLD</b> &mdash; sell crops &amp; win invasions to earn it; spends on plowing, seeds and zombies."],
- ["brainPill",()=>iconHTML(drawBrainMini)+"<b>BRAINS</b> &mdash; rare invasion loot. Buys premium zombies &amp; trees. Never sold, only won."],
+ ["brainPill",()=>"&#x1F9E0; <b>BRAINS</b> &mdash; rare invasion loot. Buys premium zombies &amp; trees. Never sold, only won."],
  ["zedPill",()=>iconHTML(drawZedMini)+"<b>HORDE</b> &mdash; zombies roaming your farm now / max the farm holds (16)."],
  ["lfPill",()=>{
    const cur=Math.round(S.zombies.reduce((a,z)=>a+z.hp,0));
