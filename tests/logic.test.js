@@ -694,22 +694,26 @@ function mutationRoll(lifeForce, roll) {
   return G.S.zombies[0].mut.length;
 }
 {
-  check("mutation odds: 35% base with no trees (0.34 hits, 0.36 misses)", () => {
-    eq(mutationRoll(0, 0.34), 1);
-    eq(mutationRoll(0, 0.36), 0);
+  check("mutation odds: 40% base with no trees (0.39 hits, 0.41 misses)", () => {
+    eq(mutationRoll(0, 0.39), 1);
+    eq(mutationRoll(0, 0.41), 0);
   });
-  check("sqrt curve: 900 LF => 67.5% (0.67 hits, 0.68 misses)", () => {
-    eq(mutationRoll(900, 0.67), 1);
-    eq(mutationRoll(900, 0.68), 0);
+  check("odds ladder anchors: 50 LF=50%, 600=70%, 1800=90%", () => {
+    eq(mutationRoll(50, 0.49), 1);  eq(mutationRoll(50, 0.51), 0);
+    eq(mutationRoll(600, 0.69), 1); eq(mutationRoll(600, 0.71), 0);
+    eq(mutationRoll(1800, 0.89), 1); eq(mutationRoll(1800, 0.91), 0);
   });
   check("a lantern-tree fanatic (3600 LF) reaches GUARANTEED mutations", () => {
     eq(mutationRoll(3600, 0.999), 1);
     eq(mutationRoll(999999, 0.999), 1, "capped at 100%, no overflow");
   });
-  check("mutationChance formula exact at key points", () => {
+  check("mutationChance interpolates exactly between anchors", () => {
     const { G } = boot();
-    G.S.lifeForce = 0;   ok(Math.abs(G.mutationChance() - 0.35) < 1e-9);
-    G.S.lifeForce = 900; ok(Math.abs(G.mutationChance() - 0.675) < 1e-9);
+    G.S.lifeForce = 0;    ok(Math.abs(G.mutationChance() - 0.40) < 1e-9);
+    G.S.lifeForce = 25;   ok(Math.abs(G.mutationChance() - 0.45) < 1e-9);  // halfway 0->50
+    G.S.lifeForce = 325;  ok(Math.abs(G.mutationChance() - 0.60) < 1e-9);  // halfway 50->600
+    G.S.lifeForce = 1200; ok(Math.abs(G.mutationChance() - 0.80) < 1e-9);  // halfway 600->1800
+    G.S.lifeForce = 2700; ok(Math.abs(G.mutationChance() - 0.95) < 1e-9);  // halfway 1800->3600
     G.S.lifeForce = 3600; eq(G.mutationChance(), 1);
   });
   check("a wilted neighbor never gifts a mutation (even lucky roll)", () => {
@@ -1217,13 +1221,11 @@ function injuredHorde(lifeForce) {
     G2.healTick();
     ok(Math.abs((G2.S.zombies[0].hp - 110) - 220 * 0.5 / 120) < 0.001, "capped beyond the full grove");
   });
-  check("healing and mutations share ONE grove curve", () => {
+  check("both tree powers span the same 0..3600 grove range", () => {
     const { G } = boot();
-    [0, 600, 1800, 3600].forEach(lf => {
-      G.S.lifeForce = lf;
-      const prog = Math.sqrt(Math.min(lf, 3600) / 3600);
-      ok(Math.abs(G.mutationChance() - Math.min(1, 0.35 + 0.65 * prog)) < 1e-9, "odds curve at " + lf);
-    });
+    G.S.lifeForce = 3600;
+    eq(G.mutationChance(), 1, "odds max out at the full grove");
+    // healing floor at the same full grove is asserted above — one grove, two gifts
   });
   check("healing is throttled to one tick per 5s", () => {
     const G = injuredHorde(3600);
