@@ -14,21 +14,21 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Baloo+2:wght@500;700&display=swap" rel="stylesheet">
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html,body { width:100%; height:100%; overflow:hidden; background:#3a5522; font-family:"Fredoka","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS","Trebuchet MS",sans-serif; touch-action:manipulation; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#3a5522; font-family:"Baloo 2","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS","Trebuchet MS",sans-serif; touch-action:manipulation; }
   #game { position:absolute; inset:0; }
   canvas { display:block; width:100%; height:100%; }
   #cv { touch-action:none; } /* we handle pinch-zoom & drag-pan ourselves */
 
   .hud { position:absolute; top:0; left:0; right:0; display:flex; gap:6px; padding:6px; align-items:center; pointer-events:none; flex-wrap:wrap; z-index:5; }
-  .pill { pointer-events:auto; cursor:help; background:linear-gradient(rgba(34,42,14,.92),rgba(18,24,8,.92)); border:2px solid #5d7a30; border-radius:18px; color:#ffe97a; padding:4px 12px; font-size:15px; font-family:"Lilita One","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-weight:400; letter-spacing:.5px; display:flex; align-items:center; gap:6px; white-space:nowrap; box-shadow:0 3px 5px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,200,.14); text-shadow:0 1px 2px rgba(0,0,0,.7); }
+  .pill { pointer-events:auto; cursor:help; background:linear-gradient(rgba(34,42,14,.92),rgba(18,24,8,.92)); border:2px solid #5d7a30; border-radius:18px; color:#ffe97a; padding:4px 12px; font-size:15px; font-family:"Luckiest Guy","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-weight:400; letter-spacing:.5px; display:flex; align-items:center; gap:6px; white-space:nowrap; box-shadow:0 3px 5px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,200,.14); text-shadow:0 1px 2px rgba(0,0,0,.7); }
   .pill .ico { font-size:15px; filter:drop-shadow(0 1px 1px rgba(0,0,0,.4)); }
   #xpwrap { flex:1; min-width:110px; }
   #xpbarBg { background:#3d2810; border:2px solid #3d2810; border-radius:12px; height:22px; position:relative; overflow:hidden; box-shadow:inset 0 2px 4px rgba(0,0,0,.6), 0 2px 3px rgba(0,0,0,.4); }
   #xpbar { background:linear-gradient(#d8f57e 0%, #9ccf3e 50%, #6f9c26 100%); height:100%; width:0%; transition:width .4s; border-radius:9px; }
-  #xptext { position:absolute; inset:0; text-align:center; color:#fff; font-size:12px; font-family:"Lilita One","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-weight:400; letter-spacing:.4px; line-height:19px; text-shadow:0 1px 2px #000; }
+  #xptext { position:absolute; inset:0; text-align:center; color:#fff; font-size:12px; font-family:"Luckiest Guy","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-weight:400; letter-spacing:.4px; line-height:19px; text-shadow:0 1px 2px #000; }
 
   .btnbar { position:absolute; bottom:10px; right:10px; display:flex; flex-direction:column; gap:8px; z-index:5; align-items:flex-end; }
   /* hamburger menu: one clean button on screen; the rest slide out on demand */
@@ -38,7 +38,7 @@
   #menuBtn { font-size:20px; padding:9px 16px; min-width:54px; }
   #menuBtn.open { background:linear-gradient(#ffd97a 0%,#e0a83a 45%,#b07a1e 100%); border-color:#5e440c; }
   .btnbar-l { position:absolute; bottom:10px; left:10px; display:flex; flex-direction:column; gap:8px; z-index:5; align-items:flex-start; }
-  .gbtn { background:linear-gradient(#b8e262 0%, #7fb33c 45%, #5d8a2a 100%); border:3px solid #2f4a12; border-radius:16px; color:#fff; font-weight:bold; font-size:15px; padding:9px 15px; cursor:pointer; box-shadow:inset 0 3px 0 rgba(255,255,255,.35), 0 4px 0 #24390d, 0 6px 10px rgba(0,0,0,.4); text-shadow:0 2px 2px rgba(0,0,0,.45); font-family:"Lilita One","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-weight:400; letter-spacing:.5px; }
+  .gbtn { background:linear-gradient(#b8e262 0%, #7fb33c 45%, #5d8a2a 100%); border:3px solid #2f4a12; border-radius:16px; color:#fff; font-weight:bold; font-size:15px; padding:9px 15px; cursor:pointer; box-shadow:inset 0 3px 0 rgba(255,255,255,.35), 0 4px 0 #24390d, 0 6px 10px rgba(0,0,0,.4); text-shadow:0 2px 2px rgba(0,0,0,.45); font-family:"Luckiest Guy","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-weight:400; letter-spacing:.5px; }
   .gbtn:active { transform:translateY(3px); box-shadow:inset 0 3px 0 rgba(255,255,255,.25), 0 1px 0 #24390d; }
   .gbtn.red { background:linear-gradient(#ff9a6a 0%, #e0603a 45%, #b03a1e 100%); border-color:#5e1c0c; box-shadow:inset 0 3px 0 rgba(255,255,255,.35), 0 4px 0 #4a1508, 0 6px 10px rgba(0,0,0,.4); }
   .gbtn.small { font-size:13px; padding:6px 11px; }
@@ -67,7 +67,7 @@
   .mutcard { background:rgba(18,12,6,.55); border:2px solid #5e4426; border-radius:10px; padding:4px 3px 5px; text-align:center; width:92px; }
   .mutcard.raised { border-color:#7dffa0; box-shadow:0 0 8px rgba(125,255,160,.25); }
   .mutcard.unknown { border-style:dashed; opacity:.75; }
-  .mutcard .mlbl { font-size:10px; line-height:1.3; color:#f3e9d2; margin-top:2px; font-family:"Fredoka","Arial Rounded MT Bold",sans-serif; }
+  .mutcard .mlbl { font-size:10px; line-height:1.3; color:#f3e9d2; margin-top:2px; font-family:"Baloo 2","Arial Rounded MT Bold",sans-serif; }
   .mutcard canvas { display:block; margin:0 auto; }
   .zrow .art { width:48px; height:48px; flex:none; }
   .goal { background:rgba(255,240,210,.08); border-left:5px solid #b7e05c; border-radius:8px; padding:8px 10px; margin-bottom:8px; font-size:14px; }
@@ -76,12 +76,12 @@
 
   #toast { position:fixed; top:66px; left:50%; transform:translateX(-50%); background:linear-gradient(#57432a,#3a2c1a); border:3px solid #b7e05c; color:#fff; padding:9px 18px; border-radius:22px; font-weight:bold; font-size:14px; z-index:30; display:none; text-align:center; max-width:90vw; box-shadow:0 6px 18px rgba(0,0,0,.5); text-shadow:0 1px 2px #000; }
 
-  #plantChip { position:fixed; top:64px; left:50%; transform:translateX(-50%); background:linear-gradient(#b8e262 0%,#7fb33c 45%,#5d8a2a 100%); border:3px solid #2f4a12; color:#fff; padding:7px 16px; border-radius:22px; font-family:"Lilita One","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; letter-spacing:.4px; z-index:15; display:none; cursor:pointer; box-shadow:inset 0 2px 0 rgba(255,255,255,.3), 0 4px 10px rgba(0,0,0,.45); text-shadow:0 1px 2px rgba(0,0,0,.5); font-size:14px; max-width:92vw; text-align:center; }
+  #plantChip { position:fixed; top:64px; left:50%; transform:translateX(-50%); background:linear-gradient(#b8e262 0%,#7fb33c 45%,#5d8a2a 100%); border:3px solid #2f4a12; color:#fff; padding:7px 16px; border-radius:22px; font-family:"Luckiest Guy","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; letter-spacing:.4px; z-index:15; display:none; cursor:pointer; box-shadow:inset 0 2px 0 rgba(255,255,255,.3), 0 4px 10px rgba(0,0,0,.45); text-shadow:0 1px 2px rgba(0,0,0,.5); font-size:14px; max-width:92vw; text-align:center; }
 
   #splash { position:fixed; inset:0; background:linear-gradient(180deg,#2e2352 0%,#5e3a6a 16%,#c97858 32%,#eaa964 42%,#84b350 56%,#4a7229 100%); z-index:40; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; text-align:center; padding:20px; overflow:hidden; }
   #logoWrap { transform:rotate(-2.5deg); animation:logoBob 3.2s ease-in-out infinite; }
-  #logoTop { font-family:"Lilita One","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-size:clamp(46px,13vw,104px); color:#c8ef6a; -webkit-text-stroke:2.5px #24390d; letter-spacing:2px; text-shadow:0 5px 0 #2f4a12, 0 12px 26px rgba(0,0,0,.7); line-height:1.02; }
-  #ribbon { display:inline-block; margin-top:6px; font-family:"Lilita One","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-size:clamp(18px,4.8vw,34px); letter-spacing:8px; text-indent:8px; color:#fff; background:linear-gradient(#ff8a5a,#c03a1e); padding:6px 34px; border:2px solid #5e1c0c; clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 50%,calc(100% - 12px) 100%,12px 100%,0 50%); text-shadow:0 2px 2px rgba(0,0,0,.55); box-shadow:0 4px 10px rgba(0,0,0,.4); }
+  #logoTop { font-family:"Luckiest Guy","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-size:clamp(46px,13vw,104px); color:#c8ef6a; -webkit-text-stroke:2.5px #24390d; letter-spacing:2px; text-shadow:0 5px 0 #2f4a12, 0 12px 26px rgba(0,0,0,.7); line-height:1.02; }
+  #ribbon { display:inline-block; margin-top:6px; font-family:"Luckiest Guy","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-size:clamp(18px,4.8vw,34px); letter-spacing:8px; text-indent:8px; color:#fff; background:linear-gradient(#ff8a5a,#c03a1e); padding:6px 34px; border:2px solid #5e1c0c; clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 50%,calc(100% - 12px) 100%,12px 100%,0 50%); text-shadow:0 2px 2px rgba(0,0,0,.55); box-shadow:0 4px 10px rgba(0,0,0,.4); }
   @keyframes logoBob { 0%,100%{ transform:rotate(-2.5deg) translateY(0);} 50%{ transform:rotate(-2.5deg) translateY(-7px);} }
   #splashBtns { display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:center; }
   #startBtn { animation:pulseBtn 1.8s ease-in-out infinite; }
@@ -89,8 +89,8 @@
   #splash .sub { color:#e8ffc8; font-size:15px; max-width:430px; line-height:1.5; text-shadow:0 1px 2px rgba(0,0,0,.5); }
   #splash .tiny { color:#a8c486; font-size:11px; max-width:430px; }
   #splashArt { width:min(340px,80vw); height:110px; }
-  .modal h2, #splash h1, #toast, .shopitem .nm, .tab, #splash .sub b, .goal b { font-family:"Lilita One","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-weight:400; letter-spacing:.4px; }
-  .modal .body, .goal, .shopitem .ds, #splash .sub, #splash .tiny, .zrow { font-family:"Fredoka","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS","Trebuchet MS",sans-serif; }
+  .modal h2, #splash h1, #toast, .shopitem .nm, .tab, #splash .sub b, .goal b { font-family:"Luckiest Guy","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-weight:400; letter-spacing:.4px; }
+  .modal .body, .goal, .shopitem .ds, #splash .sub, #splash .tiny, .zrow { font-family:"Baloo 2","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS","Trebuchet MS",sans-serif; }
   .coinIco { display:inline-block; width:15px; height:15px; border-radius:50%;
     background:radial-gradient(circle at 34% 28%, #fff3a8 0%, #ffd94d 38%, #f0b429 62%, #c8892a 100%);
     border:2px solid #8a5f16; box-shadow:inset 0 -2px 2px rgba(130,85,15,.55), 0 1px 2px rgba(0,0,0,.4);
@@ -241,7 +241,7 @@ const GOALS = [
  {id:"lunar3",  desc:"Conquer the Lunar Lab 3 times", n:3, stat:"moonwin", gold:30000, xp:500}
 ];
 
-const BUILD = "build 15 · 2026-07-09"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 16 · 2026-07-09"; // rewritten by scripts/deploy.sh at each publish
 const GRID = 7;
 const MAX_Z = 16;
 const INVADE_MIN = 6;
@@ -1207,7 +1207,7 @@ function drawZombie(g,x,y,s,zd,muts,wob,seed,hungry){
     g.quadraticCurveTo(9*s,-17*s,9*s,-8*s); g.lineTo(9*s,14*s); g.stroke();
     g.strokeStyle="#6e6e78"; g.lineWidth=1.1*s; // crack
     g.beginPath(); g.moveTo(-4*s,-14*s); g.lineTo(-1*s,-9*s); g.lineTo(-4*s,-4*s); g.stroke();
-    g.fillStyle="#585862"; g.font="bold "+(4*s)+"px 'Lilita One','Arial Rounded MT Bold','Comic Sans MS',sans-serif";
+    g.fillStyle="#585862"; g.font="bold "+(4*s)+"px 'Luckiest Guy','Arial Rounded MT Bold','Comic Sans MS',sans-serif";
     g.textAlign="center"; g.textBaseline="middle"; g.fillText("R.I.P",0,-9*s);
     g.fillStyle="rgba(110,150,70,.85)"; blob(g,-6*s,2*s,3*s); blob(g,7*s,7*s,2.4*s); // moss
     g.restore();
@@ -1855,7 +1855,7 @@ function drawGravestone(g,x,y,s,prog,wob,vseed){
   g.beginPath(); g.ellipse(-sw*0.32,-sh*0.12,sw*0.16,sh*0.1,0.4,0,TAU); g.fill();
   g.beginPath(); g.ellipse(sw*0.3,-sh*0.06,sw*0.12,sh*0.07,-0.3,0,TAU); g.fill();
   if(v!==2){
-    g.fillStyle="#585862"; g.font="bold "+(s*0.17)+"px 'Lilita One','Arial Rounded MT Bold','Comic Sans MS',sans-serif"; g.textAlign="center"; g.textBaseline="middle";
+    g.fillStyle="#585862"; g.font="bold "+(s*0.17)+"px 'Luckiest Guy','Arial Rounded MT Bold','Comic Sans MS',sans-serif"; g.textAlign="center"; g.textBaseline="middle";
     g.fillText("R.I.P",0,-sh*(v===1?0.42:0.62));
   }
   g.restore();
@@ -1977,7 +1977,7 @@ function drawBuilding(g,scen,x,y,sc){
     // sign
     g.fillStyle="#e8d8c0"; g.fillRect(-44,-178,88,22);
     outline(g,3); g.strokeRect(-44,-178,88,22);
-    g.fillStyle="#3a3244"; g.font="13px 'Lilita One','Arial Rounded MT Bold','Comic Sans MS',sans-serif"; g.textAlign="center";
+    g.fillStyle="#3a3244"; g.font="13px 'Luckiest Guy','Arial Rounded MT Bold','Comic Sans MS',sans-serif"; g.textAlign="center";
     g.fillText("LAW",0,-162);
   } else if(scen==="pirate"){
     // ship hull
@@ -2090,14 +2090,14 @@ function drawBuilding(g,scen,x,y,sc){
     // roof sign
     g.fillStyle="#e8d8c0"; g.fillRect(-58,-132,116,26);
     outline(g,3.4); g.strokeRect(-58,-132,116,26);
-    g.fillStyle="#c0392e"; g.font="16px 'Lilita One','Arial Rounded MT Bold','Comic Sans MS',sans-serif"; g.textAlign="center";
+    g.fillStyle="#c0392e"; g.font="16px 'Luckiest Guy','Arial Rounded MT Bold','Comic Sans MS',sans-serif"; g.textAlign="center";
     g.fillText("MEGA MALL",0,-113);
     // the L flickers off — haunted
     if(flick<1){ g.fillStyle="#e8d8c0"; g.fillRect(24,-128,14,18); }
     // sad SALE banner
     g.save(); g.translate(-70,-100); g.rotate(0.12);
     g.fillStyle="#ffd94d"; g.fillRect(0,0,34,12);
-    g.fillStyle="#8a2f22"; g.font="9px 'Lilita One','Comic Sans MS',sans-serif"; g.fillText("SALE",17,9);
+    g.fillStyle="#8a2f22"; g.font="9px 'Luckiest Guy','Comic Sans MS',sans-serif"; g.fillText("SALE",17,9);
     g.restore();
   } else if(scen==="wizard"){
     const wt=performance.now()/1000;
@@ -2520,7 +2520,7 @@ function drawYardDecor(dp){
       // nail heads
       g.fillStyle="#8a6d3b"; blob(g,-s*0.36,0,s*0.02); blob(g,s*0.36,0,s*0.02);
       g.fillStyle="#5a4426";
-      g.font="bold "+(s*0.13)+"px 'Lilita One','Arial Rounded MT Bold','Comic Sans MS',sans-serif";
+      g.font="bold "+(s*0.13)+"px 'Luckiest Guy','Arial Rounded MT Bold','Comic Sans MS',sans-serif";
       g.textAlign="center"; g.textBaseline="middle";
       g.fillText("ZOMBIE XING",0,s*0.01);
       g.restore();
@@ -2757,7 +2757,7 @@ function drawFarm(dt){
         outline(cx,1.6);
         cx.beginPath(); cx.roundRect(yx-34,yy-14,68,26,12); cx.stroke();
         cx.fillStyle="#b03a2e";
-        cx.font="bold 15px 'Lilita One','Arial Rounded MT Bold','Comic Sans MS',sans-serif"; cx.textAlign="center";
+        cx.font="bold 15px 'Luckiest Guy','Arial Rounded MT Bold','Comic Sans MS',sans-serif"; cx.textAlign="center";
         cx.fillText("BRAINS!",yx,yy+5);
         return; // yelling replaces the thought bubble
       }
@@ -3107,7 +3107,7 @@ function openAlmanac(){
   const rankDiv=document.createElement("div");
   rankDiv.style.cssText="margin:2px 10px 8px;text-align:center";
   rankDiv.innerHTML=
-    "<div style='font-family:\"Lilita One\",\"Comic Sans MS\",sans-serif;font-size:15px;color:#ffe9a8'>&#x1F3C6; Rank: <span style='color:#c8ef6a'>"+rank+"</span></div>"+
+    "<div style='font-family:\"Luckiest Guy\",\"Comic Sans MS\",sans-serif;font-size:15px;color:#ffe9a8'>&#x1F3C6; Rank: <span style='color:#c8ef6a'>"+rank+"</span></div>"+
     "<div style='background:#2a1c08;border:2px solid #8a6d3b;border-radius:9px;height:14px;overflow:hidden;margin-top:4px'>"+
     "<div style='background:linear-gradient(90deg,#7dffa0,#c8ef6a);height:100%;width:"+Math.round(combosRaised/totalCombos*100)+"%'></div></div>"+
     "<div style='font-size:10.5px;opacity:.75;margin-top:2px'>"+(combosRaised>=totalCombos?"Every combo raised. The earth itself applauds.":(totalCombos-combosRaised)+" combos still waiting to shamble")+"</div>";
@@ -3120,7 +3120,7 @@ function openAlmanac(){
     {a:"All-Seeing", b:"Gourd-Headed", name:"The Watching Gourd", flavor:"A third carved eye that never blinks.", crops:"Eyeball Berries + Pumpkin"}
   ];
   const legHead=document.createElement("div");
-  legHead.style.cssText="font-family:'Lilita One','Comic Sans MS',sans-serif;font-size:14px;color:#ffd94d;text-align:center;margin:4px 0 4px";
+  legHead.style.cssText="font-family:'Luckiest Guy','Comic Sans MS',sans-serif;font-size:14px;color:#ffd94d;text-align:center;margin:4px 0 4px";
   legHead.innerHTML="&#x2B50; LEGENDARY COMBOS &#x2B50;";
   b.appendChild(legHead);
   const legGrid=document.createElement("div");
@@ -3141,7 +3141,7 @@ function openAlmanac(){
         g.globalCompositeOperation="source-atop";
         g.fillStyle="#241a30"; g.fillRect(0,0,200,200);
         g.restore();
-        g.fillStyle="#e8d8b0"; g.font="bold "+(r*1.1)+"px 'Lilita One','Comic Sans MS',sans-serif";
+        g.fillStyle="#e8d8b0"; g.font="bold "+(r*1.1)+"px 'Luckiest Guy','Comic Sans MS',sans-serif";
         g.textAlign="center"; g.textBaseline="middle"; g.fillText("?",x,y);
       },100));
     }
@@ -3164,7 +3164,7 @@ function openAlmanac(){
       div.appendChild(artCanvas((g,x,y,r)=>{
         drawProduce(g,c.id,x,y,26);
         g.fillStyle="rgba(30,20,10,.55)"; g.beginPath(); g.arc(x,y,24,0,TAU); g.fill();
-        g.fillStyle="#e8d8b0"; g.font="bold 26px 'Lilita One','Comic Sans MS',sans-serif";
+        g.fillStyle="#e8d8b0"; g.font="bold 26px 'Luckiest Guy','Comic Sans MS',sans-serif";
         g.textAlign="center"; g.textBaseline="middle"; g.fillText("?",x,y+1);
       }));
       const inf=document.createElement("div"); inf.className="inf";
@@ -3204,7 +3204,7 @@ function openAlmanac(){
             card.className="mutcard unknown";
             card.appendChild(artCanvasSized((g,x,y,r)=>{
               g.fillStyle="rgba(60,45,25,.6)"; g.beginPath(); g.arc(x,y,r*1.6,0,TAU); g.fill();
-              g.fillStyle="#c8b088"; g.font="bold "+(r*1.6)+"px 'Lilita One','Comic Sans MS',sans-serif";
+              g.fillStyle="#c8b088"; g.font="bold "+(r*1.6)+"px 'Luckiest Guy','Comic Sans MS',sans-serif";
               g.textAlign="center"; g.textBaseline="middle"; g.fillText("?",x,y);
             },84));
             lbl.innerHTML="<b>+ ???</b><br><span style='opacity:.75'>discover via "+o.name+"</span>";
@@ -3278,7 +3278,7 @@ function openSquadPicker(target){
     row.style.cursor="pointer";
     // big unmistakable indicator: green GO arrow when enlisted
     const sel=document.createElement("div");
-    sel.style.cssText="width:52px;flex:none;text-align:center;font-family:'Lilita One','Arial Rounded MT Bold','Comic Sans MS',sans-serif;line-height:1.1";
+    sel.style.cssText="width:52px;flex:none;text-align:center;font-family:'Luckiest Guy','Arial Rounded MT Bold','Comic Sans MS',sans-serif;line-height:1.1";
     const paint=()=>{
       if(squadSel[ix]){
         sel.innerHTML="<span style='color:#7dffa0;font-size:24px'>&#x25B6;</span><br><span style='color:#7dffa0;font-size:10px'>GOING!</span>";
@@ -3808,7 +3808,7 @@ function drawBattle(dt){
     cx.beginPath(); cx.moveTo(0,14); cx.lineTo(0,H*0.34); cx.stroke();
     cx.fillStyle="#e8d8c0"; cx.fillRect(-52,-20,104,34);
     outline(cx,3); cx.strokeRect(-52,-20,104,34);
-    cx.fillStyle="#3a3244"; cx.font="10px 'Lilita One','Comic Sans MS',sans-serif"; cx.textAlign="center";
+    cx.fillStyle="#3a3244"; cx.font="10px 'Luckiest Guy','Comic Sans MS',sans-serif"; cx.textAlign="center";
     cx.fillText("GRIM & GRIMMER",0,-6);
     cx.fillText("WE SUE ZOMBIES",0,8);
     cx.restore();
@@ -3866,7 +3866,7 @@ function drawBattle(dt){
     outline(cx,3); cx.stroke();
     const flick2=Math.sin(pnow*6)>0.9?0.3:1;
     cx.fillStyle="rgba(255,90,160,"+flick2+")";
-    cx.font="bold 15px 'Lilita One','Comic Sans MS',sans-serif"; cx.textAlign="center";
+    cx.font="bold 15px 'Luckiest Guy','Comic Sans MS',sans-serif"; cx.textAlign="center";
     cx.fillText("MEGA",W*0.07,H*0.2+H*0.05);
     cx.fillStyle="#7adcff";
     cx.fillText("MALL",W*0.07,H*0.2+H*0.1);
@@ -3981,7 +3981,7 @@ function drawBattle(dt){
     cx.beginPath(); cx.moveTo(blx,bly+8); cx.quadraticCurveTo(blx+3,bly+16,blx-2,bly+24); cx.stroke();
     const on=Math.sin(pnow*2.4)>-0.3;
     cx.fillStyle=on?"rgba(122,220,255,.95)":"rgba(60,70,90,.8)";
-    cx.font="bold 11px 'Lilita One','Comic Sans MS',sans-serif"; cx.textAlign="center";
+    cx.font="bold 11px 'Luckiest Guy','Comic Sans MS',sans-serif"; cx.textAlign="center";
     cx.fillText("OPEN 24/7",W*0.33,H*0.62);
   } else if(tg.scen==="wizard"){
     // a fat toad hopping between the rune stones + rising spell motes
@@ -4062,7 +4062,7 @@ function drawBattle(dt){
       cx.stroke();
     }
   }
-  cx.font="bold 15px 'Lilita One','Arial Rounded MT Bold','Comic Sans MS',sans-serif"; cx.textAlign="center";
+  cx.font="bold 15px 'Luckiest Guy','Arial Rounded MT Bold','Comic Sans MS',sans-serif"; cx.textAlign="center";
   cx.strokeStyle="rgba(0,0,0,.55)"; cx.lineWidth=4;
   cx.strokeText(tg.name, bx, by-200*bsc);
   cx.fillStyle="#fff"; cx.fillText(tg.name, bx, by-200*bsc);
@@ -4127,7 +4127,7 @@ function drawBattle(dt){
         cx.strokeStyle="#4a3aa0"; cx.lineWidth=3.4;
         cx.beginPath(); cx.moveTo(bx2-2,by2+9); cx.lineTo(bx2-2,by2-12); cx.lineTo(bx2+14,by2-16); cx.lineTo(bx2+14,by2+5); cx.stroke();
       }
-      cx.font="bold 14px 'Lilita One','Arial Rounded MT Bold','Comic Sans MS',sans-serif"; cx.textAlign="center";
+      cx.font="bold 14px 'Luckiest Guy','Arial Rounded MT Bold','Comic Sans MS',sans-serif"; cx.textAlign="center";
       cx.strokeStyle="rgba(0,0,0,.6)"; cx.lineWidth=4;
       cx.strokeText("TAP the bubble!",bx2,by2-44);
       cx.fillStyle="#fff"; cx.fillText("TAP the bubble!",bx2,by2-44);
@@ -4139,7 +4139,7 @@ function drawBattle(dt){
   if(!B.result){
     const cardW=64, cardH=86, pad=6;
     const bx0=10, by0=H-cardH-10;
-    cx.font="bold 12px 'Lilita One','Arial Rounded MT Bold','Comic Sans MS',sans-serif"; cx.textAlign="center";
+    cx.font="bold 12px 'Luckiest Guy','Arial Rounded MT Bold','Comic Sans MS',sans-serif"; cx.textAlign="center";
     cx.strokeStyle="rgba(0,0,0,.55)"; cx.lineWidth=3;
     cx.strokeText("YOUR SQUAD — tap to send ("+B.actives.length+"/"+MAX_ACTIVE+" out)", bx0+4+(cardW+pad)*Math.min(B.squad.length,7)/2, by0-8);
     cx.fillStyle="#fff";
@@ -4161,7 +4161,7 @@ function drawBattle(dt){
       drawZombie(cx,rx+cardW/2,ry+cardH-24,0.42,zd,z.mut,B.t*2+k,nameHash(z.name));
       cx.restore();
       // name + hp sliver
-      cx.font="10px 'Fredoka','Arial Rounded MT Bold',sans-serif"; cx.fillStyle="#ffe9a8";
+      cx.font="10px 'Baloo 2','Arial Rounded MT Bold',sans-serif"; cx.fillStyle="#ffe9a8";
       cx.fillText(z.name.slice(0,8), rx+cardW/2, ry+12);
       cx.fillStyle="rgba(0,0,0,.5)"; cx.fillRect(rx+8,ry+cardH-14,cardW-16,6);
       cx.fillStyle=dead?"#5a4a4a":"#7dffa0";
@@ -4171,7 +4171,7 @@ function drawBattle(dt){
         cx.beginPath(); cx.moveTo(rx+16,ry+24); cx.lineTo(rx+cardW-16,ry+cardH-28); cx.stroke();
         cx.beginPath(); cx.moveTo(rx+cardW-16,ry+24); cx.lineTo(rx+16,ry+cardH-28); cx.stroke();
       } else if(fielded){
-        cx.font="bold 10px 'Lilita One',sans-serif"; cx.fillStyle="#9ccf3e";
+        cx.font="bold 10px 'Luckiest Guy',sans-serif"; cx.fillStyle="#9ccf3e";
         cx.fillText("FIGHTING", rx+cardW/2, ry+22);
       } else if(!out){
         B.benchRects.push({x:rx,y:ry,w:cardW,h:cardH,k});
@@ -4188,19 +4188,19 @@ function drawBattle(dt){
   cx.beginPath(); cx.roundRect(W/2-48,8,96,32,10); cx.fill();
   cx.strokeStyle="#8a6d3b"; cx.lineWidth=3;
   cx.beginPath(); cx.roundRect(W/2-48,8,96,32,10); cx.stroke();
-  cx.fillStyle=B.timer<15?"#ff7a5a":"#fff"; cx.font="bold 19px 'Lilita One','Arial Rounded MT Bold','Comic Sans MS',sans-serif"; cx.textAlign="center";
+  cx.fillStyle=B.timer<15?"#ff7a5a":"#fff"; cx.font="bold 19px 'Luckiest Guy','Arial Rounded MT Bold','Comic Sans MS',sans-serif"; cx.textAlign="center";
   cx.fillText(Math.max(0,Math.ceil(B.timer))+"s", W/2, 31);
   // result overlay
   if(B.result){
     cx.fillStyle="rgba(10,8,20,.68)"; cx.fillRect(0,0,W,H);
     cx.textAlign="center";
-    cx.font="bold "+Math.min(52,W/9)+"px 'Lilita One','Arial Rounded MT Bold','Comic Sans MS',sans-serif";
+    cx.font="bold "+Math.min(52,W/9)+"px 'Luckiest Guy','Arial Rounded MT Bold','Comic Sans MS',sans-serif";
     cx.strokeStyle="rgba(0,0,0,.7)"; cx.lineWidth=8;
     const txt=B.result==="win"?"VICTORY!":"REPELLED!";
     cx.strokeText(txt, W/2, H*0.34);
     cx.fillStyle=B.result==="win"?"#b7e05c":"#ff8a6a";
     cx.fillText(txt, W/2, H*0.34);
-    cx.font="17px 'Lilita One','Arial Rounded MT Bold','Comic Sans MS',sans-serif"; cx.fillStyle="#fff";
+    cx.font="17px 'Luckiest Guy','Arial Rounded MT Bold','Comic Sans MS',sans-serif"; cx.fillStyle="#fff";
     let ly=H*0.44;
     if(B.result==="win"){
       cx.fillText("Loot: "+B.goldWon+" gold", W/2, ly); ly+=28;
@@ -4228,7 +4228,7 @@ function drawFloats(dt){
   floats=floats.filter(f=>f.t<1.4);
   floats.forEach(f=>{
     cx.globalAlpha=clamp(1.4-f.t,0,1);
-    cx.fillStyle=f.col; cx.font="bold 15px 'Lilita One','Arial Rounded MT Bold','Comic Sans MS',sans-serif"; cx.textAlign="center";
+    cx.fillStyle=f.col; cx.font="bold 15px 'Luckiest Guy','Arial Rounded MT Bold','Comic Sans MS',sans-serif"; cx.textAlign="center";
     cx.strokeStyle="rgba(0,0,0,.6)"; cx.lineWidth=3.6;
     cx.strokeText(f.txt,f.x,f.y-f.t*36);
     cx.fillText(f.txt,f.x,f.y-f.t*36);
@@ -4489,7 +4489,7 @@ setInterval(()=>{ if(S)save(); },5000);
 document.addEventListener("visibilitychange",()=>{ if(S)save(); });
 
 resize();
-try{ if(document.fonts&&document.fonts.load){ document.fonts.load("16px 'Lilita One'").then(()=>{ try{drawSplash();}catch(e){} }); } }catch(e){}
+try{ if(document.fonts&&document.fonts.load){ document.fonts.load("16px 'Luckiest Guy'").then(()=>{ try{drawSplash();}catch(e){} }); } }catch(e){}
 try{ drawSplash(); }catch(e){}
 requestAnimationFrame(loop);
 
