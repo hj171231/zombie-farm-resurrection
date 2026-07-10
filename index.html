@@ -23,8 +23,11 @@
   #cv { touch-action:none; } /* we handle pinch-zoom & drag-pan ourselves */
 
   .hud { position:absolute; top:0; left:0; right:0; display:flex; gap:6px; padding:6px; align-items:center; pointer-events:none; flex-wrap:wrap; z-index:5; }
-  .pill { pointer-events:auto; cursor:help; background:linear-gradient(rgba(34,42,14,.92),rgba(18,24,8,.92)); border:2px solid #5d7a30; border-radius:18px; color:#ffe97a; padding:4px 12px; font-size:15px; font-family:"Luckiest Guy","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-weight:400; letter-spacing:.5px; display:flex; align-items:center; gap:6px; white-space:nowrap; box-shadow:0 3px 5px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,200,.14); text-shadow:0 1px 2px rgba(0,0,0,.7); }
-  .pill .ico { font-size:15px; filter:drop-shadow(0 1px 1px rgba(0,0,0,.4)); }
+  .pill { pointer-events:auto; cursor:help; line-height:1; background:linear-gradient(rgba(34,42,14,.92),rgba(18,24,8,.92)); border:2px solid #5d7a30; border-radius:18px; color:#ffe97a; padding:4px 12px; font-size:15px; font-family:"Luckiest Guy","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-weight:400; letter-spacing:.5px; display:flex; align-items:center; gap:6px; white-space:nowrap; box-shadow:0 3px 5px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,200,.14); text-shadow:0 1px 2px rgba(0,0,0,.7); }
+  .pill .ico { font-size:15px; filter:drop-shadow(0 1px 1px rgba(0,0,0,.4)); display:flex; align-items:center; }
+  .pill > span { display:flex; align-items:center; line-height:1; }
+  .pill canvas { display:block; }
+  .gbtn { line-height:1.05; }
   #xpwrap { flex:1; min-width:110px; }
   #xpbarBg { background:#3d2810; border:2px solid #3d2810; border-radius:12px; height:22px; position:relative; overflow:hidden; box-shadow:inset 0 2px 4px rgba(0,0,0,.6), 0 2px 3px rgba(0,0,0,.4); }
   #xpbar { background:linear-gradient(#d8f57e 0%, #9ccf3e 50%, #6f9c26 100%); height:100%; width:0%; transition:width .4s; border-radius:9px; }
@@ -81,7 +84,14 @@
   #splash { position:fixed; inset:0; background:linear-gradient(180deg,#2e2352 0%,#5e3a6a 16%,#c97858 32%,#eaa964 42%,#84b350 56%,#4a7229 100%); z-index:40; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; text-align:center; padding:20px; overflow:hidden; }
   #logoWrap { transform:rotate(-2.5deg); animation:logoBob 3.2s ease-in-out infinite; }
   #logoTop { font-family:"Luckiest Guy","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-size:clamp(46px,13vw,104px); color:#c8ef6a; -webkit-text-stroke:2.5px #24390d; letter-spacing:2px; text-shadow:0 5px 0 #2f4a12, 0 12px 26px rgba(0,0,0,.7); line-height:1.02; }
-  #ribbon { display:inline-block; margin-top:6px; font-family:"Luckiest Guy","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-size:clamp(18px,4.8vw,34px); letter-spacing:8px; text-indent:8px; color:#fff; background:linear-gradient(#ff8a5a,#c03a1e); padding:6px 34px; border:2px solid #5e1c0c; clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 50%,calc(100% - 12px) 100%,12px 100%,0 50%); text-shadow:0 2px 2px rgba(0,0,0,.55); box-shadow:0 4px 10px rgba(0,0,0,.4); }
+  #ribbon { position:relative; display:inline-block; margin-top:6px; font-family:"Luckiest Guy","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-size:clamp(18px,4.8vw,34px); letter-spacing:8px; text-indent:8px; color:#fff;
+    background:repeating-linear-gradient(94deg, rgba(0,0,0,.09) 0 3px, transparent 3px 11px), linear-gradient(#8a5f2e,#6e4a20 55%,#553a15);
+    padding:8px 38px; border:3px solid #3d2810; border-radius:9px;
+    box-shadow:inset 0 2px 0 rgba(255,225,170,.28), inset 0 -4px 0 rgba(0,0,0,.28), 0 5px 12px rgba(0,0,0,.45);
+    text-shadow:0 2px 2px rgba(0,0,0,.6); }
+  #ribbon::before, #ribbon::after { content:""; position:absolute; top:50%; width:9px; height:9px; margin-top:-4.5px; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #e0dccc, #8a8478 65%, #55504a); box-shadow:0 1px 2px rgba(0,0,0,.55); }
+  #ribbon::before { left:10px; } #ribbon::after { right:10px; }
   @keyframes logoBob { 0%,100%{ transform:rotate(-2.5deg) translateY(0);} 50%{ transform:rotate(-2.5deg) translateY(-7px);} }
   #splashBtns { display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:center; }
   #startBtn { animation:pulseBtn 1.8s ease-in-out infinite; }
@@ -241,7 +251,7 @@ const GOALS = [
  {id:"lunar3",  desc:"Conquer the Lunar Lab 3 times", n:3, stat:"moonwin", gold:30000, xp:500}
 ];
 
-const BUILD = "build 17 · 2026-07-09"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 18 · 2026-07-09"; // rewritten by scripts/deploy.sh at each publish
 const GRID = 7;
 const MAX_Z = 16;
 const INVADE_MIN = 6;
@@ -2973,7 +2983,7 @@ $("zombiesBtn").onclick=()=>{
     rel.title="Release back to the earth";
     rel.onclick=(ev)=>{ ev.stopPropagation();
       if(confirm("Release "+z.name+" back to the earth? They will shamble off forever.")){
-        releaseZombie(ix); sfx.bad(); toast(z.name+" shambles into the sunset... &#x1F9DF;");
+        releaseZombie(ix); sfx.bad(); toast(z.name+" shambles into the sunset... "+iconHTML(drawZedMini));
         $("zombiesBtn").onclick();
       }
     };
@@ -3008,7 +3018,7 @@ $("helpBtn").onclick=()=>{
   $("mBody").innerHTML =
    "<div style='font-size:14px;line-height:1.6'>"+
    "<b>&#x1F33E; Farm:</b> Tap grass to plow a plot (10g). Tap a plot to open the Market. After you pick a seed you stay in <b>planting mode</b> &mdash; keep tapping plots (even unplowed grass!) to plant the same thing again and again. Tap the green banner to stop. Zombies are the exception: they plant <b>one at a time</b>, on purpose &mdash; each one is a commitment. Tap ripe things to harvest. Crops wither if ignored too long!<br><br>"+
-   "<b>&#x1F9DF; Zombies:</b> Harvested zombies join your horde (max "+MAX_Z+") and roam the farm, getting hungrier. Wounded zombies <b>only heal if trees give life force</b> &mdash; no trees, no healing! More life force = faster mending. If the horde is full, harvesting a zombie sells it for gold.<br><br>"+
+   "<b>"+iconHTML(drawZedMini)+"Zombies:</b> Harvested zombies join your horde (max "+MAX_Z+") and roam the farm, getting hungrier. Wounded zombies <b>only heal if trees give life force</b> &mdash; no trees, no healing! More life force = faster mending. If the horde is full, harvesting a zombie sells it for gold.<br><br>"+
    "<b>&#x1F9EA; Mutations:</b> Grow a zombie <i>next to</i> ripening crops for a chance it rises mutated with bonus stats &mdash; and a new look! More life force (trees) = better odds. <button class='gbtn small' id='mutBtn'>&#x1F9EC; Mutation Almanac</button><br><br>"+
    "<b>&#x2694;&#xFE0F; Invasions:</b> With "+INVADE_MIN+"+ zombies, hit INVADE, pick a squad, then tap squad cards to send fighters in (up to 3 at once). <b>Hungrier zombies bite much harder</b> &mdash; starve them before a big raid! Win gold, XP, and maybe a <b>brain</b>.<br><br>"+
    "<b>&#x1F9E0; Brains:</b> Rare currency from invasions. Buys premium zombies &amp; trees.<br><br>"+
@@ -3249,7 +3259,7 @@ $("invadeBtn").onclick=()=>{
 let squadSel=null;
 const SQUAD_MAX=5;
 function openSquadPicker(target){
-  openModal("&#x1F9DF; Pick your squad &mdash; "+target.name);
+  openModal("Pick your squad &mdash; "+target.name);
   $("mTabs").innerHTML="";
   squadSel = S.zombies.map(()=>false); // everyone starts benched — YOU pick who goes
   const b=$("mBody"); b.innerHTML="";
@@ -3401,13 +3411,13 @@ function updateBattle(dt){
   const targets = B.actives.filter(a=>a.state!=="distracted" && a.x>=targX*0.5);
   if(targets.length && B.t-B.lastThrow>throwGap){
     B.lastThrow=B.t;
-    // the defender AIMS now: a different zombie every throw, ~70% on target
+    // the defender AIMS now: a different zombie every throw, ~50% on target
     B.aimIx=((B.aimIx||0)+1)%targets.length;
     const tgt=targets[B.aimIx];
     const vy0=-rnd(120,220), y0=H*0.55;
     const aq=200, bq=vy0, cq=y0-(tgt.y-20);
     const tFly=(-bq+Math.sqrt(Math.max(0,bq*bq-4*aq*cq)))/(2*aq)||1;
-    const miss=Math.random()>=0.7;
+    const miss=Math.random()>=0.5;
     const aimX=tgt.x+(miss?(35+rnd(0,45))*(Math.random()<0.5?-1:1):rnd(-9,9));
     const vx=(aimX-(targX+10))/tFly;
     B.projectiles.push({x:targX+10, y:y0, vx, vy:vy0, g:400, born:B.t});
@@ -4424,7 +4434,7 @@ function startGame(existing){
     });
   }catch(e){}
   if(!existing) toast("Tap the grass to plow your first plot! &#x1F33E;",3500);
-  else toast("Welcome back, farmer. The dead missed you. &#x1F9DF;",2500);
+  else toast("Welcome back, farmer. The dead missed you. "+iconHTML(drawZedMini),2500);
   sfx.zomb();
 }
 // hand-drawn HUD icons (these replace the placeholder emoji)
@@ -4537,6 +4547,7 @@ function drawZedMini(g,x,y,r){
 }
 function drawHeartMini(g,x,y,r){
   // a glossy health heart with a zombie stitch — life force in one glance
+  r=r*1.18; y=y+r*0.03; // pump it up to match its siblings
   g.fillStyle="#e8425a";
   g.beginPath(); g.moveTo(x,y+r*0.78);
   g.bezierCurveTo(x-r*1.05,y+r*0.05,x-r*0.75,y-r*0.78,x-r*0.02,y-r*0.3);
@@ -4566,7 +4577,12 @@ function drawHeartMini(g,x,y,r){
 [["goldPill",()=>iconHTML(drawGoldMini)+"<b>GOLD</b> &mdash; sell crops &amp; win invasions to earn it; spends on plowing, seeds and zombies."],
  ["brainPill",()=>iconHTML(drawBrainMini)+"<b>BRAINS</b> &mdash; rare invasion loot. Buys premium zombies &amp; trees. Never sold, only won."],
  ["zedPill",()=>iconHTML(drawZedMini)+"<b>HORDE</b> &mdash; zombies roaming your farm now / max the farm holds (16)."],
- ["lfPill",()=>iconHTML(drawHeartMini)+"<b>LIFE FORCE</b> &mdash; radiated by trees. Better mutation odds, and zombies can't heal without it."]].forEach(pr=>{
+ ["lfPill",()=>{
+   const cur=Math.round(S.zombies.reduce((a,z)=>a+z.hp,0));
+   const max=S.zombies.reduce((a,z)=>a+z.maxhp,0);
+   const hp=S.zombies.length?("<br>Horde health right now: <b>"+cur+" / "+max+"</b>"+(cur<max?" (roam to heal!)":" &mdash; everyone's in fighting shape!")):"";
+   return iconHTML(drawHeartMini)+"<b>LIFE FORCE</b> &mdash; radiated by trees. Better mutation odds, and zombies can't heal without it."+hp;
+ }]].forEach(pr=>{
   const el=$(pr[0]);
   if(el&&el.addEventListener) el.addEventListener("click",()=>{ toast(pr[1](),3600); sfx.tap(); });
 });
