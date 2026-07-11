@@ -255,7 +255,7 @@ const GOALS = [
  {id:"lunar3",  desc:"Conquer the Lunar Lab 3 times", n:3, stat:"moonwin", gold:30000, xp:500}
 ];
 
-const BUILD = "build 32 · 2026-07-10"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 33 · 2026-07-11"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -1296,8 +1296,8 @@ function drawStar(g,x,y,r){
   }
   g.closePath(); g.fill();
 }
-function drawZombie(g,x,y,s,zd,muts,wob,seed,hungry,pose){
-  seed=seed||0;
+function drawZombie(g,x,y,s,zd,muts,wob,seed,hungry,pose,face){
+  seed=seed||0; face=face||1; // sprites are authored facing right; -1 mirrors for leftward walks
   const small=zd.small, big=zd.big;
   const bw=(big?30:small?18:24)*s*(zd.colossus?1.15:zd.hulk?1.2:1);
   const bh=(big?26:small?14:20)*s*(zd.colossus?1.1:zd.hulk?1.24:1); // hulk stands taller
@@ -1355,7 +1355,7 @@ function drawZombie(g,x,y,s,zd,muts,wob,seed,hungry,pose){
     // footfall (bob zero-crossing) — a stride, not an 8Hz strobe
     const frame = frames>1 ? (Math.sin(wob)>0?0:1) : 0;
     const dw=fw*k, dh=spr.h*k;
-    g.save(); g.translate(x,y+bob); g.rotate(lean*0.4); // sprites carry their own pose; sway stays subtle
+    g.save(); g.translate(x,y+bob); if(face<0) g.scale(-1,1); g.rotate(lean*0.4); // sprites carry their own pose; sway stays subtle
     g.drawImage(spr.img, frame*fw, 0, fw, spr.h, -dw/2, -dh+2*s+spr.pad*k, dw, dh);
     if(attach){
       // each overlay shares its character's frame canvas: composite 1:1,
@@ -2986,6 +2986,8 @@ function drawFarm(dt){
       if(inFieldDiamond(rp.x,rp.y,1.0)) z.__fieldUntil=now()+7000; // brief visit only
     } else {
       z.x+=(z.tx-z.x)/d*18*z.spd*dt; z.y+=(z.ty-z.y)/d*18*z.spd*dt;
+      // face where you're headed (hysteresis: near-vertical strolls keep the last facing)
+      if(Math.abs(z.tx-z.x)>4) z.__face=(z.tx-z.x)<0?-1:1;
     }
     // thought bubbles: rare, but linger long enough to actually read
     if((!z.bubbleUntil || now()>z.bubbleUntil+3000) && Math.random()<dt*0.008){
@@ -2994,7 +2996,7 @@ function drawFarm(dt){
     items.push({y:z.y, f:function(){
       const zd=zdefFor(z);
       const sc=TILE/66;
-      drawZombie(cx,z.x,z.y,sc,zd,z.mut,z.wob,nameHash(z.name),z.hunger>=40);
+      drawZombie(cx,z.x,z.y,sc,zd,z.mut,z.wob,nameHash(z.name),z.hunger>=40,undefined,z.__face);
       if(z.yellUntil && now()<z.yellUntil){
         // speech bubble: "BRAINS!"
         const yx=z.x+20*sc, yy=z.y-80*sc+Math.sin(performance.now()/120)*2;
