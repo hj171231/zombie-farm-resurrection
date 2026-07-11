@@ -255,7 +255,7 @@ const GOALS = [
  {id:"lunar3",  desc:"Conquer the Lunar Lab 3 times", n:3, stat:"moonwin", gold:30000, xp:500}
 ];
 
-const BUILD = "build 35 · 2026-07-11"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 36 · 2026-07-11"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -1224,24 +1224,6 @@ function mutHas(muts,label){ return muts && muts.some(m=>m.label===label); }
 // ---- ART WAVE 2: character sprite kit (procedural art remains the fallback) ----
 const SPRITES={};
 const SPRITE_IDS={shambler:"shambler",mini:"miniz",headless:"headless",gardener:"gardener",bruiser:"bruiser",banshee:"banshee",abom:"abomination",digger:"gravedigger",jester:"jester",chef:"chef",gravemound:"gravemound",golden:"golden"};
-const MUT_SPRITES={"Speedy":"mutation-speedy","Kernel-Powered":"mutation-kernel","Gourd-Headed":"mutation-gourd","Sporified":"mutation-sporified","Flaming":"mutation-flaming-2f","Moon-Touched":"mutation-moontouched","Wormfriend":"mutation-wormfriend","Big-Hearted":"mutation-bighearted-2f","All-Seeing":"mutation-allseeing-2f","Pungent":"mutation-pungent-2f"};
-// wave 2.1: gear-only attachment overlays, authored on the shambler rig
-const ATTACH_SPRITES={"Speedy":"attach-speedy","Kernel-Powered":"attach-kernel","Gourd-Headed":"attach-gourd","Sporified":"attach-sporified","Flaming":"attach-flaming-2f","Moon-Touched":"attach-moontouched","Wormfriend":"attach-wormfriend","Big-Hearted":"attach-bighearted-2f","All-Seeing":"attach-allseeing-2f","Pungent":"attach-pungent-2f"};
-// wave 2.2: every other character has its OWN gear set, pixel-registered to
-// its own frame canvas ("attach-{char}-{gear}") — hats fit each head, cobs
-// ride each fist. Special mutation pairs collapse into ONE unified combo
-// overlay per rig instead of stacking two gear pieces.
-const ATTACH_COMBOS=[["Gourd-Headed","Flaming","gourd-flaming-2f"],["Sporified","Flaming","sporified-flaming-2f"],["All-Seeing","Gourd-Headed","allseeing-gourd-2f"]];
-function attachSheetsFor(zid,muts){
-  const shamRig = zid==="shambler"||zid==="golden"; // twins share the original unprefixed set
-  const pre = "attach-"+(shamRig?"":SPRITE_IDS[zid]+"-");
-  const used=new Set(), out=[];
-  if(!shamRig) ATTACH_COMBOS.forEach(([a,b,n])=>{
-    if(mutHas(muts,a)&&mutHas(muts,b)){ out.push(pre+"combo-"+n); used.add(a); used.add(b); }
-  });
-  muts.forEach(m=>{ if(!used.has(m.label)) out.push(pre+ATTACH_SPRITES[m.label].slice(7)); });
-  return out;
-}
 function spritePad(spr){
   try{
     const c=document.createElement("canvas");
@@ -1262,8 +1244,8 @@ function spritePad(spr){
 }
 // Wave Z: one complete head-to-toe design per (character × mutation set),
 // named zombie-{char}[-slugA[-slugB]]-{pose} with slugs alphabetical. With
-// ~1300 sheets in the kit, sprites load lazily on first request; procedural
-// art (and the legacy ladder) covers the beat until each image arrives.
+// ~2000 sheets in the kit, sprites load lazily on first request; procedural
+// art covers the beat until each image arrives.
 const MUT_SLUGS={"All-Seeing":"allseeing","Big-Hearted":"bighearted","Flaming":"flaming","Gourd-Headed":"gourd","Kernel-Powered":"kernel","Moon-Touched":"moontouched","Pungent":"pungent","Speedy":"speedy","Sporified":"sporified","Wormfriend":"wormfriend"};
 function variantBase(zid,muts){
   const slugs=(muts||[]).map(m=>MUT_SLUGS[m.label]).sort();
@@ -1287,15 +1269,7 @@ function preloadSprites(){
   Object.values(SPRITE_IDS).concat(["awakened"]).forEach(n=>{
     names.push("zombie-"+n+"-idle","zombie-"+n+"-lunge","zombie-"+n+"-walk-2f");
   });
-  Object.values(MUT_SPRITES).forEach(n=>names.push(n));
-  Object.values(ATTACH_SPRITES).forEach(n=>names.push(n));
-  Object.values(SPRITE_IDS).forEach(c=>{ // wave 2.2 per-character gear sets
-    if(c==="shambler"||c==="golden") return;
-    Object.values(ATTACH_SPRITES).forEach(a=>names.push("attach-"+c+"-"+a.slice(7)));
-    ATTACH_COMBOS.forEach(([,,n])=>names.push("attach-"+c+"-combo-"+n));
-  });
-  names.push("combo-allseeing-gourd-2f","combo-gourd-flaming-2f","combo-sporified-flaming-2f","combo-sporified-strawhat");
-  names.forEach(spriteGet);
+  names.forEach(spriteGet); // base sheets only — mutation variants lazy-load on first sighting
 }
 function zdefFor(z){
   const base=ZTYPES.find(t=>t.id===z.type);
@@ -1322,42 +1296,15 @@ function drawZombie(g,x,y,s,zd,muts,wob,seed,hungry,pose,face){
   const lean=Math.sin(wob*0.7)*0.06;
   const skin=zd.col, skinD=shade(zd.col,-28), skinL=shade(zd.col,24);
   const speedy=mutHas(muts,"Speedy"), kernel=mutHas(muts,"Kernel-Powered"), moon=mutHas(muts,"Moon-Touched");
-  // ---- Wave-2 sprite path: official character art when loaded ----
-  // Mutation sheets are FULL characters wearing the gear (not attachments),
-  // so a mutated zombie swaps its whole sprite — never stacks two bodies.
-  // Premium full sheets: shambler (10 muts + 3 special combos), gardener's
-  // mushroom straw hat, the Awakened. Everyone else wears wave-2.2 gear
-  // overlays registered to their own rig; procedural art stays the fallback.
-  let spr=null, attach=null, sprName=null;
+  // ---- Wave-Z sprite path: one complete design per character × mutation set ----
+  // The variant's full sheet IS the look — no overlays, no compositing. If a
+  // sheet hasn't loaded yet (or an env has no images), procedural art covers.
+  let spr=null, sprName=null;
   const poseOf=b=>{ const n=b+(pose==="lunge"?"-lunge":pose==="idle"?"-idle":"-walk-2f"); const sp=spriteGet(n); if(sp) sprName=n; return sp; };
   if(zd.awk){
-    spr = poseOf("zombie-awakened"); // the Awakened ignores overlays — his look IS the look
-  } else if(SPRITE_IDS[zd.id] && (spr=poseOf(variantBase(zd.id,muts)))){
-    // Wave Z: a complete design exists for this exact character + mutation set
-  } else if(muts && muts.length){
-    const L=l=>muts.some(m=>m.label===l);
-    // premium full sheets first (pixel-perfect art)
-    let sheet=null;
-    if(zd.id==="shambler"){
-      if(muts.length===2){
-        if(L("Gourd-Headed")&&L("Flaming")) sheet="combo-gourd-flaming-2f";
-        else if(L("Sporified")&&L("Flaming")) sheet="combo-sporified-flaming-2f";
-        else if(L("All-Seeing")&&L("Gourd-Headed")) sheet="combo-allseeing-gourd-2f";
-      } else sheet=MUT_SPRITES[muts[0].label]||null;
-    } else if(zd.id==="gardener" && muts.length===1 && L("Sporified")){
-      sheet="combo-sporified-strawhat";
-    }
-    if(sheet && SPRITES[sheet]){ spr=SPRITES[sheet]; sprName=sheet; }
-    else if(SPRITE_IDS[zd.id]){
-      // wave 2.2: gear overlays exist per rig, pixel-registered to each
-      // character's own frame canvas — composite only when every needed
-      // piece is loaded, otherwise fall back to procedural art.
-      const base=poseOf("zombie-"+SPRITE_IDS[zd.id]);
-      const sheets=attachSheetsFor(zd.id,muts);
-      if(base && sheets.every(n=>SPRITES[n])){ spr=base; attach=sheets; }
-    }
+    spr = poseOf("zombie-awakened"); // the Awakened ignores mutations — his look IS the look
   } else if(SPRITE_IDS[zd.id]){
-    spr = poseOf("zombie-"+SPRITE_IDS[zd.id]);
+    spr = poseOf(variantBase(zd.id,muts));
   }
   if(spr && spr.img){
     const k = s*73/630; // class scale is baked into each sprite canvas
@@ -1377,20 +1324,6 @@ function drawZombie(g,x,y,s,zd,muts,wob,seed,hungry,pose,face){
     const dw=fw*k, dh=spr.h*k;
     g.save(); g.translate(x,y+bob); if(face<0) g.scale(-1,1); g.rotate(lean*0.4); // sprites carry their own pose; sway stays subtle
     g.drawImage(spr.img, frame*fw, 0, fw, spr.h, -dw/2, -dh+2*s+spr.pad*k, dw, dh);
-    if(attach){
-      // each overlay shares its character's frame canvas: composite 1:1,
-      // bottom-registered with the BODY's placement (taller flame canvases
-      // extend upward past the top edge)
-      attach.forEach(n=>{
-        const o=SPRITES[n]; if(!o||!o.img) return;
-        // overlay frames are exactly as wide as the body's frame, so the
-        // frame count falls out of the width ratio (the aspect heuristic
-        // lies on tall flame canvases)
-        const oF=Math.max(1,Math.round(o.w/fw)), oW=o.w/oF, oFr=oF>1?frame:0;
-        const ow=oW*k, oh=o.h*k;
-        g.drawImage(o.img, oFr*oW, 0, oW, o.h, -ow/2, (2*s+spr.pad*k)-oh, ow, oh);
-      });
-    }
     g.restore();
     if(hungry){
       for(let k2=0;k2<2;k2++){
