@@ -255,7 +255,7 @@ const GOALS = [
  {id:"lunar3",  desc:"Conquer the Lunar Lab 3 times", n:3, stat:"moonwin", gold:30000, xp:500}
 ];
 
-const BUILD = "build 41 · 2026-07-11"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 42 · 2026-07-11"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -2183,6 +2183,10 @@ function drawBuilding(g,scen,x,y,sc){
   g.save(); g.translate(x,y); g.scale(sc,sc);
   g.fillStyle="rgba(20,25,10,.3)";
   g.beginPath(); g.ellipse(0,4,95,14,0,0,TAU); g.fill();
+  {
+    const sp=spriteGet("battle-"+scen+"-building");
+    if(sp&&sp.img){ const h=250, w=h*(sp.w/sp.h); g.drawImage(sp.img,-w/2,8-h,w,h); g.restore(); return; }
+  }
   if(scen==="farm"){
     // red barn
     g.fillStyle="#c04a38";
@@ -2429,6 +2433,10 @@ function drawBuilding(g,scen,x,y,sc){
 function drawDefender(g,scen,x,y,sc,t){
   // cute defender standing at roof/deck, wind-up arm
   g.save(); g.translate(x,y); g.scale(sc,sc);
+  {
+    const sp=spriteGet("battle-"+scen+"-def-"+(Math.sin(t*3)>0.55?"attack":"idle"));
+    if(sp&&sp.img){ const h=62, w=h*(sp.w/sp.h); g.drawImage(sp.img,-w/2,Math.sin(t*1.5)*1.5-h,w,h); g.restore(); return; }
+  }
   const arm=Math.sin(t*3)*0.5;
   const skin="#f0c8a0";
   // body
@@ -2508,6 +2516,10 @@ function drawDefender(g,scen,x,y,sc,t){
 }
 function drawProjectile(g,scen,x,y,t){
   g.save(); g.translate(x,y);
+  {
+    const sp=spriteGet("battle-"+scen+"-proj");
+    if(sp&&sp.img){ g.rotate(t*3); g.drawImage(sp.img,-13,-13,26,26); g.restore(); return; }
+  }
   if(scen==="farm"){ // tomato
     g.fillStyle="#e04838"; blob(g,0,0,9);
     outline(g,2); g.beginPath(); g.arc(0,0,9,0,TAU); g.stroke();
@@ -3877,6 +3889,13 @@ function drawBattle(dt){
   const tg=B.target;
   const env=BATTLE_ENV[tg.scen]||BATTLE_ENV.farm;
   const pnow=performance.now()/1000;
+  // wave 6 backdrop: one hand-drawn world, cover-fit; the whole procedural
+  // environment below stays as the loading/emergency fallback
+  const bgspr=spriteGet("battle-"+tg.scen+"-bg");
+  if(bgspr&&bgspr.img){
+    const s0=Math.max(W/bgspr.w,H/bgspr.h);
+    cx.drawImage(bgspr.img,(W-bgspr.w*s0)/2,(H-bgspr.h*s0)/2,bgspr.w*s0,bgspr.h*s0);
+  } else {
   // sky
   const grad=cx.createLinearGradient(0,0,0,H*0.75);
   grad.addColorStop(0,env.sky[0]); grad.addColorStop(0.55,env.sky[1]); grad.addColorStop(1,env.sky[2]);
@@ -4343,6 +4362,7 @@ function drawBattle(dt){
     // low-gravity dust puff behind it
     cx.fillStyle="rgba(176,180,192,.4)"; blob(cx,rvx-11,rvy-4-((pnow*4)%6),2.4);
   }
+  } // end procedural backdrop fallback
   const shx = B.shake>0? rnd(-4,4)*B.shake : 0;
   cx.save(); cx.translate(shx,0);
   // building + name + hp bar
