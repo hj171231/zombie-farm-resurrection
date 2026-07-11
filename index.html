@@ -255,7 +255,7 @@ const GOALS = [
  {id:"lunar3",  desc:"Conquer the Lunar Lab 3 times", n:3, stat:"moonwin", gold:30000, xp:500}
 ];
 
-const BUILD = "build 29 · 2026-07-10"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 30 · 2026-07-10"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -1225,6 +1225,8 @@ function mutHas(muts,label){ return muts && muts.some(m=>m.label===label); }
 const SPRITES={};
 const SPRITE_IDS={shambler:"shambler",mini:"miniz",headless:"headless",gardener:"gardener",bruiser:"bruiser",banshee:"banshee",abom:"abomination",digger:"gravedigger",jester:"jester",chef:"chef",gravemound:"gravemound",golden:"golden"};
 const MUT_SPRITES={"Speedy":"mutation-speedy","Kernel-Powered":"mutation-kernel","Gourd-Headed":"mutation-gourd","Sporified":"mutation-sporified","Flaming":"mutation-flaming-2f","Moon-Touched":"mutation-moontouched","Wormfriend":"mutation-wormfriend","Big-Hearted":"mutation-bighearted-2f","All-Seeing":"mutation-allseeing-2f","Pungent":"mutation-pungent-2f"};
+// wave 2.1: gear-only attachments — composite onto ANY body type
+const ATTACH_SPRITES={"Speedy":"attach-speedy","Kernel-Powered":"attach-kernel","Gourd-Headed":"attach-gourd","Sporified":"attach-sporified","Flaming":"attach-flaming-2f","Moon-Touched":"attach-moontouched","Wormfriend":"attach-wormfriend","Big-Hearted":"attach-bighearted-2f","All-Seeing":"attach-allseeing-2f","Pungent":"attach-pungent-2f"};
 function spritePad(spr){
   try{
     const c=document.createElement("canvas");
@@ -1250,6 +1252,7 @@ function preloadSprites(){
     names.push("zombie-"+n+"-idle","zombie-"+n+"-lunge","zombie-"+n+"-walk-2f");
   });
   Object.values(MUT_SPRITES).forEach(n=>names.push(n));
+  Object.values(ATTACH_SPRITES).forEach(n=>names.push(n));
   names.push("combo-allseeing-gourd-2f","combo-gourd-flaming-2f","combo-sporified-flaming-2f","combo-sporified-strawhat");
   names.forEach(n=>{
     const im=new Image();
@@ -1289,12 +1292,13 @@ function drawZombie(g,x,y,s,zd,muts,wob,seed,hungry,pose){
   // Sheets exist for the shambler (all 10 muts + 3 special combos) and the
   // gardener's mushroom straw hat; every other mutated body renders via the
   // procedural art, which handles all 55 combos on every frame.
-  let spr=null;
+  let spr=null, attach=null;
+  const poseOf=b=> pose==="lunge"?SPRITES[b+"-lunge"] : pose==="idle"?SPRITES[b+"-idle"] : SPRITES[b+"-walk-2f"];
   if(zd.awk){
-    const b="zombie-awakened";
-    spr = pose==="lunge"?SPRITES[b+"-lunge"] : pose==="idle"?SPRITES[b+"-idle"] : SPRITES[b+"-walk-2f"];
+    spr = poseOf("zombie-awakened"); // the Awakened ignores overlays — his look IS the look
   } else if(muts && muts.length){
     const L=l=>muts.some(m=>m.label===l);
+    // premium full sheets first (pixel-perfect art)
     let sheet=null;
     if(zd.id==="shambler"){
       if(muts.length===2){
@@ -1305,10 +1309,15 @@ function drawZombie(g,x,y,s,zd,muts,wob,seed,hungry,pose){
     } else if(zd.id==="gardener" && muts.length===1 && L("Sporified")){
       sheet="combo-sporified-strawhat";
     }
-    spr = sheet ? SPRITES[sheet] : null; // null => procedural fallback below
+    if(sheet && SPRITES[sheet]) spr=SPRITES[sheet];
+    else if(SPRITE_IDS[zd.id]){
+      // base body + gear-only attachments = every combo on every frame
+      const base=poseOf("zombie-"+SPRITE_IDS[zd.id]);
+      const ready=muts.every(m=>SPRITES[ATTACH_SPRITES[m.label]]);
+      if(base && ready){ spr=base; attach=muts; }
+    }
   } else if(SPRITE_IDS[zd.id]){
-    const b="zombie-"+SPRITE_IDS[zd.id];
-    spr = pose==="lunge"?SPRITES[b+"-lunge"] : pose==="idle"?SPRITES[b+"-idle"] : SPRITES[b+"-walk-2f"];
+    spr = poseOf("zombie-"+SPRITE_IDS[zd.id]);
   }
   if(spr && spr.img){
     const k = s*73/630; // class scale is baked into each sprite canvas
@@ -1326,6 +1335,18 @@ function drawZombie(g,x,y,s,zd,muts,wob,seed,hungry,pose){
     const dw=fw*k, dh=spr.h*k;
     g.save(); g.translate(x,y+bob); g.rotate(lean*0.4); // sprites carry their own pose; sway stays subtle
     g.drawImage(spr.img, frame*fw, 0, fw, spr.h, -dw/2, -dh+2*s+spr.pad*k, dw, dh);
+    if(attach){
+      // gear is authored on the 540x630 normal frame; scale to THIS body's
+      // height so hats land on heads and sneakers land on feet
+      const kO=k*(spr.h/630);
+      attach.forEach(m=>{
+        const o=SPRITES[ATTACH_SPRITES[m.label]]; if(!o||!o.img) return;
+        if(o.pad===undefined) o.pad=spritePad(o);
+        const oF=o.w>o.h*1.3?2:1, oW=o.w/oF, oFr=oF>1?frame:0;
+        const ow=oW*kO, oh=o.h*kO;
+        g.drawImage(o.img, oFr*oW, 0, oW, o.h, -ow/2, -oh+2*s+o.pad*kO, ow, oh);
+      });
+    }
     g.restore();
     if(hungry){
       for(let k2=0;k2<2;k2++){
