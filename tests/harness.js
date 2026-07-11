@@ -35,6 +35,7 @@ globalThis.__game = {
   cv, cx,
   // logic
   freshState, save, load, sanitizeState, backupSave, startGame, BUILD,
+  encodeSave, decodeSave,
   xpNeeded, gainXP, calcLF, neighbors, growthInfo, fmtTime,
   cellXY, tileAt, layout, resize, randRoamPos, inFieldDiamond, roamTargetFrom, pathAvoidsField,
   tapTile, plantAt, harvest, setPlantMode, clearPlantMode, checkGoals, hud,
@@ -45,7 +46,7 @@ globalThis.__game = {
   get camCX(){ return camCX; }, get camCY(){ return camCY; },
   gardenerTick, hungerTick, healTick, SPRITES, preloadSprites,
   // art (for visual smoke tests)
-  drawSplash, drawFarm, drawBattle, drawZombie, drawZHead, drawProduce,
+  drawSplash, drawFarm, drawBattle, drawZombie, drawZHead, drawProduce, drawCropPlot,
   drawTree, drawGravestone, iconDataURL,
   // test helpers
   setRandom(fn){ const orig = Math.random; Math.random = fn; return () => { Math.random = orig; }; }
@@ -69,6 +70,9 @@ function makeStubEl(id) {
     disabled: false,
     appendChild() {},
     addEventListener() {},
+    focus() {},
+    select() {},
+    setSelectionRange() {},
     onclick: null,
   };
 }

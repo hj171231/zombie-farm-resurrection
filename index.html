@@ -255,7 +255,7 @@ const GOALS = [
  {id:"lunar3",  desc:"Conquer the Lunar Lab 3 times", n:3, stat:"moonwin", gold:30000, xp:500}
 ];
 
-const BUILD = "build 37 · 2026-07-11"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 38 · 2026-07-11"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -897,6 +897,9 @@ function blob(g,x,y,r){ g.beginPath(); g.arc(x,y,r,0,TAU); g.fill(); }
 
 // ---- produce icons (s = base size ~ tile*0.5) ----
 function drawProduce(g,id,x,y,s){
+  // wave 3 sprite: the clean harvested item, centered on its canvas
+  const sp=spriteGet("crop-"+id+"-produce");
+  if(sp&&sp.img){ const b=s*2.3; g.drawImage(sp.img,x-b/2,y-b/2,b,b); return; }
   g.save(); g.translate(x,y);
   if(id==="carrot"){
     g.fillStyle="#ff8c2e";
@@ -1115,6 +1118,18 @@ function drawTree(g,tr,x,y,s){
   // shadow
   g.fillStyle="rgba(20,30,10,.3)";
   g.beginPath(); g.ellipse(x,y+s*0.16,s*0.62,s*0.16,0,0,TAU); g.fill();
+  // wave 3 sprites: day sheet cross-fading into the night personality at dusk
+  {
+    const dayS=spriteGet("tree-"+tr.id+"-day"), nightS=spriteGet("tree-"+tr.id+"-night");
+    if(dayS&&dayS.img&&nightS&&nightS.img){
+      const dark=dayPhase().dark;
+      const sway=Math.sin(performance.now()/900+x*0.05)*s*0.05;
+      const w=s*1.6, h=w*(dayS.h/dayS.w), dx=x-w/2+sway, dy=(y+s*0.16)-h;
+      if(dark<0.999) g.drawImage(dayS.img,dx,dy,w,h);
+      if(dark>0.001){ g.save(); g.globalAlpha=dark; g.drawImage(nightS.img,dx,dy,w,h); g.restore(); }
+      return;
+    }
+  }
   // trunk
   g.fillStyle="#6e4e2a";
   g.beginPath();
@@ -1991,6 +2006,20 @@ function drawGravestone(g,x,y,s,prog,wob,vseed){
   const hasV = (typeof vseed==="number");
   const v = hasV ? Math.floor(seedRnd(vseed,9)*3) : 0;
   const tilt = -0.08 + (hasV ? (seedRnd(vseed,17)-0.5)*0.14 : 0);
+  // wave 3 sprites: dirt mound + one of three stones, cracking open when close
+  {
+    const ready=prog>=0.7;
+    const stone=spriteGet("gravestone-"+(v+1)+(ready?"-ready":"")), mound=spriteGet("dirt-mound");
+    if(stone&&stone.img&&mound&&mound.img){
+      const jx=prog>0.85?Math.sin(wob*30)*s*0.03:0; // rattle right before rising
+      const w=s*1.15, h=w*(stone.h/stone.w), base=y+s*0.18;
+      g.drawImage(mound.img, x-w*0.62, base-w*1.24*0.55, w*1.24, w*1.24*(mound.h/mound.w)*0.55);
+      g.save(); g.translate(x+jx,base); g.rotate(tilt*0.5);
+      g.drawImage(stone.img, -w/2, -h, w, h);
+      g.restore();
+      return;
+    }
+  }
   g.fillStyle="#54401f";
   g.beginPath(); g.ellipse(x,y+s*0.1,s*0.46,s*0.17,0,0,TAU); g.fill();
   g.fillStyle="#6a5228";
@@ -2077,6 +2106,28 @@ function drawGravestone(g,x,y,s,prog,wob,vseed){
 function drawCropPlot(g,t,x,y,s){
   const info=growthInfo(t);
   const c=info.def;
+  // wave 3 sprites: one bottom-anchored plant image per growth state
+  {
+    const st=info.wilted?"withered":info.prog<0.33?"sprout":info.prog<1?"growing":"ripe";
+    const sp=spriteGet("crop-"+c.id+"-"+st);
+    if(sp&&sp.img){
+      const glory=info.ready&&!info.wilted; // wilted crops are past ready — no fanfare
+      const bob=glory?Math.sin(performance.now()/280)*s*0.03:0;
+      if(glory){ // rotating sun rays behind the ripe plant
+        g.save(); g.translate(x,y); g.rotate(performance.now()/1500);
+        g.fillStyle="rgba(255,240,150,.14)";
+        for(let k=0;k<6;k++){
+          g.rotate(TAU/6);
+          g.beginPath(); g.moveTo(0,0); g.lineTo(s*0.52,-s*0.09); g.lineTo(s*0.52,s*0.09); g.closePath(); g.fill();
+        }
+        g.restore();
+      }
+      const w=s*1.3, h=w*(sp.h/sp.w);
+      g.drawImage(sp.img, x-w/2, (y+s*0.24+bob)-h, w, h);
+      if(glory) drawReadyArrow(g,x,y-s*0.82,s*0.42);
+      return;
+    }
+  }
   if(info.wilted){
     g.strokeStyle="#7a6a44"; g.lineWidth=s*0.055; g.lineCap="round";
     g.beginPath(); g.moveTo(x-s*0.05,y+s*0.2); g.quadraticCurveTo(x,y-s*0.15,x+s*0.2,y+0);
@@ -3203,6 +3254,33 @@ $("goalsBtn").onclick=()=>{
   });
 };
 
+// ---- save codes: deflate-compressed base64 ("ZFR1." prefix, ~5x shorter),
+// with the original uncompressed format still accepted on import so codes
+// copied before this build keep working ----
+async function encodeSave(){
+  const raw=JSON.stringify(S);
+  if(typeof CompressionStream!=="undefined" && typeof TextEncoder!=="undefined" && typeof Response!=="undefined"){
+    try{
+      const st=new Blob([new TextEncoder().encode(raw)]).stream().pipeThrough(new CompressionStream("deflate"));
+      const u8=new Uint8Array(await new Response(st).arrayBuffer());
+      let bin=""; for(let i=0;i<u8.length;i++) bin+=String.fromCharCode(u8[i]);
+      return "ZFR1."+btoa(bin);
+    }catch(e){} // ancient browser: fall through to the legacy format
+  }
+  return btoa(unescape(encodeURIComponent(raw)));
+}
+async function decodeSave(code){
+  code=String(code).replace(/\s+/g,""); // messengers and notes apps love inserting line breaks
+  let raw;
+  if(code.slice(0,5)==="ZFR1."){
+    const u8=Uint8Array.from(atob(code.slice(5)),c=>c.charCodeAt(0));
+    const st=new Blob([u8]).stream().pipeThrough(new DecompressionStream("deflate"));
+    raw=await new Response(st).text();
+  } else {
+    raw=decodeURIComponent(escape(atob(code)));
+  }
+  return JSON.parse(raw);
+}
 $("helpBtn").onclick=()=>{
   sfx.tap();
   openModal("How to Farm the Dead");
@@ -3215,32 +3293,51 @@ $("helpBtn").onclick=()=>{
    "<b>&#x2694;&#xFE0F; Invasions:</b> With "+INVADE_MIN+"+ zombies, hit INVADE, pick a squad, then tap squad cards to send fighters in (up to 3 at once). <b>Hungrier zombies bite much harder</b> &mdash; starve them before a big raid! Win gold, XP, and maybe a <b>brain</b>.<br><br>"+
    "<b>&#x1F9E0; Brains:</b> Rare currency from invasions. Buys premium zombies &amp; trees.<br><br>"+
    "<b>&#x26CF;&#xFE0F; Shovel:</b> Toggle it, then tap anything to clear it.<br><br>"+
-   "<b>&#x1F4BE; Saving:</b> Auto-saves in this browser every few seconds (and when you switch apps). Keep the game file in the same place and open it with the same browser, and your farm will be waiting. Crops even grow while you're away!<br><br>"+
-   "<b>&#x1F511; Backup / move devices:</b> Copy a save code and load it anywhere.<br><button class='gbtn small' id='expBtn'>&#x1F4CB; Copy save code</button> <button class='gbtn small' id='impBtn'>&#x1F4E5; Load save code</button><br><br>"+
+   "<b>&#x1F4BE; Saving:</b> Auto-saves in this browser every few seconds (and when you switch apps). Crops even grow while you're away! <b>Heads up:</b> the save lives inside this browser/app &mdash; deleting the home-screen app (or clearing browser data) deletes the farm with it. Copy a save code below FIRST if you ever reinstall.<br><br>"+
+   "<b>&#x1F511; Backup / move devices:</b> Copy a save code and load it anywhere.<br><button class='gbtn small' id='expBtn'>&#x1F4CB; Copy save code</button> <button class='gbtn small' id='impBtn'>&#x1F4E5; Load save code</button>"+
+   "<div id='scBox' style='display:none;margin-top:8px'>"+
+     "<textarea id='scTA' spellcheck='false' autocapitalize='off' autocorrect='off' autocomplete='off' style='width:100%;height:86px;font-size:11px;font-family:monospace;border-radius:8px;padding:6px;box-sizing:border-box;border:2px solid #33244A'></textarea><br>"+
+     "<button class='gbtn small' id='scCopy'>&#x1F4CB; Copy</button> <button class='gbtn small' id='scLoad'>&#x2705; Load this code</button><br>"+
+     "<span id='scMsg' style='font-size:12px;opacity:.75'></span>"+
+   "</div><br><br>"+
    "<button class='gbtn small' id='muteBtn2'>"+(S.muted?"&#x1F507; Unmute":"&#x1F50A; Mute")+" sounds</button> "+
    "<button class='gbtn small red' id='resetBtn2'>&#x1F5D1; Reset farm</button>"+
    (localStorage.getItem("zfr_save_backup")?" <button class='gbtn small' id='restoreBtn'>&#x21A9; Restore previous farm</button>":"")+
    "<div style='opacity:.55;font-size:11px;margin-top:10px'>Zombie Farm Resurrection &middot; "+BUILD+"</div></div>";
   $("mutBtn").onclick=()=>{ openAlmanac(); };
   $("muteBtn2").onclick=function(){ S.muted=!S.muted; save(); this.innerHTML=S.muted?"&#x1F507; Unmute":"&#x1F50A; Mute"; };
-  $("expBtn").onclick=()=>{
-    save();
-    const code=btoa(unescape(encodeURIComponent(JSON.stringify(S))));
-    if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(code).catch(()=>{}); }
-    prompt("Your save code (also copied to clipboard). Keep it somewhere safe:",code);
+  // NO prompt() dialogs here — iOS truncates long strings both when showing
+  // a default value and when pasting into one, silently corrupting codes.
+  // Everything goes through a real textarea instead.
+  const scMode=m=>{ $("scBox").style.display="block"; $("scMsg").textContent=m||""; };
+  const scCopy=async()=>{
+    const ta=$("scTA"), code=ta.value;
+    ta.focus(); ta.select(); if(ta.setSelectionRange) ta.setSelectionRange(0,code.length);
+    let ok=false;
+    if(navigator.clipboard&&navigator.clipboard.writeText){ try{ await navigator.clipboard.writeText(code); ok=true; }catch(e){} }
+    if(!ok){ try{ ok=document.execCommand("copy"); }catch(e){} }
+    $("scMsg").textContent = ok ? "Copied! Paste it somewhere safe (Notes, a message to yourself...)."
+                                : "Couldn't auto-copy — long-press the code above and copy it by hand.";
   };
-  $("impBtn").onclick=()=>{
-    const code=prompt("Paste your save code:");
-    if(!code)return;
+  $("expBtn").onclick=async()=>{
+    save();
+    $("scTA").value=await encodeSave();
+    scMode(); scCopy();
+  };
+  $("impBtn").onclick=()=>{ $("scTA").value=""; scMode("Paste your save code above, then hit Load."); $("scTA").focus(); };
+  $("scCopy").onclick=scCopy;
+  $("scLoad").onclick=async()=>{
+    const code=$("scTA").value;
+    if(!code.trim()){ scMode("Paste a code first."); return; }
     try{
-      const st=JSON.parse(decodeURIComponent(escape(atob(code.trim()))));
+      const st=await decodeSave(code);
       if(!st || !Array.isArray(st.tiles)) throw new Error("bad");
       const clean=sanitizeState(st);
       if(!clean) throw new Error("bad");
       backupSave();
       localStorage.setItem("zfr_save",JSON.stringify(clean));
       location.reload();
-    }catch(e){ toast("That code didn't work &mdash; double-check you pasted the whole thing."); }
+    }catch(e){ scMode("That code didn't work — make sure the WHOLE code was pasted, start to finish."); }
   };
   $("resetBtn2").onclick=()=>{ if(confirm("Really bulldoze your whole farm and start over? (The old farm is kept as a backup you can restore from this menu.)")){ backupSave(); localStorage.removeItem("zfr_save"); location.reload(); } };
   const rb=$("restoreBtn");

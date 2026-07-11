@@ -19,6 +19,10 @@ function eq(a, b, msg) {
   if (a !== b) throw new Error((msg || "expected equal") + ": got " + JSON.stringify(a) + ", want " + JSON.stringify(b));
 }
 function ok(v, msg) { if (!v) throw new Error(msg || "expected truthy, got " + JSON.stringify(v)); }
+// async checks (the save-code handlers are async): queued here, run in order
+// by the tail runner before the summary prints
+const deferred = [];
+function acheck(name, fn) { deferred.push({ name, fn }); }
 
 // fresh game instance per section keeps tests independent
 function boot() {
@@ -772,34 +776,33 @@ console.log("\n== save-code export / import (the real Help handlers) ==");
   G.startGame(null);
   G.S.gold = 7777; G.S.brains = 5; G.S.tiles[3] = { st: "plot" };
   let exportedCode = null;
-  check("export produces a decodable save code", () => {
-    els["helpBtn"].onclick(); // builds the help modal + wires exp/imp buttons
-    ctx.prompt = (msg, val) => { exportedCode = val; };
-    els["expBtn"].onclick();
+  acheck("export fills the textarea with a decodable save code", async () => {
+    els["helpBtn"].onclick(); // builds the help modal + wires the buttons
+    await els["expBtn"].onclick();
+    exportedCode = els["scTA"].value;
     ok(typeof exportedCode === "string" && exportedCode.length > 50, "got a code");
-    const decoded = inst.run("JSON.parse(decodeURIComponent(escape(atob(" + JSON.stringify(exportedCode) + "))))");
+    const decoded = await G.decodeSave(exportedCode);
     eq(decoded.gold, 7777);
   });
-  check("import round-trips the farm through the code", () => {
+  acheck("import (Load button) round-trips the farm through the code", async () => {
     G.S.gold = 1; G.S.brains = 0; // wreck the live state
-    ctx.prompt = () => exportedCode;
     ctx.location.reload = () => {};
-    els["impBtn"].onclick();
+    els["scTA"].value = exportedCode;
+    await els["scLoad"].onclick();
     const st = G.load();
     eq(st.gold, 7777); eq(st.brains, 5); eq(st.tiles[3].st, "plot");
   });
-  check("garbage code is rejected gracefully (no crash, no save overwrite)", () => {
+  acheck("garbage code is rejected gracefully (no crash, no save overwrite)", async () => {
     const before = inst.storage.get("zfr_save");
-    ctx.prompt = () => "definitely-not-base64!!!";
-    els["impBtn"].onclick();
+    els["scTA"].value = "definitely-not-base64!!!";
+    await els["scLoad"].onclick();
     eq(inst.storage.get("zfr_save"), before, "save untouched");
-    ok(els["toast"].innerHTML.includes("didn't work"));
+    ok(els["scMsg"].textContent.includes("didn't work"), "user told it failed");
   });
-  check("valid base64 of a non-farm object is rejected too", () => {
+  acheck("valid base64 of a non-farm object is rejected too", async () => {
     const before = inst.storage.get("zfr_save");
-    const evil = inst.run('btoa(unescape(encodeURIComponent(JSON.stringify({hello:"world"}))))');
-    ctx.prompt = () => evil;
-    els["impBtn"].onclick();
+    els["scTA"].value = inst.run('btoa(unescape(encodeURIComponent(JSON.stringify({hello:"world"}))))');
+    await els["scLoad"].onclick();
     eq(inst.storage.get("zfr_save"), before, "save untouched");
   });
 }
@@ -1154,14 +1157,15 @@ console.log("\n== save backup net ==");
     els["helpBtn"].onclick();
     ok(els["mBody"].innerHTML.includes(G.BUILD), "Help shows the build stamp");
   });
-  check("importing a save code backs up the previous farm first", () => {
+  acheck("importing a save code backs up the previous farm first", async () => {
     G.S.gold = 4242; G.save();
     const original = inst.storage.get("zfr_save");
     const incoming = inst.run("btoa(unescape(encodeURIComponent(JSON.stringify(freshState()))))");
-    ctx.prompt = () => incoming;
     ctx.location.reload = () => {};
     els["helpBtn"].onclick();
-    els["impBtn"].onclick();
+    els["impBtn"].onclick(); // opens the paste box (materializes the textarea stub)
+    els["scTA"].value = incoming;
+    await els["scLoad"].onclick();
     eq(inst.storage.get("zfr_save_backup"), original, "old farm preserved");
     ok(JSON.parse(inst.storage.get("zfr_save")).gold === 200, "new farm installed");
   });
@@ -1286,6 +1290,36 @@ console.log("\n== combo tracking (almanac pairs) ==");
   });
 }
 
-console.log("\n----------------------------------");
-console.log("logic: " + passed + " passed, " + failed + " failed");
-if (failed > 0) process.exit(1);
+(async () => {
+  console.log("\n== save codes (async) ==");
+  async function arun(name, fn) {
+    try { await fn(); passed++; console.log("  ✓ " + name); }
+    catch (e) { failed++; console.log("  ✗ " + name + "\n      " + (e && e.message)); }
+  }
+  for (const t of deferred) await arun(t.name, t.fn);
+  const { G } = boot();
+  await arun("save code roundtrip restores the farm", async () => {
+    G.S.gold = 4321;
+    const code = await G.encodeSave();
+    ok(typeof code === "string" && code.length > 50, "code produced");
+    const st = await G.decodeSave(code);
+    eq(st.gold, 4321);
+    ok(Array.isArray(st.tiles) && st.tiles.length === 49, "tiles survive");
+    ok(G.sanitizeState(st), "sanitizes clean");
+  });
+  await arun("decode tolerates whitespace and line breaks pasted mid-code", async () => {
+    const code = await G.encodeSave();
+    const mangled = code.replace(/(.{40})/g, "$1\n  ");
+    const st = await G.decodeSave(mangled);
+    eq(st.gold, 4321);
+  });
+  await arun("garbage code rejects instead of half-loading", async () => {
+    let threw = false;
+    try { await G.decodeSave("definitely not a save code"); } catch (e) { threw = true; }
+    ok(threw);
+  });
+
+  console.log("\n----------------------------------");
+  console.log("logic: " + passed + " passed, " + failed + " failed");
+  if (failed > 0) process.exit(1);
+})();
