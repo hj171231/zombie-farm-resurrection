@@ -255,7 +255,7 @@ const GOALS = [
  {id:"lunar3",  desc:"Conquer the Lunar Lab 3 times", n:3, stat:"moonwin", gold:30000, xp:500}
 ];
 
-const BUILD = "build 38 · 2026-07-11"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 39 · 2026-07-11"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -1124,7 +1124,7 @@ function drawTree(g,tr,x,y,s){
     if(dayS&&dayS.img&&nightS&&nightS.img){
       const dark=dayPhase().dark;
       const sway=Math.sin(performance.now()/900+x*0.05)*s*0.05;
-      const w=s*1.6, h=w*(dayS.h/dayS.w), dx=x-w/2+sway, dy=(y+s*0.16)-h;
+      const w=s*2.2, h=w*(dayS.h/dayS.w), dx=x-w/2+sway, dy=(y+s*0.16)-h;
       if(dark<0.999) g.drawImage(dayS.img,dx,dy,w,h);
       if(dark>0.001){ g.save(); g.globalAlpha=dark; g.drawImage(nightS.img,dx,dy,w,h); g.restore(); }
       return;
@@ -2656,6 +2656,18 @@ function drawYardDecor(dp){
     // soft grounding shadow under every vignette
     g.fillStyle="rgba(20,30,10,.2)";
     g.beginPath(); g.ellipse(x,y+s*0.06,s*0.55,s*0.13,0,0,TAU); g.fill();
+    // wave 4 sprites: each vignette is one hand-drawn scene
+    {
+      const dsp=spriteGet("decor-"+sp.kind);
+      if(dsp&&dsp.img){
+        const flat=(sp.kind==="fairyring"||sp.kind==="pumpkinpatch");
+        const w=s*(sp.kind==="scarecrow"?1.15:sp.kind==="pumpkinpatch"?1.3:sp.kind==="sign"?0.72:1.05);
+        const h=w*(dsp.h/dsp.w);
+        if(flat) g.drawImage(dsp.img,x-w/2,y-h/2,w,h);
+        else g.drawImage(dsp.img,x-w/2,(y+s*0.12)-h,w,h);
+        return;
+      }
+    }
     if(sp.kind==="scarecrow"){
       // post
       g.fillStyle="#6e4e2a"; g.fillRect(x-s*0.04,y-s*1.0,s*0.08,s*1.04);
@@ -2900,6 +2912,9 @@ function drawFarm(dt){
   for(let i=0;i<GRID*GRID;i++){
     const t=S.tiles[i], p=cellXY(i);
     if(t.st==="plot"||t.st==="planted"){
+      // wave 4 tile sprites: full 2:1 diamonds, drawn edge-to-edge
+      const tp=spriteGet((t.st==="planted"&&t.fert)?"tile-plot-fert":"tile-plot");
+      if(tp&&tp.img){ cx.drawImage(tp.img,p.x-TW*0.49,p.y-TH*0.49,TW*0.98,TH*0.98); continue; }
       cx.fillStyle=PAL.dirtMoist;
       diamond(cx,p.x,p.y,TW*0.94,TH*0.94); cx.fill();
       cx.strokeStyle="rgba(0,0,0,.3)"; cx.lineWidth=1.4;
@@ -2930,6 +2945,8 @@ function drawFarm(dt){
         }
       }
     } else if(t.st==="grass"){
+      // wave-4 grass tiles have baked-in oval shading that egg-cartons when
+      // tiled edge-to-edge — procedural grass holds until a flat re-delivery
       if((i%GRID+Math.floor(i/GRID))%2===0){
         cx.fillStyle="rgba(255,235,170,.05)";
         diamond(cx,p.x,p.y,TW*0.94,TH*0.94); cx.fill();
@@ -3069,14 +3086,30 @@ function drawFarm(dt){
   if(dp.dark>0.02){
     cx.fillStyle="rgba(42,46,92,"+(dp.dark*0.26)+")"; // Night Deep, moonlit not pitch black
     cx.fillRect(0,0,W,H);
-    // bats crossing the night sky
-    cx.strokeStyle="rgba(30,24,48,"+(dp.dark*0.9)+")"; cx.lineWidth=2.4;
-    for(let k=0;k<2;k++){
-      const bxx=((ct*30+k*260)%(W+120))-60, byy=H*(0.16+k*0.09)+Math.sin(ct*3+k*2)*12;
-      cx.beginPath();
-      cx.arc(bxx-5,byy,5,Math.PI*1.1,Math.PI*1.9);
-      cx.arc(bxx+5,byy,5,Math.PI*1.1,Math.PI*1.9);
-      cx.stroke();
+    // the moon rises (wave 4 sprite, procedural bats as fallback)
+    const mn=spriteGet("sky-moon"), bats=spriteGet("sky-bats");
+    if(mn&&mn.img){
+      const ms=Math.min(W,H)*0.15;
+      cx.save(); cx.globalAlpha=dp.dark;
+      cx.drawImage(mn.img,W*0.91-ms/2,H*0.085-ms/2,ms,ms);
+      cx.restore();
+    }
+    if(bats&&bats.img){
+      cx.save(); cx.globalAlpha=dp.dark*0.95;
+      for(let k=0;k<2;k++){
+        const bxx=((ct*30+k*260)%(W+220))-110, byy=H*(0.14+k*0.09)+Math.sin(ct*3+k*2)*12;
+        cx.drawImage(bats.img,bxx-70,byy-28,140,56);
+      }
+      cx.restore();
+    } else {
+      cx.strokeStyle="rgba(30,24,48,"+(dp.dark*0.9)+")"; cx.lineWidth=2.4;
+      for(let k=0;k<2;k++){
+        const bxx=((ct*30+k*260)%(W+120))-60, byy=H*(0.16+k*0.09)+Math.sin(ct*3+k*2)*12;
+        cx.beginPath();
+        cx.arc(bxx-5,byy,5,Math.PI*1.1,Math.PI*1.9);
+        cx.arc(bxx+5,byy,5,Math.PI*1.1,Math.PI*1.9);
+        cx.stroke();
+      }
     }
     // soft moonbeam across the field
     cx.fillStyle="rgba(210,225,255,"+(dp.dark*0.05)+")";
