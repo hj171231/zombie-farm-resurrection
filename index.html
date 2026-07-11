@@ -39,15 +39,15 @@
   .btnbar { position:absolute; bottom:10px; right:10px; display:flex; flex-direction:column; gap:8px; z-index:5; align-items:flex-end; }
   /* hamburger menu: one clean button on screen; the rest slide out on demand */
   #menuItems { display:none; flex-direction:column; gap:8px; align-items:flex-end; }
-  #menuItems .gbtn, #menuItems .gbtn.small { font-size:15px; padding:10px 0; width:138px; text-align:center; }
+  #menuItems .gbtn, #menuItems .gbtn.small { font-size:13px; padding:2px 0; width:106px; border-width:9px; text-align:center; }
   #menuItems.open { display:flex; animation:menuPop .16s ease-out; }
   @keyframes menuPop { from{ opacity:0; transform:translateY(8px);} to{ opacity:1; transform:translateY(0);} }
   #menuBtn { font-size:30px; line-height:0.85; padding:5px 12px 7px; min-width:54px; }
   #menuBtn.open { background:linear-gradient(#ffd97a 0%,#e0a83a 45%,#b07a1e 100%); border-color:#5e440c; }
   .btnbar-l { position:absolute; bottom:10px; left:10px; display:flex; flex-direction:column; gap:8px; z-index:5; align-items:flex-start; }
-  .gbtn { background:linear-gradient(#b8e262 0%, #7fb33c 45%, #5d8a2a 100%); border:12px solid transparent; border-image:url("art/ui-btn-green.png") 46 fill stretch; border-radius:16px; color:#fff; font-weight:bold; font-size:15px; padding:0 6px; cursor:pointer; box-shadow:0 4px 0 rgba(20,30,8,.55), 0 6px 10px rgba(0,0,0,.4); text-shadow:0 2px 2px rgba(0,0,0,.45); font-family:"Luckiest Guy","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-weight:400; letter-spacing:.5px; }
-  .gbtn:active { transform:translateY(3px); box-shadow:inset 0 3px 0 rgba(255,255,255,.25), 0 1px 0 #24390d; }
-  .gbtn.red { background:linear-gradient(#ff9a6a 0%, #e0603a 45%, #b03a1e 100%); border-image-source:url("art/ui-btn-red.png"); box-shadow:inset 0 3px 0 rgba(255,255,255,.35), 0 4px 0 #4a1508, 0 6px 10px rgba(0,0,0,.4); }
+  .gbtn { background:linear-gradient(#b8e262 0%, #7fb33c 45%, #5d8a2a 100%); background-clip:padding-box; border:12px solid transparent; border-image:url("art/ui-btn-green.png") 46 fill stretch; border-radius:16px; color:#fff; font-weight:bold; font-size:15px; padding:0 6px; cursor:pointer; text-shadow:0 2px 2px rgba(0,0,0,.45); font-family:"Luckiest Guy","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-weight:400; letter-spacing:.5px; }
+  .gbtn:active { transform:translateY(3px); }
+  .gbtn.red { background:linear-gradient(#ff9a6a 0%, #e0603a 45%, #b03a1e 100%); border-image-source:url("art/ui-btn-red.png"); }
   .gbtn.small { font-size:13px; padding:0 3px; }
   #invadeBtn { font-size:17px; display:flex; align-items:center; justify-content:center; gap:7px; }
   .gbtn:disabled { filter:grayscale(.8); opacity:.7; }
@@ -60,7 +60,7 @@
   .modal h2 .x { cursor:pointer; background:#5e4426; border:2px solid #3d2810; border-radius:10px; padding:0 10px; font-size:18px; box-shadow:0 2px 0 #2a1c08; }
   .modal .body { padding:10px; overflow-y:auto; }
   .tabs { display:flex; gap:4px; padding:8px 10px 0; }
-  .tab { flex:1; text-align:center; padding:3px 4px; background:#4a3c28; border:10px solid transparent; border-bottom:none; border-image:url("art/ui-tab.png") 40 fill stretch; border-radius:10px 10px 0 0; cursor:pointer; font-weight:bold; font-size:13px; color:#3a2413; opacity:.72; }
+  .tab { flex:1; text-align:center; padding:3px 4px; background:#4a3c28; background-clip:padding-box; border:10px solid transparent; border-bottom:none; border-image:url("art/ui-tab.png") 40 fill stretch; border-radius:10px 10px 0 0; cursor:pointer; font-weight:bold; font-size:13px; color:#3a2413; opacity:.72; }
   .tab.on { opacity:1; color:#2a1808; filter:brightness(1.12); }
   .shopitem { display:flex; gap:10px; align-items:center; background:rgba(255,240,210,.07); border:2px solid rgba(255,230,180,.16); border-radius:14px; padding:8px; margin-bottom:8px; }
   .shopitem .art { width:56px; height:56px; flex:none; filter:drop-shadow(0 3px 3px rgba(0,0,0,.4)); }
@@ -255,7 +255,7 @@ const GOALS = [
  {id:"lunar3",  desc:"Conquer the Lunar Lab 3 times", n:3, stat:"moonwin", gold:30000, xp:500}
 ];
 
-const BUILD = "build 43 · 2026-07-11"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 44 · 2026-07-11"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -480,12 +480,15 @@ function pathAvoidsField(x1,y1,x2,y2){
 // Pick where a roaming zombie walks next: destinations whose PATH stays in
 // the grass — no more parades through the crops. ~1.5% take a deliberate
 // shortcut across the field, for old times' sake.
-function roamTargetFrom(x,y){
+function roamTargetFrom(x,y,z){
   // already ON the field? walk straight off — pathAvoidsField can never pass
   // from an inside start, which used to leave crossers stranded out there
   if(inFieldDiamond(x,y,1.06)) return randRoamPos();
+  // only gardeners have business on the field (they fertilize) — everyone
+  // else strolls the yard; gardeners visit noticeably often
+  const gardener=!!(z&&z.type==="gardener");
   const onField=S&&S.zombies?S.zombies.filter(zz=>inFieldDiamond(zz.x,zz.y,1.0)).length:0;
-  if(Math.random()<0.004 && onField<2) return randFieldPos(); // rare, and never a crowd
+  if(gardener && Math.random()<0.02 && onField<2) return randFieldPos();
   for(let tries=0;tries<14;tries++){
     const p=randRoamPos();
     if(pathAvoidsField(x,y,p.x,p.y)) return p;
@@ -1123,8 +1126,7 @@ function drawTree(g,tr,x,y,s){
     const dayS=spriteGet("tree-"+tr.id+"-day"), nightS=spriteGet("tree-"+tr.id+"-night");
     if(dayS&&dayS.img&&nightS&&nightS.img){
       const dark=dayPhase().dark;
-      const sway=Math.sin(performance.now()/900+x*0.05)*s*0.05;
-      const w=s*2.2, h=w*(dayS.h/dayS.w), dx=x-w/2+sway, dy=(y+s*0.16)-h;
+      const w=s*2.2, h=w*(dayS.h/dayS.w), dx=x-w/2, dy=(y+s*0.16)-h; // trees are rooted: no sway
       if(dark<0.999) g.drawImage(dayS.img,dx,dy,w,h);
       if(dark>0.001){ g.save(); g.globalAlpha=dark; g.drawImage(nightS.img,dx,dy,w,h); g.restore(); }
       return;
@@ -1284,7 +1286,8 @@ function preloadSprites(){
   Object.values(SPRITE_IDS).concat(["awakened"]).forEach(n=>{
     names.push("zombie-"+n+"-idle","zombie-"+n+"-lunge","zombie-"+n+"-walk-2f");
   });
-  names.forEach(spriteGet); // base sheets only — mutation variants lazy-load on first sighting
+  ["ui-icon-gold","ui-icon-zombie","ui-icon-heart","ui-arrow-ready","ui-check-go","sky-bat"].forEach(n=>names.push(n));
+  names.forEach(spriteGet); // base sheets + small UI kit — mutation variants lazy-load on first sighting
 }
 function zdefFor(z){
   const base=ZTYPES.find(t=>t.id===z.type);
@@ -1303,6 +1306,7 @@ function drawStar(g,x,y,r){
 }
 function drawZombie(g,x,y,s,zd,muts,wob,seed,hungry,pose,face){
   seed=seed||0; face=face||1; // sprites are authored facing right; -1 mirrors for leftward walks
+  hungry=mutHas(muts,"Pungent"); // the orbiting flies belong to Pungent zombies alone
   const small=zd.small, big=zd.big;
   const bw=(big?30:small?18:24)*s*(zd.colossus?1.15:zd.hulk?1.2:1);
   const bh=(big?26:small?14:20)*s*(zd.colossus?1.1:zd.hulk?1.24:1); // hulk stands taller
@@ -2109,7 +2113,10 @@ function drawCropPlot(g,t,x,y,s){
   // wave 3 sprites: one bottom-anchored plant image per growth state
   {
     const st=info.wilted?"withered":info.prog<0.33?"sprout":info.prog<1?"growing":"ripe";
-    const sp=spriteGet("crop-"+c.id+"-"+st);
+    let sp=spriteGet("crop-"+c.id+"-"+st);
+    if(c.id==="eyeberry"&&st==="ripe"&&(performance.now()/1000)%3.7<0.16){
+      const bl=spriteGet("crop-eyeberry-ripe-blink"); if(bl&&bl.img) sp=bl; // they blink. of course they blink.
+    }
     if(sp&&sp.img){
       const glory=info.ready&&!info.wilted; // wilted crops are past ready — no fanfare
       const bob=glory?Math.sin(performance.now()/280)*s*0.03:0;
@@ -2675,7 +2682,8 @@ function drawYardDecor(dp){
       const dsp=spriteGet("decor-"+sp.kind);
       if(dsp&&dsp.img){
         const flat=(sp.kind==="fairyring"||sp.kind==="pumpkinpatch");
-        const w=s*(sp.kind==="scarecrow"?1.15:sp.kind==="pumpkinpatch"?1.3:sp.kind==="sign"?0.72:1.05);
+        const SZ={scarecrow:1.15,pumpkinpatch:1.3,sign:0.72,well:1.35,hay:1.3,mailcrates:1.3,fairyring:1.4};
+        const w=s*(SZ[sp.kind]||1.05);
         const h=w*(dsp.h/dsp.w);
         if(flat) g.drawImage(dsp.img,x-w/2,y-h/2,w,h);
         else g.drawImage(dsp.img,x-w/2,(y+s*0.12)-h,w,h);
@@ -3018,7 +3026,7 @@ function drawFarm(dt){
     });
     const d=Math.hypot(z.tx-z.x,z.ty-z.y);
     if(d<6 || Math.random()<0.002){
-      const rp=roamTargetFrom(z.x,z.y); z.tx=rp.x; z.ty=rp.y;
+      const rp=roamTargetFrom(z.x,z.y,z); z.tx=rp.x; z.ty=rp.y;
       if(inFieldDiamond(rp.x,rp.y,1.0)) z.__fieldUntil=now()+7000; // brief visit only
     } else {
       z.x+=(z.tx-z.x)/d*11*z.spd*dt; z.y+=(z.ty-z.y)/d*11*z.spd*dt; // a proper undead shuffle, feet matching ground covered
@@ -3101,21 +3109,17 @@ function drawFarm(dt){
   if(dp.dark>0.02){
     cx.fillStyle="rgba(42,46,92,"+(dp.dark*0.26)+")"; // Night Deep, moonlit not pitch black
     cx.fillRect(0,0,W,H);
-    // the moon rises (wave 4 sprite, procedural bats as fallback)
-    const mn=spriteGet("sky-moon"), bats=spriteGet("sky-bats");
-    if(mn&&mn.img){
-      const ms=Math.min(W,H)*0.15;
-      cx.save(); cx.globalAlpha=dp.dark;
-      cx.drawImage(mn.img,W*0.91-ms/2,H*0.085-ms/2,ms,ms);
-      cx.restore();
-    }
-    if(bats&&bats.img){
-      cx.save(); cx.globalAlpha=dp.dark*0.95;
-      for(let k=0;k<2;k++){
-        const bxx=((ct*30+k*260)%(W+220))-110, byy=H*(0.14+k*0.09)+Math.sin(ct*3+k*2)*12;
-        cx.drawImage(bats.img,bxx-70,byy-28,140,56);
+    // a single bat crossing the night sky every so often (no moon — this is
+    // a top-down view; a moon lying on the grass reads wrong)
+    const bt1=spriteGet("sky-bat");
+    if(bt1&&bt1.img){
+      const per=26, tt=ct%per;
+      if(tt<7){
+        const bxx=-70+(W+140)*(tt/7), byy=H*0.15+Math.sin(ct*3)*14;
+        cx.save(); cx.globalAlpha=dp.dark*0.95;
+        cx.drawImage(bt1.img,bxx-24,byy-9,48,17);
+        cx.restore();
       }
-      cx.restore();
     } else {
       cx.strokeStyle="rgba(30,24,48,"+(dp.dark*0.9)+")"; cx.lineWidth=2.4;
       for(let k=0;k<2;k++){
@@ -3168,7 +3172,10 @@ $("shade").addEventListener("pointerdown",e=>{ if(e.target===$("shade")) closeMo
 
 function artCanvas(drawFn){
   const c=document.createElement("canvas"); c.width=112; c.height=112; c.className="art";
-  const g=c.getContext("2d"); g.scale(2,2); drawFn(g,28,32,20);
+  const g=c.getContext("2d"); g.scale(2,2);
+  const paint=()=>{ g.clearRect(0,0,56,56); drawFn(g,28,32,20); };
+  paint();
+  setTimeout(paint,600); setTimeout(paint,1800); // repaint once lazy sprites land
   return c;
 }
 function openMarket(targetTile){
@@ -3412,7 +3419,10 @@ function pairRaised(a,b){ return !!(S.pairSeen && S.pairSeen[pairKey(a,b)]); }
 function artCanvasSized(drawFn,px){
   const c=document.createElement("canvas"); c.width=px*2; c.height=px*2; c.className="art";
   if(c.style){ c.style.width=px+"px"; c.style.height=px+"px"; }
-  const g=c.getContext("2d"); g.scale(2,2); drawFn(g,px/2,px/2,px*0.4);
+  const g=c.getContext("2d"); g.scale(2,2);
+  const paint=()=>{ g.clearRect(0,0,px,px); drawFn(g,px/2,px/2,px*0.4); };
+  paint();
+  setTimeout(paint,600); setTimeout(paint,1800);
   return c;
 }
 function openAlmanac(){
@@ -4788,7 +4798,10 @@ function startGame(existing){
 function hudIcon(drawFn){
   const c=document.createElement("canvas"); c.width=44; c.height=44;
   if(c.style){ c.style.width="21px"; c.style.height="21px"; c.style.verticalAlign="-5px"; }
-  const g=c.getContext("2d"); g.scale(2,2); drawFn(g,11,11,9);
+  const g=c.getContext("2d"); g.scale(2,2);
+  const paint=()=>{ g.clearRect(0,0,22,22); drawFn(g,11,11,9); };
+  paint();
+  setTimeout(paint,900); setTimeout(paint,2200); // HUD pills build before sprites finish loading
   return c;
 }
 // same icon, as an <img> for use inside HTML toasts — pills and messages match
