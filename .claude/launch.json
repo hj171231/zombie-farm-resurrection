@@ -1,11 +1,6 @@
 {
   "version": "0.0.1",
   "configurations": [
-    {
-      "name": "zombie-farm",
-      "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "5173"],
-      "port": 5173
-    }
+    { "name": "zfr", "runtimeExecutable": "python3", "runtimeArgs": ["-m", "http.server", "8321", "--directory", "/Users/hj171231/Projects/zombie-farm-resurrection"], "port": 8321 }
   ]
 }

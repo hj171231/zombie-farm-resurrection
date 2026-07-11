@@ -45,10 +45,10 @@
   #menuBtn { font-size:30px; line-height:0.85; padding:5px 12px 7px; min-width:54px; }
   #menuBtn.open { background:linear-gradient(#ffd97a 0%,#e0a83a 45%,#b07a1e 100%); border-color:#5e440c; }
   .btnbar-l { position:absolute; bottom:10px; left:10px; display:flex; flex-direction:column; gap:8px; z-index:5; align-items:flex-start; }
-  .gbtn { background:linear-gradient(#b8e262 0%, #7fb33c 45%, #5d8a2a 100%); border:3px solid #2f4a12; border-radius:16px; color:#fff; font-weight:bold; font-size:15px; padding:9px 15px; cursor:pointer; box-shadow:inset 0 3px 0 rgba(255,255,255,.35), 0 4px 0 #24390d, 0 6px 10px rgba(0,0,0,.4); text-shadow:0 2px 2px rgba(0,0,0,.45); font-family:"Luckiest Guy","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-weight:400; letter-spacing:.5px; }
+  .gbtn { background:linear-gradient(#b8e262 0%, #7fb33c 45%, #5d8a2a 100%); border:12px solid transparent; border-image:url("art/ui-btn-green.png") 46 fill stretch; border-radius:16px; color:#fff; font-weight:bold; font-size:15px; padding:0 6px; cursor:pointer; box-shadow:0 4px 0 rgba(20,30,8,.55), 0 6px 10px rgba(0,0,0,.4); text-shadow:0 2px 2px rgba(0,0,0,.45); font-family:"Luckiest Guy","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-weight:400; letter-spacing:.5px; }
   .gbtn:active { transform:translateY(3px); box-shadow:inset 0 3px 0 rgba(255,255,255,.25), 0 1px 0 #24390d; }
-  .gbtn.red { background:linear-gradient(#ff9a6a 0%, #e0603a 45%, #b03a1e 100%); border-color:#5e1c0c; box-shadow:inset 0 3px 0 rgba(255,255,255,.35), 0 4px 0 #4a1508, 0 6px 10px rgba(0,0,0,.4); }
-  .gbtn.small { font-size:13px; padding:6px 11px; }
+  .gbtn.red { background:linear-gradient(#ff9a6a 0%, #e0603a 45%, #b03a1e 100%); border-image-source:url("art/ui-btn-red.png"); box-shadow:inset 0 3px 0 rgba(255,255,255,.35), 0 4px 0 #4a1508, 0 6px 10px rgba(0,0,0,.4); }
+  .gbtn.small { font-size:13px; padding:0 3px; }
   #invadeBtn { font-size:17px; display:flex; align-items:center; justify-content:center; gap:7px; }
   .gbtn:disabled { filter:grayscale(.8); opacity:.7; }
   .gbtn.toggled { outline:3px solid #ffd94d; }
@@ -60,8 +60,8 @@
   .modal h2 .x { cursor:pointer; background:#5e4426; border:2px solid #3d2810; border-radius:10px; padding:0 10px; font-size:18px; box-shadow:0 2px 0 #2a1c08; }
   .modal .body { padding:10px; overflow-y:auto; }
   .tabs { display:flex; gap:4px; padding:8px 10px 0; }
-  .tab { flex:1; text-align:center; padding:7px 4px; background:#4a3c28; border-radius:10px 10px 0 0; cursor:pointer; font-weight:bold; font-size:13px; border:2px solid #8a6d3b; border-bottom:none; color:#cbb488; }
-  .tab.on { background:linear-gradient(#8a6d3b,#6f5836); color:#ffe9a8; }
+  .tab { flex:1; text-align:center; padding:3px 4px; background:#4a3c28; border:10px solid transparent; border-bottom:none; border-image:url("art/ui-tab.png") 40 fill stretch; border-radius:10px 10px 0 0; cursor:pointer; font-weight:bold; font-size:13px; color:#3a2413; opacity:.72; }
+  .tab.on { opacity:1; color:#2a1808; filter:brightness(1.12); }
   .shopitem { display:flex; gap:10px; align-items:center; background:rgba(255,240,210,.07); border:2px solid rgba(255,230,180,.16); border-radius:14px; padding:8px; margin-bottom:8px; }
   .shopitem .art { width:56px; height:56px; flex:none; filter:drop-shadow(0 3px 3px rgba(0,0,0,.4)); }
   .shopitem .inf { flex:1; min-width:0; }
@@ -255,7 +255,7 @@ const GOALS = [
  {id:"lunar3",  desc:"Conquer the Lunar Lab 3 times", n:3, stat:"moonwin", gold:30000, xp:500}
 ];
 
-const BUILD = "build 40 · 2026-07-11"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 41 · 2026-07-11"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -2600,6 +2600,8 @@ function drawPicketEdge(g,p1,p2,n,dy,sc){
 }
 function drawReadyArrow(g,x,y,s){
   const b=Math.sin(performance.now()/220)*s*0.12;
+  const sp=spriteGet("ui-arrow-ready");
+  if(sp&&sp.img){ const w=s*0.85, h=w*(sp.h/sp.w); g.drawImage(sp.img,x-w/2,y-s*0.66+b,w,h); return; }
   g.fillStyle="#c8ff5c";
   g.beginPath();
   g.moveTo(x-s*0.24,y-s*0.36+b); g.lineTo(x+s*0.24,y-s*0.36+b); g.lineTo(x,y+b);
@@ -2945,8 +2947,9 @@ function drawFarm(dt){
         }
       }
     } else if(t.st==="grass"){
-      // wave-4 grass tiles have baked-in oval shading that egg-cartons when
-      // tiled edge-to-edge — procedural grass holds until a flat re-delivery
+      // wave-4 fixed grass tiles: flat, seam-free diamonds (b/c carry accents)
+      const v=seedRnd(i,23), tg=spriteGet("tile-grass-"+(v>0.92?"b":v>0.84?"c":"a"));
+      if(tg&&tg.img){ cx.drawImage(tg.img,p.x-TW*0.51,p.y-TH*0.51,TW*1.02,TH*1.02); continue; }
       if((i%GRID+Math.floor(i/GRID))%2===0){
         cx.fillStyle="rgba(255,235,170,.05)";
         diamond(cx,p.x,p.y,TW*0.94,TH*0.94); cx.fill();
@@ -3600,7 +3603,7 @@ function openSquadPicker(target){
     sel.style.cssText="width:52px;flex:none;text-align:center;font-family:'Luckiest Guy','Arial Rounded MT Bold','Comic Sans MS',sans-serif;line-height:1.1";
     const paint=()=>{
       if(squadSel[ix]){
-        sel.innerHTML="<span style='color:#7dffa0;font-size:24px'>&#x25B6;</span><br><span style='color:#7dffa0;font-size:10px'>GOING!</span>";
+        sel.innerHTML="<img src='art/ui-check-go.png' style='height:26px;display:block;margin:0 auto' onerror=\"this.outerHTML='<span style=&quot;color:#7dffa0;font-size:24px&quot;>&#x25B6;</span>'\"><span style='color:#7dffa0;font-size:10px'>GOING!</span>";
         row.style.opacity="1";
         row.style.outline="2px solid #7dffa0"; row.style.borderRadius="10px";
       } else {
@@ -4776,6 +4779,8 @@ function iconHTML(drawFn){
   }catch(e){ return ""; }
 }
 function drawGoldMini(g,x,y,r){
+  const sp=spriteGet("ui-icon-gold");
+  if(sp&&sp.img){ g.drawImage(sp.img,x-r,y-r,r*2,r*2); return; }
   // a proper faceted gold nugget
   g.fillStyle="#f0b429";
   g.beginPath();
@@ -4824,6 +4829,8 @@ function drawBrainMini(g,x,y,r){
   g.beginPath(); g.ellipse(x-r*0.3,y-r*0.42,r*0.18,r*0.1,0.5,0,TAU); g.fill();
 }
 function drawZedMini(g,x,y,r){
+  const sp=spriteGet("ui-icon-zombie");
+  if(sp&&sp.img){ g.drawImage(sp.img,x-r,y-r,r*2,r*2); return; }
   // an unmistakable zombie mug: flat-top hair, uneven googly eyes, stitches
   g.fillStyle="#82c356"; // head
   g.beginPath(); g.moveTo(x-r*0.85,y+r*0.5);
@@ -4870,6 +4877,8 @@ function drawZedMini(g,x,y,r){
   g.fillStyle="#5a9038"; blob(g,x-r*0.6,y+r*0.3,r*0.1);
 }
 function drawHeartMini(g,x,y,r){
+  const sp=spriteGet("ui-icon-heart");
+  if(sp&&sp.img){ g.drawImage(sp.img,x-r,y-r,r*2,r*2); return; }
   // a glossy health heart with a zombie stitch — life force in one glance
   r=r*1.18; y=y+r*0.03; // pump it up to match its siblings
   g.fillStyle="#e8425a";
