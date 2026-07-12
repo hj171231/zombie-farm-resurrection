@@ -43,6 +43,7 @@
   #menuItems.open { display:flex; animation:menuPop .16s ease-out; }
   @keyframes menuPop { from{ opacity:0; transform:translateY(8px);} to{ opacity:1; transform:translateY(0);} }
   #menuBtn { font-size:27px; line-height:19px; padding:0 12px; min-width:54px; }
+  @media (max-width:700px){ #menuBtn { font-size:36px; line-height:19px; } } /* phones: same button, beefier glyph */
   #menuBtn.open { background:linear-gradient(#ffd97a 0%,#e0a83a 45%,#b07a1e 100%); border-color:#5e440c; }
   .btnbar-l { position:absolute; bottom:10px; left:10px; display:flex; flex-direction:column; gap:8px; z-index:5; align-items:flex-start; }
   .gbtn { background:linear-gradient(#b8e262 0%, #7fb33c 45%, #5d8a2a 100%); background-clip:padding-box; border:12px solid transparent; border-image:url("art/ui-btn-green.png") 46 fill stretch; border-radius:16px; color:#fff; font-weight:bold; font-size:15px; padding:0 6px; cursor:pointer; text-shadow:0 2px 2px rgba(0,0,0,.45); font-family:"Luckiest Guy","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-weight:400; letter-spacing:.5px; }
@@ -266,7 +267,7 @@ const GOALS = [
  {id:"rich250k",desc:"Hold 250,000 gold at once",    n:250000, stat:"goldbank", brains:5}
 ];
 
-const BUILD = "build 53 · 2026-07-12"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 54 · 2026-07-12"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
