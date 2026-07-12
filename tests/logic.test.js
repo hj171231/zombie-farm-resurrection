@@ -88,9 +88,9 @@ console.log("\n== economy ==");
     ok(G.plantAt(31, "zombie", "abom") === true);
     eq(G.S.brains, 0); eq(G.S.tiles[31].plant, "abom");
   });
-  check("spooky tree costs 1 brain", () => {
+  check("spooky tree costs 2 brains", () => {
     forcePlot(G, 32);
-    G.S.brains = 1;
+    G.S.brains = 2;
     ok(G.plantAt(32, "tree", "spooky") === true);
     eq(G.S.brains, 0); eq(G.S.tiles[32].st, "tree");
   });
@@ -189,12 +189,12 @@ function zombieWithNeighbors(cropIds, cropProgFrac, rand) {
   return G;
 }
 {
-  check("adjacent ripening carrot + lucky roll => Speedy mutation (+0.6 spd)", () => {
+  check("adjacent ripening carrot + lucky roll => Speedy mutation (+2 spd)", () => {
     const G = zombieWithNeighbors(["carrot"], 0.7, () => 0);
     eq(G.S.zombies.length, 1);
     const z = G.S.zombies[0];
     eq(z.mut.length, 1); eq(z.mut[0].label, "Speedy");
-    eq(z.spd, 1.0 + 0.6);
+    eq(z.spd, 1.0 + 2);
     eq(G.S.stats.muts, 1);
   });
   check("unlucky roll => no mutation", () => {
@@ -214,12 +214,12 @@ function zombieWithNeighbors(cropIds, cropProgFrac, rand) {
     const G = zombieWithNeighbors(["carrot", "carrot"], 0.7, () => 0);
     eq(G.S.zombies[0].mut.length, 1);
   });
-  check("stat mutations apply: corn +2 pow, pumpkin +12 hp", () => {
+  check("stat mutations apply: corn +2 pow, pumpkin +10 hp", () => {
     const G = zombieWithNeighbors(["corn", "pumpkin"], 0.7, () => 0);
     const z = G.S.zombies[0];
     const zd = G.ZTYPES.find(t => t.id === "shambler");
     eq(z.pow, zd.pow + 2);
-    eq(z.hp, zd.hp + 12); eq(z.maxhp, zd.hp + 12);
+    eq(z.hp, zd.hp + 10); eq(z.maxhp, zd.hp + 10);
   });
 }
 
@@ -238,11 +238,11 @@ console.log("\n== horde ==");
   check("full horde (16): overflow zombie sells for cost*1.2+20", () => {
     while (G.S.zombies.length < 16) G.S.zombies.push({ type: "mini", hp: 1, maxhp: 1, pow: 1, spd: 1, hunger: 0, mut: [], kills: 0, x: 0, y: 0, tx: 0, ty: 0, wob: 0, name: "Dummy" });
     G.S.gold = 0;
-    forcePlot(G, 6); G.S.gold = 100; G.plantAt(6, "zombie", "mini"); // 100-35=65
+    forcePlot(G, 6); G.S.gold = 200; G.plantAt(6, "zombie", "mini"); // 200-100=100
     backdate(G, 6, 16);
     G.tapTile(6);
     eq(G.S.zombies.length, 16, "horde stays capped");
-    eq(G.S.gold, 65 + Math.floor(35 * 1.2) + 20); // +62
+    eq(G.S.gold, 100 + Math.floor(100 * 1.2) + 20); // +140
   });
 }
 
@@ -628,17 +628,23 @@ console.log("\n== unlock gating & invalid ids ==");
 console.log("\n== gardener & hunger ticks ==");
 {
   const { G } = boot();
-  check("gardener fertilizes a growing crop (2x flag set)", () => {
+  check("gardener WALKS to the crop, then fertilizes on arrival (2x flag)", () => {
     G.S.gold = 1000;
     forcePlot(G, 10); G.plantAt(10, "crop", "carrot");
     G.S.zombies.push({ type: "gardener", name: "Gus", pow: 2, hp: 16, maxhp: 16, spd: 1, hunger: 30, x: 0, y: 0, tx: 0, ty: 0, wob: 0, mut: [], kills: 0 });
+    const gus = G.S.zombies[0];
+    G.gardenerTick(); // assigns the mission — too far away to bless yet
+    ok(G.S.tiles[10].fert === false, "not fertilized from across the farm");
+    const p = G.cellXY(10);
+    ok(Math.abs(gus.tx - p.x) < 1 && Math.abs(gus.ty - p.y) < 1, "steering at the crop");
+    gus.x = p.x; gus.y = p.y; // he arrives
     G.gardenerTick();
-    ok(G.S.tiles[10].fert === true);
+    ok(G.S.tiles[10].fert === true, "blessed on arrival");
   });
-  check("gardener is throttled (one fertilize per 20s)", () => {
+  check("gardener is throttled (one mission per cooldown)", () => {
     forcePlot(G, 11); G.plantAt(11, "crop", "carrot");
     G.gardenerTick();
-    ok(G.S.tiles[11].fert === false, "second crop must wait for the 20s cooldown");
+    ok(G.S.tiles[11].fert === false, "second crop must wait for the cooldown");
   });
   check("no gardener, no fertilizer", () => {
     const inst2 = loadGame(); const G2 = inst2.G;
@@ -880,12 +886,34 @@ console.log("\n== sanitizeState (save repair & migration) ==");
   });
 }
 
+console.log("\n== PERFECTED mutations ==");
+{
+  const { G } = boot();
+  check("perfecting a mutation doubles it retroactively + sets the goal", () => {
+    const labels = G.CROPS.map(c => c.mut.label);
+    G.S.mutSeen = { Speedy: 3 };
+    G.S.pairSeen = {};
+    labels.filter(l => l !== "Speedy").forEach(l => { G.S.pairSeen[["Speedy", l].sort().join(" + ")] = 1; });
+    G.S.zombies.push({ type: "shambler", name: "Zip", pow: 5, hp: 22, maxhp: 22, spd: 3, hunger: 0, mut: [{ label: "Speedy" }], kills: 0, x: 0, y: 0, tx: 0, ty: 0, wob: 0 });
+    G.checkGoals();
+    ok(G.S.perfected && G.S.perfected.Speedy === true, "perfected flag set");
+    eq(G.S.zombies[0].spd, 5, "existing zombie got the bonus again (+2)");
+    ok(G.S.goalsDone.includes("perf1"), "perf1 goal completed");
+    G.checkGoals();
+    eq(G.S.zombies[0].spd, 5, "doubling applies exactly once");
+  });
+  check("perfection survives save sanitization", () => {
+    const s2 = G.sanitizeState(JSON.parse(JSON.stringify(G.S)));
+    ok(s2.perfected.Speedy === true);
+  });
+}
+
 console.log("\n== content pack: data ==");
 {
   const { G } = boot();
-  check("content counts: 10 crops, 12 zombies (1 secret), 5 trees, 8 targets, 27 goals", () => {
+  check("content counts: 10 crops, 12 zombies (1 secret), 5 trees, 8 targets, 37 goals", () => {
     eq(G.CROPS.length, 10); eq(G.ZTYPES.length, 12);
-    eq(G.TREES.length, 5); eq(G.TARGETS.length, 8); eq(G.GOALS.length, 27);
+    eq(G.TREES.length, 5); eq(G.TARGETS.length, 8); eq(G.GOALS.length, 37);
   });
   check("crop grow times are the approved nice numbers", () => {
     const want = [25, 50, 100, 200, 330, 540, 780, 1320, 1980, 3000];
@@ -897,10 +925,10 @@ console.log("\n== content pack: data ==");
     eq(JSON.stringify(G.CROPS.map(c => c.cost)), JSON.stringify(wantCost));
     eq(JSON.stringify(G.CROPS.map(c => c.sell)), JSON.stringify(wantSell));
   });
-  check("zombie & tree price ladders (first item + brains prices untouched)", () => {
-    const wantZ = [50, 35, 160, 230, 560, 1200, 0, 3200, 7600, 16000, 0, 5000];
+  check("zombie & tree price ladders (build 48 pricing decree)", () => {
+    const wantZ = [50, 100, 250, 400, 750, 1500, 0, 4000, 7500, 0, 0, 10000];
     eq(JSON.stringify(G.ZTYPES.map(z => z.cost)), JSON.stringify(wantZ));
-    eq(JSON.stringify(G.TREES.map(t => t.cost)), JSON.stringify([100, 350, 0, 3000, 0]));
+    eq(JSON.stringify(G.TREES.map(t => t.cost)), JSON.stringify([250, 750, 0, 2000, 0]));
   });
   check("every crop's mutation label is unique (visual zone ownership)", () => {
     const labels = G.CROPS.map(c => c.mut.label);
@@ -910,9 +938,12 @@ console.log("\n== content pack: data ==");
     eq(Math.max(...G.TARGETS.map(t => t.unlock)), 24);
     eq(G.TARGETS[7].scen, "moon");
   });
-  check("new premium items cost brains: Lantern Tree 3, Gravemound 5", () => {
-    eq(G.TREES.find(t => t.id === "lantern").brains, 3);
-    eq(G.ZTYPES.find(z => z.id === "gravemound").brains, 5);
+  check("premium brains pricing: Lantern 5, Gravemound 10, Chef 5, Abom 2, Spooky 2", () => {
+    eq(G.TREES.find(t => t.id === "lantern").brains, 5);
+    eq(G.ZTYPES.find(z => z.id === "gravemound").brains, 10);
+    eq(G.ZTYPES.find(z => z.id === "chef").brains, 5);
+    eq(G.ZTYPES.find(z => z.id === "abom").brains, 2);
+    eq(G.TREES.find(t => t.id === "spooky").brains, 2);
   });
 }
 
@@ -991,7 +1022,7 @@ console.log("\n== content pack: new stats & goals ==");
     ok(G.S.goalsDone.includes("apple1"));
   });
   check("raising the Gravemound counts its stat + goal", () => {
-    G.S.brains = 5;
+    G.S.brains = 10;
     forcePlot(G, 6); G.plantAt(6, "zombie", "gravemound");
     backdate(G, 6, 700);
     G.tapTile(6);
