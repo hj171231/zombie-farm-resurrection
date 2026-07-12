@@ -911,8 +911,8 @@ console.log("\n== PERFECTED mutations ==");
 console.log("\n== content pack: data ==");
 {
   const { G } = boot();
-  check("content counts: 10 crops, 13 zombies (1 secret), 5 trees, 8 targets, 37 goals", () => {
-    eq(G.CROPS.length, 10); eq(G.ZTYPES.length, 13);
+  check("content counts: 10 crops, 14 zombies (1 secret), 5 trees, 8 targets, 37 goals", () => {
+    eq(G.CROPS.length, 10); eq(G.ZTYPES.length, 14);
     eq(G.TREES.length, 5); eq(G.TARGETS.length, 8); eq(G.GOALS.length, 37);
   });
   check("crop grow times are the approved nice numbers", () => {
@@ -926,7 +926,7 @@ console.log("\n== content pack: data ==");
     eq(JSON.stringify(G.CROPS.map(c => c.sell)), JSON.stringify(wantSell));
   });
   check("zombie & tree price ladders (build 48 pricing decree)", () => {
-    const wantZ = [50, 100, 250, 400, 750, 1500, 0, 4000, 0, 7500, 0, 10000, 0];
+    const wantZ = [50, 100, 250, 400, 750, 0, 1500, 0, 4000, 0, 7500, 0, 10000, 0];
     eq(JSON.stringify(G.ZTYPES.map(z => z.cost)), JSON.stringify(wantZ));
     eq(JSON.stringify(G.TREES.map(t => t.cost)), JSON.stringify([250, 750, 0, 2000, 0]));
   });
@@ -942,6 +942,7 @@ console.log("\n== content pack: data ==");
     eq(G.TREES.find(t => t.id === "lantern").brains, 5);
     eq(G.ZTYPES.find(z => z.id === "gravemound").brains, 10);
     eq(G.ZTYPES.find(z => z.id === "voltz").brains, 15);
+    eq(G.ZTYPES.find(z => z.id === "sawbones").brains, 1);
     eq(G.ZTYPES.find(z => z.id === "chef").brains, 5);
     eq(G.ZTYPES.find(z => z.id === "abom").brains, 2);
     eq(G.TREES.find(t => t.id === "spooky").brains, 2);
@@ -1319,6 +1320,61 @@ console.log("\n== combo tracking (almanac pairs) ==");
   check("squad picker cap is 5", () => {
     const { G } = boot();
     eq(G.SQUAD_MAX, 5);
+  });
+}
+
+console.log("\n== sawbones, composter, names & compact codes ==");
+{
+  const { G } = boot();
+  const mkz=(type,name,pow,hp,maxhp)=>({type,name,pow,hp,maxhp,spd:1,hunger:10,mut:[],kills:0,x:100,y:100,tx:100,ty:100,wob:0});
+  check("sawbones walks to the STRONGEST wounded zombie and heals bedside", () => {
+    G.S.zombies=[mkz("sawbones","Doc",3,20,20), mkz("bruiser","Tank",15,30,60), mkz("mini","Pip",3,6,12)];
+    const doc=G.S.zombies[0], tank=G.S.zombies[1];
+    tank.x=500; tank.y=300;
+    G.medicTick(1);
+    ok(Math.abs(doc.tx-(500+G.TW/2*0))>0 || doc.tx>400, "steering toward the bruiser (strongest)");
+    doc.x=500; doc.y=300; // arrives
+    G.medicTick(60);
+    ok(tank.hp>30, "healing happens at the bedside");
+    ok(tank.hp-30<1.2, "at oak pace: gentle, not a hospital");
+    eq(G.S.zombies[2].hp, 6, "weaker patient waits their turn");
+  });
+  check("healthy horde = no medic steering changes", () => {
+    G.S.zombies=[mkz("sawbones","Doc",3,20,20), mkz("mini","Ok",3,12,12)];
+    G.S.zombies[0].tx=77; G.medicTick(1);
+    eq(G.S.zombies[0].tx, 77, "no patients, no house calls");
+  });
+  check("uniqueZName never duplicates a living zombie's name", () => {
+    G.S.zombies=G.ZNAMES.map(n=>mkz("mini",n,3,12,12)); // every base name taken
+    const n=G.uniqueZName();
+    ok(!G.S.zombies.some(z=>z.name===n), "fresh name even with all 30 taken: "+n);
+  });
+  check("compostOffer: 50% base + mutation bump, XP pays for kills, legends fetch brains", () => {
+    const plain=mkz("bruiser","A",15,60,60);
+    eq(G.compostOffer(plain).gold, 375, "50% of 750");
+    const mut1={...plain, mut:[{label:"Flaming"}]};
+    eq(G.compostOffer(mut1).gold, Math.round(750*0.5*1.15));
+    const hero={...plain, kills:8};
+    eq(G.compostOffer(hero).xp, Math.round(375/15)+40, "battle heroes pay extra XP");
+    const legend={...plain, mut:[{label:"Gourd-Headed"},{label:"Flaming"}], kills:8};
+    eq(G.compostOffer(legend).brains, 2, "veteran Jack-o-Lantern = 2 brains");
+    const freshLegend={...plain, mut:[{label:"Sporified"},{label:"Flaming"}], kills:0};
+    eq(G.compostOffer(freshLegend).brains, 1, "green legend = 1 brain");
+    const combo={...plain, mut:[{label:"Speedy"},{label:"Pungent"}]};
+    eq(G.compostOffer(combo).brains, 0, "ordinary combos: gold and XP only");
+  });
+  check("lz roundtrip: JSON, unicode, empty, and long repetitive strings", () => {
+    const cases=["", "a", JSON.stringify(G.freshState()),
+      "h\u00e9llo \ud83e\udde0 z\u00f6mbie", "ab".repeat(4000), JSON.stringify({z:Array(60).fill({name:"Grubbs",hp:22,mut:["Flaming"]})})];
+    cases.forEach(c=>{ eq(G.lzDecode(G.lzEncode(c)), c, "roundtrip len "+c.length); });
+  });
+  check("save codes are MUCH shorter than the old format", () => {
+    G.S.zombies=[]; for(let i=0;i<16;i++) G.S.zombies.push(mkz("voltz","V"+i,60,250,250));
+    G.S.zombies.forEach(z=>{ z.mut=[{label:"Flaming",col:"#e03c2e"},{label:"Speedy",col:"#ff8c2e"}]; });
+    const legacy=btoa(unescape(encodeURIComponent(JSON.stringify(G.S))));
+    const code=G.encodeSave();
+    ok(code.slice(0,5)==="ZFR2.", "new format");
+    ok(code.length < legacy.length*0.45, "at least 2.2x shorter: "+code.length+" vs "+legacy.length);
   });
 }
 

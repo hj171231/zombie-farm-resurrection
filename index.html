@@ -182,6 +182,19 @@ function seedRnd(i,k){ let h=(i*2654435761 + k*97531) >>> 0; h^=h<<13; h^=h>>>7;
 
 const ZNAMES = ["Grubbs","Mortimer","Squelch","Petunia","Boggart","Lurleen","Fester","Maude","Gristle","Norbert","Ophelia","Stumpy","Wanda","Cletus","Drools","Agnes","Bubba","Mildew","Rot-Rod","Gertie","Slouch","Percy","Nibbles","Hazel","Chomper","Doris","Grunkle","Sludge","Twitch","Beulah"];
 
+// every zombie deserves their OWN name — no duplicates while both live
+function uniqueZName(){
+  const used=new Set(S&&S.zombies?S.zombies.map(z=>z.name):[]);
+  const free=ZNAMES.filter(n=>!used.has(n));
+  if(free.length) return pick(free);
+  const RN=["II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII"];
+  for(const r of RN){
+    const c=ZNAMES.map(n=>n+" "+r).filter(n=>!used.has(n));
+    if(c.length) return pick(c);
+  }
+  return pick(ZNAMES)+" "+Math.floor(Math.random()*1000); // 400+ zombies deep? fine.
+}
+
 // ---------- content data ----------
 const CROPS = [
  {id:"carrot",   name:"Carrot",       cost:10,  time:25,   sell:15,   xp:1, unlock:1, col:"#ff8c2e", mut:{stat:"spd", amt:2,   label:"Speedy"}},
@@ -201,6 +214,7 @@ const ZTYPES = [
  {id:"headless", name:"Headless",  cost:250, brains:0, time:60,  pow:9,  hp:32, spd:0.9, unlock:3, col:"#79ab8f", shirt:"#8f5a4e", headless:true, desc:"Lost its head. Never lost a fight."},
  {id:"gardener", name:"Gardener",  cost:400, brains:0, time:45,  pow:2,  hp:16, spd:1.0, unlock:4, col:"#6fcf96", shirt:"#3e7a4e", hat:"straw", desc:"Fertilizes crops for DOUBLE gold. Weak fighter."},
  {id:"bruiser",  name:"Bruiser",   cost:750, brains:0, time:120, pow:15, hp:60, spd:0.7, unlock:6, col:"#9a8bc0", shirt:"#5c4a7a", big:true, desc:"Built like a barn door."},
+ {id:"sawbones", name:"Sawbones",  cost:0,   brains:1, time:90,  pow:3,  hp:20, spd:1.1, unlock:7, col:"#9ad0a8", shirt:"#f0ede2", hat:"toque", medic:true, desc:"Half doctor, all dead. Tends your wounded like a walking Gnarly Oak."},
  {id:"banshee",  name:"Banshee",   cost:1500,brains:0, time:180, pow:20, hp:45, spd:1.4, unlock:8, col:"#c3d3ea", shirt:"#7a8fb0", glow:true, desc:"Fast, furious, faintly glowing."},
  {id:"abom",     name:"Abomination",cost:0,  brains:2, time:200, pow:32, hp:110,spd:0.6, unlock:9, col:"#cf7d7d", shirt:"#6e3a3a", big:true, hulk:true, desc:"A premium pile of muscle. Costs brains."},
  {id:"digger",   name:"Grave Digger",cost:4000,brains:0,time:240, pow:24, hp:70, spd:0.9, unlock:11,col:"#a8b060", shirt:"#c8842e", hat:"hardhat", prop:"shovel", desc:"Hardhat blocks 30% of projectile damage."},
@@ -267,7 +281,7 @@ const GOALS = [
  {id:"rich250k",desc:"Hold 250,000 gold at once",    n:250000, stat:"goldbank", brains:5}
 ];
 
-const BUILD = "build 56 · 2026-07-12"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 57 · 2026-07-12"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -295,8 +309,8 @@ function freshState(){
     gold:200, brains:0, xp:0, level:1,
     tiles, zombies:[], lifeForce:0,
     lastInvade:0, muted:false,
-    stats:{plowed:0,crops:0,zombies:0,trees:0,wins:0,muts:0,apples:0,gmound:0,mallwin:0,moonwin:0,ferts:0,renames:0,doubles:0,garlics:0},
-    goalsDone:[], claimed:[], mutSeen:{}, pairSeen:{}, perfected:{}, lastHealAt:now(), created:now()
+    stats:{plowed:0,crops:0,zombies:0,trees:0,wins:0,muts:0,apples:0,gmound:0,mallwin:0,moonwin:0,ferts:0,renames:0,doubles:0,garlics:0,playSec:0,composted:0},
+    goalsDone:[], claimed:[], mutSeen:{}, pairSeen:{}, perfected:{}, lastHealAt:now(), lastCompost:0, created:now()
   };
 }
 // ---- horde management ----
@@ -330,6 +344,7 @@ function sanitizeState(raw){
   s.gold=num(raw.gold,s.gold); s.brains=num(raw.brains,s.brains);
   s.xp=num(raw.xp,s.xp); s.level=Math.max(1,Math.floor(num(raw.level,1)));
   s.lastInvade=num(raw.lastInvade,0); s.created=num(raw.created,s.created);
+  s.lastCompost=num(raw.lastCompost,0);
   s.lastHealAt=num(raw.lastHealAt,now());
   s.muted=!!raw.muted;
   if(Array.isArray(raw.tiles)){
@@ -722,7 +737,7 @@ function harvest(i){
       gold(val); addFloat(px,py,"Horde full! +"+val+"g","#ffe95c"); sfx.coin();
     } else {
       const zd = ZTYPES.find(z=>z.id===t.plant);
-      const z = { type:zd.id, name:pick(ZNAMES), pow:zd.pow, hp:zd.hp, maxhp:zd.hp, spd:zd.spd,
+      const z = { type:zd.id, name:uniqueZName(), pow:zd.pow, hp:zd.hp, maxhp:zd.hp, spd:zd.spd,
                   hunger:ri(20,45), x:px, y:py+TILE/2, tx:px, ty:py, wob:Math.random()*7, mut:[], kills:0 };
       let mutated=false;
       neighbors(i).forEach(ni=>{
@@ -834,6 +849,25 @@ function gardenerTick(){
   const p0=cellXY(idle.__fertTile);
   idle.tx=p0.x; idle.ty=p0.y; idle.__fieldUntil=now()+15000; // set off at once
   lastFert=now();
+}
+// Sawbones doctrine: walks to the strongest wounded zombie and heals them at
+// exactly the rate ONE Gnarly Oak's life force (10 LF) would — modest, mobile,
+// and it stacks with the grove.
+const MEDIC_RATE=0.5/((75-45*Math.sqrt(10/3600))*60); // fraction of maxhp per second
+function medicTick(dt){
+  const medics=S.zombies.filter(z=>z.type==="sawbones");
+  if(!medics.length) return;
+  medics.forEach(m=>{
+    const wounded=S.zombies.filter(z=>z!==m && z.hp<z.maxhp);
+    if(!wounded.length) return; // off duty — free to stroll
+    wounded.sort((a,b)=>b.pow-a.pow || b.maxhp-a.maxhp); // triage: strongest first
+    const t=wounded[0];
+    m.tx=t.x+TILE*0.35; m.ty=t.y; // hustle to the bedside
+    if(Math.hypot(m.x-t.x,m.y-t.y)<TILE*1.0){
+      t.hp=Math.min(t.maxhp, t.hp + t.maxhp*MEDIC_RATE*dt);
+      if(Math.random()<0.06) spawnParts(t.x,t.y-30,"#a8f0c0",2);
+    }
+  });
 }
 let lastHunger=0;
 function hungerTick(){
@@ -961,7 +995,12 @@ function hud(){
   else if(cd>0){ btn.disabled=true; btn.innerHTML="&#x2694;&#xFE0F; "+fmtTime(cd); }
   else { btn.disabled=false; btn.innerHTML="&#x2694;&#xFE0F; INVADE!"; }
 }
-setInterval(()=>{ if(S&&scene==="farm"){ hud(); checkGoals(); } },1000);
+setInterval(()=>{
+  if(S&&scene==="farm"){ hud(); checkGoals(); }
+  if(S&&(typeof document.visibilityState==="undefined"||document.visibilityState==="visible")){
+    S.stats.playSec=(S.stats.playSec||0)+1; // total screen time, for the Composter
+  }
+},1000);
 
 // ============================================================
 //  ART LIBRARY (all hand-drawn on canvas)
@@ -1318,7 +1357,7 @@ function drawTree(g,tr,x,y,s){
 function mutHas(muts,label){ return muts && muts.some(m=>m.label===label); }
 // ---- ART WAVE 2: character sprite kit (procedural art remains the fallback) ----
 const SPRITES={};
-const SPRITE_IDS={shambler:"shambler",mini:"miniz",headless:"headless",gardener:"gardener",bruiser:"bruiser",banshee:"banshee",abom:"abomination",digger:"gravedigger",jester:"jester",chef:"chef",gravemound:"gravemound",golden:"golden",voltz:"voltz"};
+const SPRITE_IDS={shambler:"shambler",mini:"miniz",headless:"headless",gardener:"gardener",bruiser:"bruiser",sawbones:"sawbones",banshee:"banshee",abom:"abomination",digger:"gravedigger",jester:"jester",chef:"chef",gravemound:"gravemound",golden:"golden",voltz:"voltz"};
 function spritePad(spr){
   try{
     const c=document.createElement("canvas");
@@ -3074,7 +3113,7 @@ function drawFarm(dt){
     items.push({y:p.y, f:function(){
       const t2=S.tiles[ii];
       if(t2.st==="tree"){ const tr=TREES.find(z=>z.id===t2.tree); drawTree(cx,tr,p.x,p.y+TH*0.15,TILE*0.62); }
-      else if(t2.st==="planted" && t2.kind==="crop"){ drawCropPlot(cx,t2,p.x,p.y-TILE*0.16,TILE); }
+      else if(t2.st==="planted" && t2.kind==="crop"){ drawCropPlot(cx,t2,p.x,p.y-TILE*0.05,TILE); }
       else if(t2.st==="planted"){
         const info=growthInfo(t2);
         drawGravestone(cx,p.x,p.y+TH*0.12,TILE*0.95,info.prog,performance.now()/300,ii);
@@ -3235,9 +3274,122 @@ function drawFarm(dt){
       }
     }
   }
+  // ---- the Composter arrives at dawn, once the farmer's put in an hour ----
+  if(__lastDark>0.3 && dp.dark<=0.02 && !COMPOST &&
+     (S.stats.playSec||0)>=3600 && now()-(S.lastCompost||0)>3600e3 && S.zombies.length){
+    COMPOST={phase:"in",t0:performance.now()};
+    S.lastCompost=now(); save();
+    sfx.tap();
+    toast("&#x1F69B; The Composter rumbles up the track!",2600);
+  }
+  __lastDark=dp.dark;
+  drawComposterTruck();
   const vg=cx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.45,W/2,H/2,Math.max(W,H)*0.75);
   vg.addColorStop(0,"rgba(0,0,0,0)"); vg.addColorStop(1,"rgba(10,20,5,.28)");
   cx.fillStyle=vg; cx.fillRect(0,0,W,H);
+}
+
+// ---------- the Composter: a dawn visitor for veteran farmers ----------
+let COMPOST=null, __lastDark=0;
+function compostOffer(z){
+  const zd=ZTYPES.find(t=>t.id===z.type)||{};
+  const baseGold = zd.cost>0 ? zd.cost : (zd.brains||0)*2500; // brains trade ~2500g
+  const mutBump = 1 + 0.15*((z.mut&&z.mut.length)||0);        // mutations sweeten the deal
+  const gold = Math.max(10,Math.round(baseGold*0.5*mutBump));
+  const xp = Math.round(gold/15) + (z.kills||0)*5;            // he pays extra for battle heroes
+  let brains=0;
+  if(z.mut&&z.mut.length===2){
+    const L=l=>z.mut.some(m=>m.label===l);
+    const legend=(L("Gourd-Headed")&&L("Flaming"))||(L("Sporified")&&L("Flaming"))||(L("All-Seeing")&&L("Gourd-Headed"));
+    if(legend) brains=(z.kills||0)>=5?2:1;                    // legends fetch brains
+  }
+  return {gold,xp,brains};
+}
+function openComposterMenu(){
+  openModal("&#x1F69B; The Composter");
+  $("mTabs").innerHTML="";
+  const b=$("mBody"); b.innerHTML="";
+  const p=document.createElement("p");
+  p.style.cssText="font-size:12.5px;opacity:.85;padding:4px 6px";
+  p.innerHTML="\"Got any stiffs past their prime? Fair gold, honest XP &mdash; and I pay <b>brains</b> for the legendary ones.\"";
+  b.appendChild(p);
+  if(!S.zombies.length){
+    const d=document.createElement("p"); d.style.cssText="padding:8px;text-align:center;opacity:.7";
+    d.innerHTML="An empty farm. He tips his cap and waits in the cab."; b.appendChild(d);
+    return;
+  }
+  S.zombies.slice().forEach(z=>{
+    const zd=zdefFor(z);
+    const row=document.createElement("div"); row.className="zrow";
+    row.appendChild(artCanvas((g,x,y,r)=>drawZombie(g,x,y+22,0.5,zd,z.mut,0.5,0,false,"idle")));
+    const txt=document.createElement("div"); txt.style.flex="1";
+    txt.innerHTML="<b style='color:#ffe9a8'>"+z.name+"</b> the "+zd.name+
+      (z.mut&&z.mut.length?"<br><span style='font-size:11px;opacity:.8'>"+z.mut.map(m=>m.label).join(" + ")+"</span>":"")+
+      ((z.kills||0)>0?"<br><span style='font-size:11px;color:#ffca5a'>"+z.kills+" battle kill"+(z.kills>1?"s":"")+"</span>":"");
+    row.appendChild(txt);
+    const off=compostOffer(z);
+    const btns=document.createElement("div"); btns.style.cssText="display:flex;flex-direction:column;gap:4px";
+    const takeIt=(kind,amt,label)=>{
+      if(!confirm("Compost "+z.name+" for "+label+"? No take-backs!")) return;
+      const ix=S.zombies.indexOf(z); if(ix<0) return;
+      S.zombies.splice(ix,1);
+      if(kind==="gold") gold(amt); else if(kind==="xp") gainXP(amt); else S.brains+=amt;
+      S.stats.composted=(S.stats.composted||0)+1;
+      sfx.pop(); hud(); save();
+      toast("&#x1F69B; "+z.name+" hops in the truck. Farewell!",2200);
+      openComposterMenu();
+    };
+    const mk=(label,fn,red)=>{ const bt=document.createElement("button"); bt.className="gbtn small"+(red?" red":""); bt.innerHTML=label; bt.onclick=fn; btns.appendChild(bt); };
+    mk(off.gold+" "+iconHTML(drawGoldMini),()=>takeIt("gold",off.gold,off.gold+" gold"));
+    mk(off.xp+" xp",()=>takeIt("xp",off.xp,off.xp+" xp"));
+    if(off.brains) mk(off.brains+" &#x1F9E0;",()=>takeIt("brains",off.brains,off.brains+" brain"+(off.brains>1?"s":"")),true);
+    row.appendChild(btns);
+    b.appendChild(row);
+  });
+}
+function drawComposterTruck(){
+  if(!COMPOST) return;
+  const g=cx, t=(performance.now()-COMPOST.t0)/1000;
+  const parkX=W*0.30, y=H*0.885, startX=-240;
+  let x=parkX;
+  if(COMPOST.phase==="in"){
+    const k=Math.min(1,t/3);
+    x=startX+(parkX-startX)*(1-Math.pow(1-k,2));
+    if(k>=1){ COMPOST.phase="parked"; COMPOST.t0=performance.now(); openComposterMenu(); }
+  } else if(COMPOST.phase==="parked"){
+    if($("shade")&&$("shade").classList&&!$("shade").classList.contains("open")&&(performance.now()-COMPOST.t0)>1500){
+      COMPOST.phase="out"; COMPOST.t0=performance.now();
+    }
+  } else { // out
+    const k=Math.min(1,t/3);
+    x=parkX+(startX-parkX)*k*k;
+    if(k>=1){ COMPOST=null; return; }
+  }
+  const bob=Math.sin(performance.now()/95)*1.3;
+  g.fillStyle="rgba(20,25,10,.3)";
+  g.beginPath(); g.ellipse(x,y+6,105,14,0,0,TAU); g.fill();
+  const sp=spriteGet("composter-truck");
+  if(sp&&sp.img){
+    const w2=225, h2=w2*(sp.h/sp.w);
+    g.drawImage(sp.img,x-w2/2,y-h2+4+bob,w2,h2);
+  } else {
+    // procedural stand-in until Claude Design's truck arrives
+    g.save(); g.translate(x,y+bob);
+    g.fillStyle="#5e7a4a"; g.beginPath(); g.roundRect(-95,-64,125,58,8); g.fill();     // dumpster bed
+    g.fillStyle="#4a6239"; g.beginPath(); g.roundRect(-95,-70,125,14,6); g.fill();     // lid
+    g.fillStyle="#8a6d3b"; g.beginPath(); g.roundRect(34,-52,58,46,7); g.fill();       // cab
+    g.fillStyle="#cfe6ff"; g.beginPath(); g.roundRect(44,-46,30,18,4); g.fill();       // windshield
+    outline(g,3); g.beginPath(); g.roundRect(-95,-64,125,58,8); g.stroke();
+    g.beginPath(); g.roundRect(34,-52,58,46,7); g.stroke();
+    g.fillStyle="#2a2430"; [[ -62],[8],[62]].forEach(w2=>{ blob(g,w2[0],0,13); });
+    g.fillStyle="#5a626e"; [[ -62],[8],[62]].forEach(w2=>{ blob(g,w2[0],0,6); });
+    g.strokeStyle="rgba(150,220,80,.7)"; g.lineWidth=2.4; // stink of commerce
+    for(let k2=0;k2<3;k2++){
+      const sy=-74-((performance.now()/40+k2*26)%34);
+      g.beginPath(); g.arc(-60+k2*24,sy,5,Math.PI*0.2,Math.PI*1.4); g.stroke();
+    }
+    g.restore();
+  }
 }
 
 // ---------- market / modals ----------
@@ -3395,16 +3547,73 @@ $("goalsBtn").onclick=()=>{
 // ---- save codes: deflate-compressed base64 ("ZFR1." prefix, ~5x shorter),
 // with the original uncompressed format still accepted on import so codes
 // copied before this build keep working ----
+// LZW with a fixed code width chosen per-message (header byte) — synchronous,
+// so the clipboard call stays inside the tap gesture, and JSON's repetitive
+// keys compress ~2-4x. Save codes: "ZFR2."+this.
+function lzEncode(str){
+  if(!str) return "";
+  const data=unescape(encodeURIComponent(str));
+  const dict=new Map(); for(let i=0;i<256;i++) dict.set(String.fromCharCode(i),i);
+  let next=256, w="";
+  const codes=[];
+  for(let i=0;i<data.length;i++){
+    const wc=w+data[i];
+    if(dict.has(wc)){ w=wc; continue; }
+    codes.push(dict.get(w));
+    if(next<65536) dict.set(wc,next++);
+    w=data[i];
+  }
+  if(w!=="") codes.push(dict.get(w));
+  let width=9; while((1<<width)<next) width++;
+  const out=[width];
+  let cur=0,bits=0;
+  for(const c of codes){
+    cur=cur*Math.pow(2,width)+c; bits+=width;
+    while(bits>=8){ bits-=8; out.push(Math.floor(cur/Math.pow(2,bits))&255); cur%=Math.pow(2,bits); }
+  }
+  if(bits>0) out.push(Math.floor(cur*Math.pow(2,8-bits))&255);
+  let bin=""; for(const b of out) bin+=String.fromCharCode(b);
+  return btoa(bin);
+}
+function lzDecode(b64){
+  if(!b64) return "";
+  const bin=atob(b64);
+  if(bin.length<2) return "";
+  const width=bin.charCodeAt(0);
+  if(width<9||width>17) throw new Error("bad width");
+  const codes=[];
+  let cur=0,bits=0;
+  for(let i=1;i<bin.length;i++){
+    cur=cur*256+bin.charCodeAt(i); bits+=8;
+    while(bits>=width){ bits-=width; codes.push(Math.floor(cur/Math.pow(2,bits))); cur%=Math.pow(2,bits); }
+  }
+  if(!codes.length) return "";
+  const dict=[]; for(let i=0;i<256;i++) dict[i]=String.fromCharCode(i);
+  let next=256, prev=dict[codes[0]];
+  if(prev===undefined) throw new Error("bad code");
+  const parts=[prev];
+  for(let i=1;i<codes.length;i++){
+    const c=codes[i];
+    let entry;
+    if(dict[c]!==undefined) entry=dict[c];
+    else if(c===next) entry=prev+prev[0]; // the classic kwkwk case
+    else throw new Error("bad code");
+    parts.push(entry);
+    if(next<65536) dict[next++]=prev+entry[0];
+    prev=entry;
+  }
+  return decodeURIComponent(escape(parts.join("")));
+}
 function encodeSave(){
-  // SYNCHRONOUS on purpose: the clipboard only works inside the tap gesture,
-  // and awaiting compression first made browsers (iOS especially) deny the
-  // copy. Plain base64 codes are longer but they always copy.
-  return btoa(unescape(encodeURIComponent(JSON.stringify(S))));
+  // SYNCHRONOUS on purpose: the clipboard only works inside the tap gesture.
+  return "ZFR2."+lzEncode(JSON.stringify(S));
 }
 async function decodeSave(code){
   code=String(code).replace(/\s+/g,""); // messengers and notes apps love inserting line breaks
   let raw;
-  if(code.slice(0,5)==="ZFR1."){
+  if(code.slice(0,5)==="ZFR2."){
+    raw=lzDecode(code.slice(5));
+  } else if(code.slice(0,5)==="ZFR1."){
     const u8=Uint8Array.from(atob(code.slice(5)),c=>c.charCodeAt(0));
     const st=new Blob([u8]).stream().pipeThrough(new DecompressionStream("deflate"));
     raw=await new Response(st).text();
@@ -4711,7 +4920,7 @@ function loop(ts){
   const dt=Math.min((ts-lastT)/1000,0.1); lastT=ts;
   if(S){
     if(scene==="farm"){
-      hungerTick(); gardenerTick(); healTick();
+      hungerTick(); gardenerTick(); medicTick(dt); healTick();
       cx.save(); camApply();          // world-space: everything zooms & pans together
       drawFarm(dt);
       drawFloats(dt); drawParts(dt); drawPops(dt); drawTapFX(dt);

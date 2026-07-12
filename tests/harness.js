@@ -44,7 +44,7 @@ globalThis.__game = {
   screenToWorld, zoomAt, resetCam, clampCam,
   get camZ(){ return camZ; }, set camZ(v){ camZ = v; },
   get camCX(){ return camCX; }, get camCY(){ return camCY; },
-  gardenerTick, hungerTick, healTick, SPRITES, preloadSprites,
+  gardenerTick, hungerTick, healTick, medicTick, uniqueZName, compostOffer, lzEncode, lzDecode, SPRITES, preloadSprites,
   // art (for visual smoke tests)
   drawSplash, drawFarm, drawBattle, drawZombie, drawZHead, drawProduce, drawCropPlot,
   drawTree, drawGravestone, iconDataURL,
