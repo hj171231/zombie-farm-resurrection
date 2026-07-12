@@ -1328,6 +1328,39 @@ console.log("\n== combo tracking (almanac pairs) ==");
   });
 }
 
+console.log("\n== rain-blessed soil ==");
+{
+  const { G } = boot();
+  check("a blessed plot grows crops at DOUBLE speed", () => {
+    G.S.gold = 1000;
+    forcePlot(G, 10);
+    G.S.blessed = { 10: Date.now() + 5 * 3600 * 1000 };
+    G.plantAt(10, "crop", "carrot"); // carrot: 25s
+    ok(G.S.tiles[10].boostUntil > Date.now(), "planting inherits the tile blessing");
+    backdate(G, 10, 13); // 13 real seconds = 26 boosted seconds
+    ok(G.growthInfo(G.S.tiles[10]).ready, "ripe in half the time");
+  });
+  check("banked boost never un-ripens when the blessing expires", () => {
+    forcePlot(G, 11);
+    G.plantAt(11, "crop", "carrot");
+    G.S.tiles[11].at = Date.now() - 13 * 1000;
+    G.S.tiles[11].boostUntil = Date.now() - 1; // blessing JUST expired — 13s were all blessed... 
+    // boosted seconds = (boostUntil - at) = ~13s banked -> el2 ~= 26s
+    ok(G.growthInfo(G.S.tiles[11]).ready, "the doubled seconds stay banked");
+  });
+  check("unblessed plots grow at normal speed", () => {
+    forcePlot(G, 12);
+    G.plantAt(12, "crop", "carrot");
+    backdate(G, 12, 13);
+    ok(!G.growthInfo(G.S.tiles[12]).ready, "13 of 25 seconds is not ripe");
+  });
+  check("blessings and boosts survive the save cycle", () => {
+    const s2 = G.sanitizeState(JSON.parse(JSON.stringify(G.S)));
+    ok(s2.blessed[10] > Date.now(), "tile blessing persists");
+    ok(s2.tiles[10].boostUntil > Date.now(), "plant boost persists");
+  });
+}
+
 console.log("\n== battle rewards & lightning charge ==");
 {
   const { G } = boot();

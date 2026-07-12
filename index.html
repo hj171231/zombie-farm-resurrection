@@ -282,7 +282,7 @@ const GOALS = [
  {id:"rich250k",desc:"Hold 250,000 gold at once",    n:250000, stat:"goldbank", brains:5}
 ];
 
-const BUILD = "build 59 · 2026-07-12"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 60 · 2026-07-12"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -311,7 +311,7 @@ function freshState(){
     tiles, zombies:[], lifeForce:0,
     lastInvade:0, muted:false,
     stats:{plowed:0,crops:0,zombies:0,trees:0,wins:0,muts:0,apples:0,gmound:0,mallwin:0,moonwin:0,ferts:0,renames:0,doubles:0,garlics:0,playSec:0,composted:0},
-    goalsDone:[], claimed:[], mutSeen:{}, pairSeen:{}, perfected:{}, lastHealAt:now(), lastCompost:0, nextRainAt:10800+Math.floor(Math.random()*7200), created:now()
+    goalsDone:[], claimed:[], mutSeen:{}, pairSeen:{}, perfected:{}, lastHealAt:now(), lastCompost:0, nextRainAt:10800+Math.floor(Math.random()*7200), blessed:{}, created:now()
   };
 }
 // ---- horde management ----
@@ -346,6 +346,12 @@ function sanitizeState(raw){
   s.xp=num(raw.xp,s.xp); s.level=Math.max(1,Math.floor(num(raw.level,1)));
   s.lastInvade=num(raw.lastInvade,0); s.created=num(raw.created,s.created);
   s.lastCompost=num(raw.lastCompost,0); s.nextRainAt=num(raw.nextRainAt,s.nextRainAt);
+  if(raw.blessed && typeof raw.blessed==="object"){
+    Object.keys(raw.blessed).forEach(k=>{
+      const i=Math.floor(Number(k)), v=raw.blessed[k];
+      if(i>=0 && i<GRID*GRID && typeof v==="number" && v>now()) s.blessed[i]=v;
+    });
+  }
   s.lastHealAt=num(raw.lastHealAt,now());
   s.muted=!!raw.muted;
   if(Array.isArray(raw.tiles)){
@@ -356,7 +362,7 @@ function sanitizeState(raw){
       else if(t.st==="planted"){
         const known = t.kind==="crop" ? CROPS.some(c=>c.id===t.plant)
                     : t.kind==="zombie" ? ZTYPES.some(z=>z.id===t.plant) : false;
-        s.tiles[i]= known ? {st:"planted",kind:t.kind,plant:t.plant,at:num(t.at,now()),fert:!!t.fert} : {st:"plot"};
+        s.tiles[i]= known ? {st:"planted",kind:t.kind,plant:t.plant,at:num(t.at,now()),fert:!!t.fert,boostUntil:num(t.boostUntil,0)} : {st:"plot"};
       }
       else if(t.st==="tree"){ s.tiles[i]= TREES.some(x=>x.id===t.tree) ? {st:"tree",tree:t.tree} : {st:"grass"}; }
     }
@@ -630,7 +636,11 @@ function neighbors(i){
 function growthInfo(t){
   const def = t.kind==="crop" ? CROPS.find(c=>c.id===t.plant) : ZTYPES.find(z=>z.id===t.plant);
   const el = (now()-t.at)/1000;
-  const p = clamp(el/def.time,0,11.999);
+  // rain-blessed soil: every second under the blessing counts twice, and the
+  // bonus is banked — expiry never un-ripens anything. Wilt runs on real time.
+  let el2=el;
+  if(t.boostUntil){ el2 += Math.max(0,(Math.min(now(),t.boostUntil)-t.at)/1000); }
+  const p = clamp(el2/def.time,0,11.999);
   // crops wither 12 real-world hours after ripening — the clock runs whether
   // the game is open or closed. Zombies never wither.
   return {def, el, prog:Math.min(p,1), ready:p>=1, wilted:(t.kind==="crop" && el>=def.time+WILT_AFTER)};
@@ -806,10 +816,12 @@ function plantAt(i, kind, id){
     if(S.gold<def.cost){toast("Not enough gold!");sfx.bad();return false;}
     gold(-def.cost);
     S.tiles[i]={st:"planted",kind:"crop",plant:id,at:now(),fert:false};
+    if(S.blessed&&S.blessed[i]>now()) S.tiles[i].boostUntil=S.blessed[i];
   } else if(kind==="zombie"){
     if(def.brains>0){ if(S.brains<def.brains){toast("Not enough brains! Win invasions to earn them.");sfx.bad();return false;} S.brains-=def.brains; }
     else { if(S.gold<def.cost){toast("Not enough gold!");sfx.bad();return false;} gold(-def.cost); }
     S.tiles[i]={st:"planted",kind:"zombie",plant:id,at:now(),fert:false};
+    if(S.blessed&&S.blessed[i]>now()) S.tiles[i].boostUntil=S.blessed[i];
   } else if(kind==="tree"){
     if(def.brains>0){ if(S.brains<def.brains){toast("Not enough brains!");sfx.bad();return false;} S.brains-=def.brains; }
     else { if(S.gold<def.cost){toast("Not enough gold!");sfx.bad();return false;} gold(-def.cost); }
@@ -1005,8 +1017,20 @@ setInterval(()=>{
   if(S&&scene==="farm"&&!RAIN&&(S.stats.playSec||0)>=(S.nextRainAt||Infinity)){
     RAIN={until:now()+ri(80,115)*1000, bolts:1+(Math.random()<0.5?1:0), nextBolt:now()+ri(12,35)*1000, flash:0, hit:null};
     S.nextRainAt=(S.stats.playSec||0)+10800+Math.floor(Math.random()*7200); // next storm in 3-5 played hours
+    // the rain soaks 1-2 tiles: 5 hours of DOUBLE growing speed on that soil
+    if(!S.blessed) S.blessed={};
+    Object.keys(S.blessed).forEach(k=>{ if(S.blessed[k]<=now()) delete S.blessed[k]; });
+    const cand=[]; S.tiles.forEach((t,i)=>{ if((t.st==="plot"||t.st==="planted")&&!S.blessed[i]) cand.push(i); });
+    if(!cand.length) S.tiles.forEach((t,i)=>{ if(t.st==="grass") cand.push(i); });
+    let nb=0;
+    for(let k=0;k<1+(Math.random()<0.5?1:0) && cand.length;k++){
+      const i=cand.splice(Math.floor(Math.random()*cand.length),1)[0];
+      S.blessed[i]=now()+5*3600*1000; nb++;
+      if(S.tiles[i].st==="planted") S.tiles[i].boostUntil=S.blessed[i];
+      const p=cellXY(i); addFloat(p.x,p.y-TH,"rain-blessed! 2x speed","#7adcff");
+    }
     save();
-    toast("&#x1F327;&#xFE0F; Storm clouds gather over the farm...",2800);
+    toast("&#x1F327;&#xFE0F; Storm clouds gather"+(nb?" &mdash; the rain blessed "+nb+" plot"+(nb>1?"s":"")+" with 5h of DOUBLE growing speed!":"..."),3400);
   }
 },1000);
 
@@ -3065,8 +3089,21 @@ function drawFarm(dt){
     const t=S.tiles[i], p=cellXY(i);
     if(t.st==="plot"||t.st==="planted"){
       // wave 4 tile sprites: full 2:1 diamonds, drawn edge-to-edge
-      const tp=spriteGet((t.st==="planted"&&t.fert)?"tile-plot-fert":"tile-plot");
-      if(tp&&tp.img){ cx.drawImage(tp.img,p.x-TW*0.49,p.y-TH*0.49,TW*0.98,TH*0.98); continue; }
+      const blessed=S.blessed&&S.blessed[i]>now();
+      const tp=spriteGet(blessed?"tile-plot-blessed":((t.st==="planted"&&t.fert)?"tile-plot-fert":"tile-plot"))||spriteGet((t.st==="planted"&&t.fert)?"tile-plot-fert":"tile-plot");
+      if(tp&&tp.img){
+        cx.drawImage(tp.img,p.x-TW*0.49,p.y-TH*0.49,TW*0.98,TH*0.98);
+        if(blessed && !SPRITES["tile-plot-blessed"]){ // procedural rain-sheen
+          cx.fillStyle="rgba(122,220,255,.18)";
+          diamond(cx,p.x,p.y,TW*0.94,TH*0.94); cx.fill();
+          for(let k2=0;k2<3;k2++){
+            const gl=0.4+Math.sin(performance.now()/500+i*2+k2*2.1)*0.35;
+            cx.fillStyle="rgba(190,235,255,"+gl+")";
+            blob(cx,p.x+(seedRnd(i,k2+3)-0.5)*TW*0.5,p.y+(seedRnd(i,k2+9)-0.5)*TH*0.5,1.8);
+          }
+        }
+        continue;
+      }
       cx.fillStyle=PAL.dirtMoist;
       diamond(cx,p.x,p.y,TW*0.94,TH*0.94); cx.fill();
       cx.strokeStyle="rgba(0,0,0,.3)"; cx.lineWidth=1.4;
