@@ -704,14 +704,14 @@ function mutationRoll(lifeForce, roll) {
   return G.S.zombies[0].mut.length;
 }
 {
-  check("mutation odds: 40% base with no trees (0.39 hits, 0.41 misses)", () => {
-    eq(mutationRoll(0, 0.39), 1);
-    eq(mutationRoll(0, 0.41), 0);
+  check("mutation odds: 8% base with no trees (0.07 hits, 0.09 misses)", () => {
+    eq(mutationRoll(0, 0.07), 1);
+    eq(mutationRoll(0, 0.09), 0);
   });
-  check("odds ladder anchors: 50 LF=50%, 600=70%, 1800=90%", () => {
-    eq(mutationRoll(50, 0.49), 1);  eq(mutationRoll(50, 0.51), 0);
-    eq(mutationRoll(600, 0.69), 1); eq(mutationRoll(600, 0.71), 0);
-    eq(mutationRoll(1800, 0.89), 1); eq(mutationRoll(1800, 0.91), 0);
+  check("odds ladder anchors: 50 LF=18%, 600=45%, 1800=75%", () => {
+    eq(mutationRoll(50, 0.17), 1);  eq(mutationRoll(50, 0.19), 0);
+    eq(mutationRoll(600, 0.44), 1); eq(mutationRoll(600, 0.46), 0);
+    eq(mutationRoll(1800, 0.74), 1); eq(mutationRoll(1800, 0.76), 0);
   });
   check("a lantern-tree fanatic (3600 LF) reaches GUARANTEED mutations", () => {
     eq(mutationRoll(3600, 0.999), 1);
@@ -719,11 +719,11 @@ function mutationRoll(lifeForce, roll) {
   });
   check("mutationChance interpolates exactly between anchors", () => {
     const { G } = boot();
-    G.S.lifeForce = 0;    ok(Math.abs(G.mutationChance() - 0.40) < 1e-9);
-    G.S.lifeForce = 25;   ok(Math.abs(G.mutationChance() - 0.45) < 1e-9);  // halfway 0->50
-    G.S.lifeForce = 325;  ok(Math.abs(G.mutationChance() - 0.60) < 1e-9);  // halfway 50->600
-    G.S.lifeForce = 1200; ok(Math.abs(G.mutationChance() - 0.80) < 1e-9);  // halfway 600->1800
-    G.S.lifeForce = 2700; ok(Math.abs(G.mutationChance() - 0.95) < 1e-9);  // halfway 1800->3600
+    G.S.lifeForce = 0;    ok(Math.abs(G.mutationChance() - 0.08) < 1e-9);
+    G.S.lifeForce = 25;   ok(Math.abs(G.mutationChance() - 0.13) < 1e-9);   // halfway 0->50
+    G.S.lifeForce = 325;  ok(Math.abs(G.mutationChance() - 0.315) < 1e-9);  // halfway 50->600
+    G.S.lifeForce = 1200; ok(Math.abs(G.mutationChance() - 0.60) < 1e-9);   // halfway 600->1800
+    G.S.lifeForce = 2700; ok(Math.abs(G.mutationChance() - 0.875) < 1e-9);  // halfway 1800->3600
     G.S.lifeForce = 3600; eq(G.mutationChance(), 1);
   });
   check("a wilted neighbor never gifts a mutation (even lucky roll)", () => {

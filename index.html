@@ -267,7 +267,7 @@ const GOALS = [
  {id:"rich250k",desc:"Hold 250,000 gold at once",    n:250000, stat:"goldbank", brains:5}
 ];
 
-const BUILD = "build 54 · 2026-07-12"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 55 · 2026-07-12"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -872,12 +872,12 @@ function healTick(){
 }
 
 // ---------- goals ----------
-// The hidden green math: mutation odds climb an exact user-tuned ladder —
-//   no trees 40% · a few oaks (50 LF) 50% · typical grove (600) 70%
-//   serious grove (1800) 90% · full grove (3600+) a guaranteed 100%
-// — linearly interpolated between anchors. Nobody sees these numbers;
-// they just feel the farm humming.
-const MUT_ODDS=[[0,0.40],[50,0.50],[600,0.70],[1800,0.90],[3600,1.00]];
+// Mutation odds ladder (retuned: treeless farms mutated far too easily) —
+//   no trees 8% · first oaks (50 LF) 18% · typical grove (600) 45%
+//   serious grove (1800) 75% · full grove (3600+) a guaranteed 100%
+// — linearly interpolated between anchors, PER adjacent ripening crop, so
+// surrounding a grave with crops still multiplies your chances.
+const MUT_ODDS=[[0,0.08],[50,0.18],[600,0.45],[1800,0.75],[3600,1.00]];
 function mutationChance(){
   const lf=Math.min(S.lifeForce,3600);
   for(let i=1;i<MUT_ODDS.length;i++){
