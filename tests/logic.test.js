@@ -704,13 +704,13 @@ function mutationRoll(lifeForce, roll) {
   return G.S.zombies[0].mut.length;
 }
 {
-  check("mutation odds: 8% base with no trees (0.07 hits, 0.09 misses)", () => {
-    eq(mutationRoll(0, 0.07), 1);
-    eq(mutationRoll(0, 0.09), 0);
+  check("mutation odds: 15% base with no trees (0.14 hits, 0.16 misses)", () => {
+    eq(mutationRoll(0, 0.14), 1);
+    eq(mutationRoll(0, 0.16), 0);
   });
-  check("odds ladder anchors: 50 LF=18%, 600=45%, 1800=75%", () => {
-    eq(mutationRoll(50, 0.17), 1);  eq(mutationRoll(50, 0.19), 0);
-    eq(mutationRoll(600, 0.44), 1); eq(mutationRoll(600, 0.46), 0);
+  check("odds ladder anchors: 50 LF=30%, 600=50%, 1800=75%", () => {
+    eq(mutationRoll(50, 0.29), 1);  eq(mutationRoll(50, 0.31), 0);
+    eq(mutationRoll(600, 0.49), 1); eq(mutationRoll(600, 0.51), 0);
     eq(mutationRoll(1800, 0.74), 1); eq(mutationRoll(1800, 0.76), 0);
   });
   check("a lantern-tree fanatic (3600 LF) reaches GUARANTEED mutations", () => {
@@ -719,10 +719,10 @@ function mutationRoll(lifeForce, roll) {
   });
   check("mutationChance interpolates exactly between anchors", () => {
     const { G } = boot();
-    G.S.lifeForce = 0;    ok(Math.abs(G.mutationChance() - 0.08) < 1e-9);
-    G.S.lifeForce = 25;   ok(Math.abs(G.mutationChance() - 0.13) < 1e-9);   // halfway 0->50
-    G.S.lifeForce = 325;  ok(Math.abs(G.mutationChance() - 0.315) < 1e-9);  // halfway 50->600
-    G.S.lifeForce = 1200; ok(Math.abs(G.mutationChance() - 0.60) < 1e-9);   // halfway 600->1800
+    G.S.lifeForce = 0;    ok(Math.abs(G.mutationChance() - 0.15) < 1e-9);
+    G.S.lifeForce = 25;   ok(Math.abs(G.mutationChance() - 0.225) < 1e-9);  // halfway 0->50
+    G.S.lifeForce = 325;  ok(Math.abs(G.mutationChance() - 0.40) < 1e-9);   // halfway 50->600
+    G.S.lifeForce = 1200; ok(Math.abs(G.mutationChance() - 0.625) < 1e-9);  // halfway 600->1800
     G.S.lifeForce = 2700; ok(Math.abs(G.mutationChance() - 0.875) < 1e-9);  // halfway 1800->3600
     G.S.lifeForce = 3600; eq(G.mutationChance(), 1);
   });
