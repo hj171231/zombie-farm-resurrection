@@ -214,7 +214,7 @@ const ZTYPES = [
  {id:"headless", name:"Headless",  cost:250, brains:0, time:60,  pow:9,  hp:32, spd:0.9, unlock:3, col:"#79ab8f", shirt:"#8f5a4e", headless:true, desc:"Lost its head. Never lost a fight."},
  {id:"gardener", name:"Gardener",  cost:400, brains:0, time:45,  pow:2,  hp:16, spd:1.0, unlock:4, col:"#6fcf96", shirt:"#3e7a4e", hat:"straw", desc:"Fertilizes crops for DOUBLE gold. Weak fighter."},
  {id:"bruiser",  name:"Bruiser",   cost:750, brains:0, time:120, pow:15, hp:60, spd:0.7, unlock:6, col:"#9a8bc0", shirt:"#5c4a7a", big:true, desc:"Built like a barn door."},
- {id:"sawbones", name:"Sawbones",  cost:0,   brains:1, time:90,  pow:3,  hp:20, spd:1.1, unlock:7, col:"#9ad0a8", shirt:"#f0ede2", hat:"toque", medic:true, desc:"Half doctor, all dead. Tends your wounded like a walking Gnarly Oak."},
+ {id:"sawbones", name:"Patches",   cost:0,   brains:1, time:90,  pow:3,  hp:20, spd:1.1, unlock:7, col:"#9ad0a8", shirt:"#f0ede2", hat:"toque", medic:true, desc:"Half doctor, all dead. Tends your wounded like a walking Gnarly Oak."},
  {id:"banshee",  name:"Banshee",   cost:1500,brains:0, time:180, pow:20, hp:45, spd:1.4, unlock:8, col:"#c3d3ea", shirt:"#7a8fb0", glow:true, desc:"Fast, furious, faintly glowing."},
  {id:"abom",     name:"Abomination",cost:0,  brains:2, time:200, pow:32, hp:110,spd:0.6, unlock:9, col:"#cf7d7d", shirt:"#6e3a3a", big:true, hulk:true, desc:"A premium pile of muscle. Costs brains."},
  {id:"digger",   name:"Grave Digger",cost:4000,brains:0,time:240, pow:24, hp:70, spd:0.9, unlock:11,col:"#a8b060", shirt:"#c8842e", hat:"hardhat", prop:"shovel", desc:"Hardhat blocks 30% of projectile damage."},
@@ -222,7 +222,7 @@ const ZTYPES = [
  {id:"jester",   name:"Jester",    cost:7500,brains:0, time:300, pow:18, hp:50, spd:1.6, unlock:13,col:"#8fd8b8", shirt:"#7a3a9e", hat:"jester", motley:true, desc:"Confuses defenders &mdash; they throw much slower."},
  {id:"gravemound",name:"Gravemound",cost:0,  brains:10, time:600, pow:55, hp:220,spd:0.5, unlock:19,col:"#7a9a6a", shirt:"#4e5e42", big:true, colossus:true, desc:"A walking hillside. The ground remembers him."},
  {id:"golden",   name:"Golden Shambler",cost:10000,brains:0,time:60, pow:26, hp:90, spd:1.3, unlock:1, col:"#e8c84a", shirt:"#b8912e", plaid:true, glow:true, secret:true, desc:"A legend in solid gold. Earned, never found."},
- {id:"voltz",    name:"Voltz",     cost:0,  brains:15, time:900, pow:60, hp:250,spd:1.0, unlock:26,col:"#9ab8a2", shirt:"#5a6672", big:true, robo:true, desc:"Half corpse, half chrome. ERROR 404: pain not found."}
+ {id:"voltz",    name:"Voltz",     cost:0,  brains:15, time:900, pow:60, hp:250,spd:1.0, unlock:24,col:"#9ab8a2", shirt:"#5a6672", big:true, robo:true, desc:"Half corpse, half chrome. ERROR 404: pain not found."}
 ];
 const TREES = [
  {id:"oak",    name:"Gnarly Oak",   cost:250, brains:0, lf:10, unlock:2, col:"#4e8a2e"},
@@ -265,7 +265,8 @@ const GOALS = [
  {id:"zoo6",    desc:"Keep 6 different zombie types at once", n:6, stat:"zoo", xp:250},
  {id:"brainy5", desc:"Hold 5 brains at once",      n:5,  stat:"brainbank", xp:200},
  {id:"rich50k", desc:"Hold 50,000 gold at once",   n:50000, stat:"goldbank", brains:1},
- {id:"combo3",  desc:"Raise 3 double-mutation zombies", n:3, stat:"doubles", brains:1, secretUnlock:true},
+ {id:"combo3",  desc:"Raise 3 double-mutation zombies", n:3, stat:"doubles", brains:1},
+ {id:"combo22", desc:"Raise 22 different mutation combos (40% of the almanac)", n:22, stat:"combokinds", brains:2, secretUnlock:true},
  {id:"allmut",  desc:"Discover all 10 mutations",  n:10, stat:"mutkinds",  brains:3},
  {id:"wins25",  desc:"Win 25 invasions",           n:25, stat:"wins",      brains:2},
  {id:"lunar3",  desc:"Conquer the Lunar Lab 3 times", n:3, stat:"moonwin", gold:30000, xp:500},
@@ -281,7 +282,7 @@ const GOALS = [
  {id:"rich250k",desc:"Hold 250,000 gold at once",    n:250000, stat:"goldbank", brains:5}
 ];
 
-const BUILD = "build 58 · 2026-07-12"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 59 · 2026-07-12"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -310,7 +311,7 @@ function freshState(){
     tiles, zombies:[], lifeForce:0,
     lastInvade:0, muted:false,
     stats:{plowed:0,crops:0,zombies:0,trees:0,wins:0,muts:0,apples:0,gmound:0,mallwin:0,moonwin:0,ferts:0,renames:0,doubles:0,garlics:0,playSec:0,composted:0},
-    goalsDone:[], claimed:[], mutSeen:{}, pairSeen:{}, perfected:{}, lastHealAt:now(), lastCompost:0, created:now()
+    goalsDone:[], claimed:[], mutSeen:{}, pairSeen:{}, perfected:{}, lastHealAt:now(), lastCompost:0, nextRainAt:10800+Math.floor(Math.random()*7200), created:now()
   };
 }
 // ---- horde management ----
@@ -344,7 +345,7 @@ function sanitizeState(raw){
   s.gold=num(raw.gold,s.gold); s.brains=num(raw.brains,s.brains);
   s.xp=num(raw.xp,s.xp); s.level=Math.max(1,Math.floor(num(raw.level,1)));
   s.lastInvade=num(raw.lastInvade,0); s.created=num(raw.created,s.created);
-  s.lastCompost=num(raw.lastCompost,0);
+  s.lastCompost=num(raw.lastCompost,0); s.nextRainAt=num(raw.nextRainAt,s.nextRainAt);
   s.lastHealAt=num(raw.lastHealAt,now());
   s.muted=!!raw.muted;
   if(Array.isArray(raw.tiles)){
@@ -370,7 +371,7 @@ function sanitizeState(raw){
           pow:num(z.pow,zd.pow), hp:num(z.hp,zd.hp), maxhp:num(z.maxhp,zd.hp), spd:num(z.spd,zd.spd),
           hunger:num(z.hunger,30), x:z.x, y:z.y, tx:z.tx, ty:z.ty, wob:num(z.wob,0),
           mut:Array.isArray(z.mut)?z.mut.filter(m=>m&&typeof m.label==="string").slice(0,2):[],
-          awakened:!!z.awakened,
+          awakened:!!z.awakened, charged:!!z.charged,
           kills:num(z.kills,0) };
       });
   }
@@ -800,7 +801,7 @@ function plantAt(i, kind, id){
             : kind==="zombie" ? ZTYPES.find(x=>x.id===id)
             : kind==="tree" ? TREES.find(x=>x.id===id) : null;
   if(!def || S.level<def.unlock) return false;
-  if(def.secret && !S.goalsDone.includes("combo3")) return false; // mystery stays a mystery
+  if(def.secret && !S.goalsDone.includes("combo22")) return false; // mystery stays a mystery
   if(kind==="crop"){
     if(S.gold<def.cost){toast("Not enough gold!");sfx.bad();return false;}
     gold(-def.cost);
@@ -959,6 +960,7 @@ function goalProgress(g){
     case "hordesize": return S.zombies.length;
     case "zoo": return new Set(S.zombies.map(z=>z.type)).size;
     case "mutkinds": return Object.keys(S.mutSeen||{}).length;
+    case "combokinds": return Object.keys(S.pairSeen||{}).length;
     case "perfect": return Object.keys(S.perfected||{}).length;
     default: return S.stats[g.stat]||0;
   }
@@ -998,7 +1000,13 @@ function hud(){
 setInterval(()=>{
   if(S&&scene==="farm"){ hud(); checkGoals(); }
   if(S&&(typeof document.visibilityState==="undefined"||document.visibilityState==="visible")){
-    S.stats.playSec=(S.stats.playSec||0)+1; // total screen time, for the Composter
+    S.stats.playSec=(S.stats.playSec||0)+1; // total screen time (Composter + weather)
+  }
+  if(S&&scene==="farm"&&!RAIN&&(S.stats.playSec||0)>=(S.nextRainAt||Infinity)){
+    RAIN={until:now()+ri(80,115)*1000, bolts:1+(Math.random()<0.5?1:0), nextBolt:now()+ri(12,35)*1000, flash:0, hit:null};
+    S.nextRainAt=(S.stats.playSec||0)+10800+Math.floor(Math.random()*7200); // next storm in 3-5 played hours
+    save();
+    toast("&#x1F327;&#xFE0F; Storm clouds gather over the farm...",2800);
   }
 },1000);
 
@@ -3162,6 +3170,7 @@ function drawFarm(dt){
       const zd=zdefFor(z);
       const sc=TILE/66;
       drawZombie(cx,z.x,z.y,sc,zd,z.mut,z.wob,nameHash(z.name),z.hunger>=40,undefined,z.__face);
+      if(z.charged && Math.random()<0.06) spawnParts(z.x+rnd(-14,14),z.y-40*sc-rnd(0,26),"#ffe97a",1);
       if(z.yellUntil && now()<z.yellUntil){
         // speech bubble: "BRAINS!"
         const yx=z.x+20*sc, yy=z.y-80*sc+Math.sin(performance.now()/120)*2;
@@ -3284,9 +3293,62 @@ function drawFarm(dt){
   }
   __lastDark=dp.dark;
   drawComposterTruck();
+  if(RAIN) drawRain();
   const vg=cx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.45,W/2,H/2,Math.max(W,H)*0.75);
   vg.addColorStop(0,"rgba(0,0,0,0)"); vg.addColorStop(1,"rgba(10,20,5,.28)");
   cx.fillStyle=vg; cx.fillRect(0,0,W,H);
+}
+
+// ---------- rain: a rare storm that supercharges a lucky zombie ----------
+let RAIN=null;
+function drawRain(){
+  const g=cx, t=performance.now();
+  if(now()>RAIN.until && RAIN.flash<=0){ RAIN=null; return; }
+  // gloom settles over everything
+  g.fillStyle="rgba(40,52,84,.22)"; g.fillRect(0,0,W,H);
+  // storm clouds crawling along the top (sprite-first)
+  const cl=spriteGet("sky-storm-cloud");
+  for(let k=0;k<3;k++){
+    const xx=((t/1000*(9+k*4)+k*380)%(W+460))-230, yy=H*(0.05+k*0.045);
+    if(cl&&cl.img){ g.save(); g.globalAlpha=0.92; g.drawImage(cl.img,xx-140,yy-40,280,120); g.restore(); }
+    else{ g.fillStyle="rgba(66,76,102,.85)"; blob(g,xx,yy,46); blob(g,xx+44,yy+10,36); blob(g,xx-42,yy+11,32); }
+  }
+  // the rain (sprite streak texture optional; procedural reads great)
+  g.strokeStyle="rgba(180,205,255,.42)"; g.lineWidth=1.6;
+  for(let k=0;k<95;k++){
+    const rx=((k*137+t*0.5)%(W+60))-30;
+    const ry=((k*89+t*0.95)%(H+60))-30;
+    g.beginPath(); g.moveTo(rx,ry); g.lineTo(rx-4,ry+15); g.stroke();
+  }
+  // lightning: 1-2 strikes per storm, each blessing one random zombie
+  if(now()<RAIN.until && RAIN.bolts>0 && now()>=RAIN.nextBolt && S.zombies.length){
+    RAIN.bolts--; RAIN.nextBolt=now()+ri(20,45)*1000;
+    const cand=S.zombies.filter(z=>!z.charged);
+    if(cand.length){
+      const z=pick(cand); z.charged=true;
+      RAIN.hit={x:z.x,y:z.y}; RAIN.flash=1;
+      spawnParts(z.x,z.y-30,"#ffe97a",16); sfx.brain();
+      toast("&#x26A1; <b>"+z.name+"</b> is SUPERCHARGED &mdash; DOUBLE POWER for their next battle!",3400);
+      save();
+    }
+  }
+  if(RAIN.flash>0){
+    if(RAIN.hit){
+      const bs=spriteGet("fx-lightning");
+      const bx=RAIN.hit.x, by=RAIN.hit.y;
+      g.save(); g.globalAlpha=Math.min(1,RAIN.flash*1.5);
+      if(bs&&bs.img){ const h2=by, w2=h2*(bs.w/bs.h); g.drawImage(bs.img,bx-w2/2,0,w2,h2); }
+      else{
+        g.strokeStyle="#ffe97a"; g.lineWidth=5; g.lineCap="round";
+        g.beginPath(); let yy=0,xx=bx+rnd(-8,8); g.moveTo(xx,0);
+        for(let seg=0;seg<5;seg++){ yy+=by/5; xx+=rnd(-26,26); g.lineTo(xx,Math.min(yy,by)); }
+        g.stroke();
+      }
+      g.restore();
+    }
+    g.fillStyle="rgba(255,255,255,"+(RAIN.flash*0.45)+")"; g.fillRect(0,0,W,H);
+    RAIN.flash-=0.055;
+  }
 }
 
 // ---------- the Composter: a dawn visitor for veteran farmers ----------
@@ -3427,7 +3489,7 @@ function openMarket(targetTile){
 function renderMarket(tab){
   const b=$("mBody"); b.innerHTML="";
   let list = tab===0?CROPS : tab===1?ZTYPES : TREES;
-  list = list.filter(item=>!item.secret || S.goalsDone.includes("combo3"));
+  list = list.filter(item=>!item.secret || S.goalsDone.includes("combo22"));
   list.forEach(item=>{
     const locked = S.level<item.unlock;
     const div=document.createElement("div"); div.className="shopitem"+(locked?" locked":"");
@@ -3931,7 +3993,7 @@ function openSquadPicker(target){
     row.appendChild(artCanvas((g,x,y,r)=>drawZombie(g,x,y+22,0.5,zd,z.mut,0.5,0,false,"idle")));
     const txt=document.createElement("div"); txt.style.flex="1";
     const hungry = z.hunger>=70?"STARVING":z.hunger>=40?"peckish":"content";
-    txt.innerHTML="<b style='color:#ffe9a8'>"+z.name+"</b> the "+zd.name+"<br>PWR "+z.pow+" &middot; HP "+Math.ceil(z.hp)+"/"+z.maxhp+" &middot; "+hungry;
+    txt.innerHTML="<b style='color:#ffe9a8'>"+z.name+"</b> the "+zd.name+(z.charged?" <span style='color:#ffe97a'>&#x26A1;x2</span>":"")+"<br>PWR "+z.pow+" &middot; HP "+Math.ceil(z.hp)+"/"+z.maxhp+" &middot; "+hungry;
     row.appendChild(txt);
     row.onclick=()=>{
       const count=squadSel.filter(Boolean).length;
@@ -3972,7 +4034,7 @@ function startBattle(target, squadIdxs){
     squad, sent:new Set(), actives:[], brawlers:[], nextBrawl:rnd(4,7),
     sendCount:0, nextSendAt:0,
     projectiles:[], lastThrow:0, benchRects:[],
-    result:null, deaths:[], goldWon:0, brainWon:false,
+    result:null, deaths:[], goldWon:0, xpWon:0, brainWon:false,
     shake:0
   };
   scene="battle";
@@ -3987,7 +4049,8 @@ function sendZombie(k){
   // ONE tap, ONE zombie, ZERO stalling: tap the card and they charge
   // straight into the fight. Hunger still matters — it feeds the damage
   // bonus — but nobody stops to daydream anymore.
-  const a={z, slot, x:-40, y:H*0.68-slot*10, state:"march", bubbleT:0, atkT:0};
+  const a={z, slot, x:-40, y:H*0.68-slot*10, state:"march", bubbleT:0, atkT:0, charged:!!z.charged};
+  if(z.charged){ z.charged=false; addFloat(W*0.2,H*0.5,"&#x26A1; SUPERCHARGED!","#ffe97a"); } // one battle, then it's spent
   B.sent.add(z); B.actives.push(a); sfx.zomb();
   B.sendCount++;
   if(B.sendCount>=FREE_SENDS) B.nextSendAt=B.t+SEND_COOLDOWN;
@@ -4041,7 +4104,7 @@ function updateBattle(dt){
       if(a.atkT>0.7){
         a.atkT=0;
         const hungerBonus = 1 + a.z.hunger/150;
-        const dmg=a.z.pow*hungerBonus*rnd(0.8,1.2);
+        const dmg=a.z.pow*(a.charged?2:1)*hungerBonus*rnd(0.8,1.2);
         B.hp-=dmg; B.shake=1; sfx.chomp();
         spawnParts(targX-30+rnd(-10,10), H*0.6, "#9a8a7a", 5);
         addFloat(targX, H*0.5, "-"+Math.round(dmg), "#ff8a6a");
@@ -4134,13 +4197,14 @@ function updateBattle(dt){
 function endBattle(won){
   const target=B.target;
   if(won){
-    B.goldWon=ri(target.gold[0],target.gold[1]);
+    B.goldWon=Math.round(ri(target.gold[0],target.gold[1])*0.5); // raiding pays half in gold now...
+    B.xpWon=Math.round(B.goldWon/6)+10+target.id*8;               // ...and properly in experience
     B.brainWon=Math.random()<target.brain;
     S.stats.wins++; sfx.win();
     gold(B.goldWon);
     if(B.brainWon){ S.brains++; sfx.brain(); }
     for(let k=0;k<26;k++) parts.push({x:W/2+rnd(-70,70),y:H*0.3,vx:rnd(-130,130),vy:rnd(-230,-40),g:300,life:rnd(.8,1.5),t:0,r:rnd(2,4.2),col:pick(["#ffd94d","#b7e05c","#7ab8e0","#e07ab8"])});
-    gainXP(8+target.id*6);
+    gainXP(B.xpWon);
     if(target.scen==="mall") S.stats.mallwin++;
     if(target.scen==="moon") S.stats.moonwin++;
     // Chef trait: a surviving chef cooks a victory feast — everyone heals double
@@ -4868,7 +4932,7 @@ function drawBattle(dt){
     cx.font="17px 'Luckiest Guy','Arial Rounded MT Bold','Comic Sans MS',sans-serif"; cx.fillStyle="#fff";
     let ly=H*0.44;
     if(B.result==="win"){
-      cx.fillText("Loot: "+B.goldWon+" gold", W/2, ly); ly+=28;
+      cx.fillText("Loot: "+B.goldWon+" gold  +"+(B.xpWon||0)+" xp", W/2, ly); ly+=28;
       if(B.brainWon){
         // drawn brain trophy
         const bx3=W/2, by3=ly+8;

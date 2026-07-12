@@ -911,9 +911,9 @@ console.log("\n== PERFECTED mutations ==");
 console.log("\n== content pack: data ==");
 {
   const { G } = boot();
-  check("content counts: 10 crops, 14 zombies (1 secret), 5 trees, 8 targets, 37 goals", () => {
+  check("content counts: 10 crops, 14 zombies (1 secret), 5 trees, 8 targets, 38 goals", () => {
     eq(G.CROPS.length, 10); eq(G.ZTYPES.length, 14);
-    eq(G.TREES.length, 5); eq(G.TARGETS.length, 8); eq(G.GOALS.length, 37);
+    eq(G.TREES.length, 5); eq(G.TARGETS.length, 8); eq(G.GOALS.length, 38);
   });
   check("crop grow times are the approved nice numbers", () => {
     const want = [25, 50, 100, 200, 330, 540, 780, 1320, 1980, 3000];
@@ -1087,13 +1087,18 @@ console.log("\n== new goals & the mystery ==");
     ok(G.S.goalsDone.includes("rich50k"));
     eq(G.S.brains, 5 + 1, "rich50k pays a brain");
   });
-  check("the Golden Shambler stays secret until 3 double-mutants raised", () => {
+  check("the Golden Shambler stays secret until 22 combos raised (40% almanac)", () => {
     forcePlot(G, 5); G.S.gold = 100000;
-    ok(G.plantAt(5, "zombie", "golden") === false, "locked before the goal");
-    G.S.stats.doubles = 3;
+    G.S.stats.doubles = 3; G.checkGoals(); // old trigger no longer unlocks him
+    ok(G.plantAt(5, "zombie", "golden") === false, "locked before the combo22 goal");
+    const labels = G.CROPS.map(c => c.mut.label);
+    G.S.pairSeen = {};
+    let n = 0;
+    for (let i = 0; i < labels.length && n < 22; i++)
+      for (let j = i + 1; j < labels.length && n < 22; j++) { G.S.pairSeen[[labels[i], labels[j]].sort().join(" + ")] = 1; n++; }
     G.checkGoals();
-    ok(G.S.goalsDone.includes("combo3"));
-    ok(G.plantAt(5, "zombie", "golden") === true, "unlocked after the goal");
+    ok(G.S.goalsDone.includes("combo22"));
+    ok(G.plantAt(5, "zombie", "golden") === true, "unlocked at 40% of the almanac");
   });
   check("zoo goal counts distinct zombie types", () => {
     ["shambler","mini","headless","gardener","bruiser","banshee"].forEach(t=>{
@@ -1320,6 +1325,43 @@ console.log("\n== combo tracking (almanac pairs) ==");
   check("squad picker cap is 5", () => {
     const { G } = boot();
     eq(G.SQUAD_MAX, 5);
+  });
+}
+
+console.log("\n== battle rewards & lightning charge ==");
+{
+  const { G } = boot();
+  check("invasion pays half gold + real XP now", () => {
+    traitArmy(G, "shambler", 6);
+    const xp0=G.S.xp, lvl0=G.S.level;
+    G.startBattle(G.TARGETS[0]);
+    G.B.hp = 0; G.updateBattle(0.01);
+    const tg=G.TARGETS[0];
+    ok(G.B.goldWon >= Math.round(tg.gold[0]*0.5) && G.B.goldWon <= Math.round(tg.gold[1]*0.5), "gold halved: "+G.B.goldWon);
+    eq(G.B.xpWon, Math.round(G.B.goldWon/6)+10, "xp formula (target 0)");
+    ok(G.S.xp>xp0 || G.S.level>lvl0, "xp actually granted");
+  });
+  check("a lightning charge doubles power for ONE battle, then it's spent", () => {
+    traitArmy(G, "bruiser", 6);
+    G.S.zombies[0].charged = true;
+    G.startBattle(G.TARGETS[0]);
+    G.sendZombie(0);
+    ok(G.B.actives[0].charged === true, "charge rides into battle");
+    ok(G.S.zombies[0].charged === false, "and is consumed on send");
+    // march to the wall, then land one hit with a pinned roll
+    const a=G.B.actives[0]; a.state="attack"; a.atkT=10;
+    a.z.hunger=0;
+    const restore=G.setRandom(()=>0.5); // rnd(0.8,1.2) -> 1.0
+    const hp0=G.B.hp;
+    G.updateBattle(0.011);
+    restore();
+    ok(Math.abs((hp0-G.B.hp) - a.z.pow*2) < 0.01, "double damage landed: "+(hp0-G.B.hp));
+  });
+  check("charged flag survives the save cycle", () => {
+    G.S.zombies=[{type:"mini",name:"Zap",pow:3,hp:12,maxhp:12,spd:1,hunger:0,mut:[],kills:0,charged:true,x:0,y:0,tx:0,ty:0,wob:0}];
+    const s2=G.sanitizeState(JSON.parse(JSON.stringify(G.S)));
+    ok(s2.zombies[0].charged===true);
+    ok(typeof s2.nextRainAt==="number" && s2.nextRainAt>0, "storm clock persists");
   });
 }
 
