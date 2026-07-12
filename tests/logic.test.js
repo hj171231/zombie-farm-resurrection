@@ -911,8 +911,8 @@ console.log("\n== PERFECTED mutations ==");
 console.log("\n== content pack: data ==");
 {
   const { G } = boot();
-  check("content counts: 10 crops, 12 zombies (1 secret), 5 trees, 8 targets, 37 goals", () => {
-    eq(G.CROPS.length, 10); eq(G.ZTYPES.length, 12);
+  check("content counts: 10 crops, 13 zombies (1 secret), 5 trees, 8 targets, 37 goals", () => {
+    eq(G.CROPS.length, 10); eq(G.ZTYPES.length, 13);
     eq(G.TREES.length, 5); eq(G.TARGETS.length, 8); eq(G.GOALS.length, 37);
   });
   check("crop grow times are the approved nice numbers", () => {
@@ -926,7 +926,7 @@ console.log("\n== content pack: data ==");
     eq(JSON.stringify(G.CROPS.map(c => c.sell)), JSON.stringify(wantSell));
   });
   check("zombie & tree price ladders (build 48 pricing decree)", () => {
-    const wantZ = [50, 100, 250, 400, 750, 1500, 0, 4000, 7500, 0, 10000, 0];
+    const wantZ = [50, 100, 250, 400, 750, 1500, 0, 4000, 7500, 0, 10000, 0, 0];
     eq(JSON.stringify(G.ZTYPES.map(z => z.cost)), JSON.stringify(wantZ));
     eq(JSON.stringify(G.TREES.map(t => t.cost)), JSON.stringify([250, 750, 0, 2000, 0]));
   });
@@ -941,6 +941,7 @@ console.log("\n== content pack: data ==");
   check("premium brains pricing: Lantern 5, Gravemound 10, Chef 5, Abom 2, Spooky 2", () => {
     eq(G.TREES.find(t => t.id === "lantern").brains, 5);
     eq(G.ZTYPES.find(z => z.id === "gravemound").brains, 10);
+    eq(G.ZTYPES.find(z => z.id === "voltz").brains, 15);
     eq(G.ZTYPES.find(z => z.id === "chef").brains, 5);
     eq(G.ZTYPES.find(z => z.id === "abom").brains, 2);
     eq(G.TREES.find(t => t.id === "spooky").brains, 2);
@@ -1236,8 +1237,8 @@ function injuredHorde(lifeForce) {
     G.healTick(); G.healTick();
     eq(G.S.zombies[0].hp, 110, "wounded zombie must stay wounded without trees");
   });
-  const healRate = (lf) => 220 * 0.5 / ((25 - 15 * Math.sqrt(Math.min(lf, 3600) / 3600)) * 12);
-  check("a sliver of life force heals near the ~25-minute half-health rate", () => {
+  const healRate = (lf) => 220 * 0.5 / ((75 - 45 * Math.sqrt(Math.min(lf, 3600) / 3600)) * 12);
+  check("a sliver of life force heals near the ~75-minute half-health rate", () => {
     const G = injuredHorde(10);
     G.healTick();
     ok(Math.abs((G.S.zombies[0].hp - 110) - healRate(10)) < 0.001);
@@ -1248,14 +1249,14 @@ function injuredHorde(lifeForce) {
     ok(g600.S.zombies[0].hp > g300.S.zombies[0].hp, "more trees = faster mending");
     ok(Math.abs((g600.S.zombies[0].hp - 110) - healRate(600)) < 0.001, "matches the grove curve");
   });
-  check("a full 3600-LF grove hits the 10-minute floor, never faster", () => {
+  check("a full 3600-LF grove hits the 30-minute floor, never faster", () => {
     const G = injuredHorde(3600);
     G.healTick();
     const gain = G.S.zombies[0].hp - 110;
-    ok(Math.abs(gain - 220 * 0.5 / 120) < 0.001, "exactly the 10-min rate");
+    ok(Math.abs(gain - 220 * 0.5 / 360) < 0.001, "exactly the 30-min rate");
     const G2 = injuredHorde(99999);
     G2.healTick();
-    ok(Math.abs((G2.S.zombies[0].hp - 110) - 220 * 0.5 / 120) < 0.001, "capped beyond the full grove");
+    ok(Math.abs((G2.S.zombies[0].hp - 110) - 220 * 0.5 / 360) < 0.001, "capped beyond the full grove");
   });
   check("both tree powers span the same 0..3600 grove range", () => {
     const { G } = boot();
@@ -1266,13 +1267,13 @@ function injuredHorde(lifeForce) {
   check("healing is throttled to one tick per 5s (then time must pass)", () => {
     const G = injuredHorde(3600);
     G.healTick(); G.healTick(); G.healTick();
-    ok(Math.abs((G.S.zombies[0].hp - 110) - 220 * 0.5 / 120) < 0.001, "no time passed, no extra healing");
+    ok(Math.abs((G.S.zombies[0].hp - 110) - 220 * 0.5 / 360) < 0.001, "no time passed, no extra healing");
   });
   check("OFFLINE healing: an hour away heals the horde (timestamp-based)", () => {
     const G = injuredHorde(3600);
     G.S.lastHealAt = Date.now() - 3600 * 1000; // closed the app for an hour
     G.healTick();
-    eq(G.S.zombies[0].hp, 220, "half-health at the 10-min rate = fully mended in an hour");
+    eq(G.S.zombies[0].hp, 220, "an hour at the 30-min half-health rate = fully mended");
   });
   check("offline heal clock survives save/load", () => {
     const G = injuredHorde(3600);

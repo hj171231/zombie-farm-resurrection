@@ -206,7 +206,8 @@ const ZTYPES = [
  {id:"jester",   name:"Jester",    cost:7500,brains:0, time:300, pow:18, hp:50, spd:1.6, unlock:13,col:"#8fd8b8", shirt:"#7a3a9e", hat:"jester", motley:true, desc:"Confuses defenders &mdash; they throw much slower."},
  {id:"chef",     name:"Chef",      cost:0,  brains:5,time:360, pow:28, hp:80, spd:1.0, unlock:15,col:"#b8d86a", shirt:"#f0ede2", hat:"toque", prop:"ladle", desc:"After a won battle, survivors heal DOUBLE."},
  {id:"golden",   name:"Golden Shambler",cost:10000,brains:0,time:60, pow:26, hp:90, spd:1.3, unlock:1, col:"#e8c84a", shirt:"#b8912e", plaid:true, glow:true, secret:true, desc:"A legend in solid gold. Earned, never found."},
- {id:"gravemound",name:"Gravemound",cost:0,  brains:10, time:600, pow:55, hp:220,spd:0.5, unlock:19,col:"#7a9a6a", shirt:"#4e5e42", big:true, colossus:true, desc:"A walking hillside. The ground remembers him."}
+ {id:"gravemound",name:"Gravemound",cost:0,  brains:10, time:600, pow:55, hp:220,spd:0.5, unlock:19,col:"#7a9a6a", shirt:"#4e5e42", big:true, colossus:true, desc:"A walking hillside. The ground remembers him."},
+ {id:"voltz",    name:"Voltz",     cost:0,  brains:15, time:900, pow:58, hp:280,spd:0.8, unlock:26,col:"#9ab8a2", shirt:"#5a6672", big:true, robo:true, desc:"Half corpse, half chrome. ERROR 404: pain not found."}
 ];
 const TREES = [
  {id:"oak",    name:"Gnarly Oak",   cost:250, brains:0, lf:10, unlock:2, col:"#4e8a2e"},
@@ -265,7 +266,7 @@ const GOALS = [
  {id:"rich250k",desc:"Hold 250,000 gold at once",    n:250000, stat:"goldbank", brains:5}
 ];
 
-const BUILD = "build 49 · 2026-07-11"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 50 · 2026-07-11"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -855,11 +856,15 @@ function healTick(){
   if(dtSec<5) return;
   S.lastHealAt=now();
   if(!(S.lifeForce>0)) return; // no life force = no healing at all (clock still advances)
-  const minutes = 25 - 15*groveProgress();   // ~25min sliver -> 10min floor at a full grove
+  // battle wounds are meant to HURT: half-health takes ~75 minutes on a
+  // sliver of life force, easing to a 30-minute floor at a full 3600-LF
+  // grove — every tree (and bigger trees most of all) still speeds it up,
+  // but nobody re-runs their A-team every 10-minute invasion window
+  const minutes = 75 - 45*groveProgress();
   const perSec = 0.5/(minutes*60);           // fraction of maxhp per SECOND
   S.zombies.forEach(z=>{
     if(z.hp<z.maxhp){
-      z.hp=Math.min(z.maxhp, z.hp + Math.max(0.008*dtSec, z.maxhp*perSec*dtSec));
+      z.hp=Math.min(z.maxhp, z.hp + Math.max(0.004*dtSec, z.maxhp*perSec*dtSec));
       if(Math.random()<0.15) spawnParts(z.x,z.y-30,"#7dffa0",2); // healing sparkle
     }
   });
@@ -1312,7 +1317,7 @@ function drawTree(g,tr,x,y,s){
 function mutHas(muts,label){ return muts && muts.some(m=>m.label===label); }
 // ---- ART WAVE 2: character sprite kit (procedural art remains the fallback) ----
 const SPRITES={};
-const SPRITE_IDS={shambler:"shambler",mini:"miniz",headless:"headless",gardener:"gardener",bruiser:"bruiser",banshee:"banshee",abom:"abomination",digger:"gravedigger",jester:"jester",chef:"chef",gravemound:"gravemound",golden:"golden"};
+const SPRITE_IDS={shambler:"shambler",mini:"miniz",headless:"headless",gardener:"gardener",bruiser:"bruiser",banshee:"banshee",abom:"abomination",digger:"gravedigger",jester:"jester",chef:"chef",gravemound:"gravemound",golden:"golden",voltz:"voltz"};
 function spritePad(spr){
   try{
     const c=document.createElement("canvas");
