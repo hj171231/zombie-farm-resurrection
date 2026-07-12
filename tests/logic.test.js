@@ -167,14 +167,14 @@ console.log("\n== iso tap mapping ==");
 }
 
 console.log("\n== mutations ==");
-function zombieWithNeighbors(cropIds, cropProgFrac, rand) {
+function zombieWithNeighbors(cropIds, cropProgFrac, rand, ztype) {
   const inst = loadGame();
   const G = inst.G;
   G.startGame(null);
-  G.S.gold = 100000; G.S.level = 99; // afford + unlock any crop
+  G.S.gold = 100000; G.S.brains = 100; G.S.level = 99; // afford + unlock any crop
   const center = 24, neigh = G.neighbors(center); // [23,25,17,31]
   forcePlot(G, center);
-  G.plantAt(center, "zombie", "shambler");
+  G.plantAt(center, "zombie", ztype || "shambler");
   cropIds.forEach((cid, k) => {
     const i = neigh[k];
     forcePlot(G, i);
@@ -214,12 +214,13 @@ function zombieWithNeighbors(cropIds, cropProgFrac, rand) {
     const G = zombieWithNeighbors(["carrot", "carrot"], 0.7, () => 0);
     eq(G.S.zombies[0].mut.length, 1);
   });
-  check("stat mutations apply: corn +2 pow, pumpkin +10 hp", () => {
-    const G = zombieWithNeighbors(["corn", "pumpkin"], 0.7, () => 0);
+  check("stat mutations apply: corn +2 pow, melon +25 hp (non-special pair)", () => {
+    const G = zombieWithNeighbors(["corn", "melon"], 0.7, () => 0);
     const z = G.S.zombies[0];
+    ok(!z.special, "Kernel+Moon on a shambler is no special");
     const zd = G.ZTYPES.find(t => t.id === "shambler");
     eq(z.pow, zd.pow + 2);
-    eq(z.hp, zd.hp + 10); eq(z.maxhp, zd.hp + 10);
+    eq(z.hp, zd.hp + 25); eq(z.maxhp, zd.hp + 25);
   });
 }
 
@@ -235,13 +236,13 @@ console.log("\n== horde ==");
     ok(G.ZNAMES.includes(G.S.zombies[0].name));
     eq(G.S.stats.zombies, 1);
   });
-  check("full horde (16): overflow zombie sells for cost*1.2+20", () => {
-    while (G.S.zombies.length < 16) G.S.zombies.push({ type: "mini", hp: 1, maxhp: 1, pow: 1, spd: 1, hunger: 0, mut: [], kills: 0, x: 0, y: 0, tx: 0, ty: 0, wob: 0, name: "Dummy" });
+  check("full horde (20): overflow zombie sells for cost*1.2+20", () => {
+    while (G.S.zombies.length < 20) G.S.zombies.push({ type: "mini", hp: 1, maxhp: 1, pow: 1, spd: 1, hunger: 0, mut: [], kills: 0, x: 0, y: 0, tx: 0, ty: 0, wob: 0, name: "Dummy" });
     G.S.gold = 0;
     forcePlot(G, 6); G.S.gold = 200; G.plantAt(6, "zombie", "mini"); // 200-100=100
     backdate(G, 6, 16);
     G.tapTile(6);
-    eq(G.S.zombies.length, 16, "horde stays capped");
+    eq(G.S.zombies.length, 20, "horde stays capped");
     eq(G.S.gold, 100 + Math.floor(100 * 1.2) + 20); // +140
   });
 }
@@ -847,12 +848,12 @@ console.log("\n== sanitizeState (save repair & migration) ==");
     eq(s.tiles[2].plant, "corn"); eq(s.tiles[2].at, 12345); eq(s.tiles[2].fert, true);
     eq(s.tiles[3].tree, "oak");
   });
-  check("zombies of unknown type are dropped; horde clamped to 16", () => {
+  check("zombies of unknown type are dropped; horde clamped to 20", () => {
     const raw = G.freshState();
-    for (let k = 0; k < 20; k++) raw.zombies.push({ type: "mini", name: "Z" + k, hunger: 10 });
+    for (let k = 0; k < 24; k++) raw.zombies.push({ type: "mini", name: "Z" + k, hunger: 10 });
     raw.zombies.push({ type: "vampire", name: "NotInThisGame" });
     const s = G.sanitizeState(raw);
-    eq(s.zombies.length, 16);
+    eq(s.zombies.length, 20);
     ok(s.zombies.every(z => z.type === "mini"));
   });
   check("zombie missing stats gets its type's defaults", () => {
@@ -1087,18 +1088,18 @@ console.log("\n== new goals & the mystery ==");
     ok(G.S.goalsDone.includes("rich50k"));
     eq(G.S.brains, 5 + 1, "rich50k pays a brain");
   });
-  check("the Golden Shambler stays secret until 22 combos raised (40% almanac)", () => {
+  check("the Golden Shambler stays secret until 20 combos raised", () => {
     forcePlot(G, 5); G.S.gold = 100000;
     G.S.stats.doubles = 3; G.checkGoals(); // old trigger no longer unlocks him
     ok(G.plantAt(5, "zombie", "golden") === false, "locked before the combo22 goal");
     const labels = G.CROPS.map(c => c.mut.label);
     G.S.pairSeen = {};
     let n = 0;
-    for (let i = 0; i < labels.length && n < 22; i++)
-      for (let j = i + 1; j < labels.length && n < 22; j++) { G.S.pairSeen[[labels[i], labels[j]].sort().join(" + ")] = 1; n++; }
+    for (let i = 0; i < labels.length && n < 20; i++)
+      for (let j = i + 1; j < labels.length && n < 20; j++) { G.S.pairSeen[[labels[i], labels[j]].sort().join(" + ")] = 1; n++; }
     G.checkGoals();
     ok(G.S.goalsDone.includes("combo22"));
-    ok(G.plantAt(5, "zombie", "golden") === true, "unlocked at 40% of the almanac");
+    ok(G.plantAt(5, "zombie", "golden") === true, "unlocked at 20 combos");
   });
   check("zoo goal counts distinct zombie types", () => {
     ["shambler","mini","headless","gardener","bruiser","banshee"].forEach(t=>{
@@ -1325,6 +1326,55 @@ console.log("\n== combo tracking (almanac pairs) ==");
   check("squad picker cap is 5", () => {
     const { G } = boot();
     eq(G.SQUAD_MAX, 5);
+  });
+}
+
+console.log("\n== SPECIAL CHARACTERS & the Composter\u2019s wanted list ==");
+{
+  check("Mini Z + Moon Melon + Beating Beet transforms into the BABY ZOMBIE (+25%)", () => {
+    const G = zombieWithNeighbors(["melon", "beet"], 0.7, () => 0, "mini");
+    const z = G.S.zombies[0];
+    eq(z.special, "baby");
+    const zd = G.ZTYPES.find(t => t.id === "mini");
+    // hp: base + moon 25 + beet 35 + 25% of each (6+9 rounded) = base+75... 25*.25=6.25->6, 35*.25=8.75->9
+    eq(z.maxhp, zd.hp + 25 + 35 + 6 + 9, "mutation gains plus 25% extra");
+    eq(G.zdefFor(z).name, "Baby Zombie", "wears the new identity");
+    eq(G.S.stats.specials, 1);
+  });
+  check("wrong type or wrong combo = no transformation", () => {
+    const G = zombieWithNeighbors(["melon", "beet"], 0.7, () => 0); // shambler
+    ok(!G.S.zombies[0].special);
+  });
+  check("every special has a unique (type, mutation-set) trigger", () => {
+    const { G } = boot();
+    const keys = G.SPECIALS.map(sp => sp.type + "|" + sp.muts.slice().sort().join(" + "));
+    eq(new Set(keys).size, 42);
+    eq(G.SPECIALS.length, 42);
+    ok(!G.SPECIALS.some(sp => sp.type === "gardener" && sp.muts.includes("All-Seeing")), "the Awakened stays untouchable");
+  });
+  check("special survives the save cycle", () => {
+    const G = zombieWithNeighbors(["melon", "beet"], 0.7, () => 0, "mini");
+    const s2 = G.sanitizeState(JSON.parse(JSON.stringify(G.S)));
+    eq(s2.zombies[0].special, "baby");
+  });
+  check("the Composter pays DOUBLE for his wanted combo", () => {
+    const { G } = boot();
+    const z = { type: "bruiser", name: "W", pow: 15, hp: 60, maxhp: 60, spd: 1, hunger: 0, kills: 0,
+      mut: [{ label: "Speedy" }, { label: "Pungent" }], x: 0, y: 0, tx: 0, ty: 0, wob: 0 };
+    G.S.compostWant = "Pungent + Speedy";
+    const off = G.compostOffer(z);
+    eq(off.gold, Math.round(750 * 0.5 * 1.3) * 2, "double gold");
+    eq(off.brains, 1, "wanted combos always fetch at least a brain");
+    ok(off.wanted);
+    G.S.compostWant = "Flaming + Gourd-Headed";
+    ok(!G.compostOffer(z).wanted, "only the exact combo");
+  });
+  check("rollCompostWant produces a valid sorted pair", () => {
+    const { G } = boot();
+    G.rollCompostWant();
+    const parts = G.S.compostWant.split(" + ");
+    const labels = G.CROPS.map(c => c.mut.label);
+    ok(parts.length === 2 && labels.includes(parts[0]) && labels.includes(parts[1]) && parts[0] < parts[1]);
   });
 }
 
