@@ -32,14 +32,14 @@
   .pill canvas { display:block; }
   .gbtn { line-height:1.05; }
   #xpwrap { flex:1; min-width:110px; }
-  #xpbarBg { background:#3d2810; border:2px solid #3d2810; border-radius:12px; height:22px; position:relative; overflow:hidden; box-shadow:inset 0 2px 4px rgba(0,0,0,.6), 0 2px 3px rgba(0,0,0,.4); }
-  #xpbar { background:linear-gradient(#d8f57e 0%, #9ccf3e 50%, #6f9c26 100%); height:100%; width:0%; transition:width .4s; border-radius:9px; }
-  #xptext { position:absolute; inset:0; text-align:center; color:#fff; font-size:12px; font-family:"Luckiest Guy","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-weight:400; letter-spacing:.4px; line-height:19px; text-shadow:0 1px 2px #000; }
+  #xpbarBg { background:#3d2810; border:2px solid #3d2810; border-radius:17px; height:34px; position:relative; overflow:hidden; box-shadow:inset 0 2px 4px rgba(0,0,0,.6), 0 2px 3px rgba(0,0,0,.4); }
+  #xpbar { background:linear-gradient(#d8f57e 0%, #9ccf3e 50%, #6f9c26 100%); height:100%; width:0%; transition:width .4s; border-radius:14px; }
+  #xptext { position:absolute; inset:0; text-align:center; color:#fff; font-size:14px; font-family:"Luckiest Guy","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-weight:400; letter-spacing:.4px; line-height:32px; text-shadow:0 1px 2px #000; }
 
   .btnbar { position:absolute; bottom:10px; right:10px; display:flex; flex-direction:column; gap:8px; z-index:5; align-items:flex-end; }
   /* hamburger menu: one clean button on screen; the rest slide out on demand */
   #menuItems { display:none; flex-direction:column; gap:8px; align-items:flex-end; }
-  #menuItems .gbtn, #menuItems .gbtn.small { font-size:13px; padding:2px 0; width:106px; border-width:9px; text-align:center; }
+  #menuItems .gbtn, #menuItems .gbtn.small { font-size:15px; padding:5px 0; width:128px; border-width:10px; text-align:center; }
   #menuItems.open { display:flex; animation:menuPop .16s ease-out; }
   @keyframes menuPop { from{ opacity:0; transform:translateY(8px);} to{ opacity:1; transform:translateY(0);} }
   #menuBtn { font-size:30px; line-height:0.85; padding:5px 12px 7px; min-width:54px; }
@@ -60,7 +60,7 @@
   .modal h2 .x { cursor:pointer; background:#5e4426; border:2px solid #3d2810; border-radius:10px; padding:0 10px; font-size:18px; box-shadow:0 2px 0 #2a1c08; }
   .modal .body { padding:10px; overflow-y:auto; }
   .tabs { display:flex; gap:4px; padding:8px 10px 0; }
-  .tab { flex:1; text-align:center; padding:3px 4px; background:#4a3c28; background-clip:padding-box; border:10px solid transparent; border-bottom:none; border-image:url("art/ui-tab.png") 40 fill stretch; border-radius:10px 10px 0 0; cursor:pointer; font-weight:bold; font-size:13px; color:#3a2413; opacity:.72; }
+  .tab { flex:1; text-align:center; padding:3px 4px; background:#4a3c28; background-clip:padding-box; border:8px solid transparent; border-bottom:none; border-image:url("art/ui-tab.png") 24 fill stretch; border-radius:10px 10px 0 0; cursor:pointer; font-weight:bold; font-size:13px; color:#3a2413; opacity:.72; }
   .tab.on { opacity:1; color:#2a1808; filter:brightness(1.12); }
   .shopitem { display:flex; gap:10px; align-items:center; background:rgba(255,240,210,.07); border:2px solid rgba(255,230,180,.16); border-radius:14px; padding:8px; margin-bottom:8px; }
   .shopitem .art { width:56px; height:56px; flex:none; filter:drop-shadow(0 3px 3px rgba(0,0,0,.4)); }
@@ -255,7 +255,7 @@ const GOALS = [
  {id:"lunar3",  desc:"Conquer the Lunar Lab 3 times", n:3, stat:"moonwin", gold:30000, xp:500}
 ];
 
-const BUILD = "build 46 · 2026-07-11"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 47 · 2026-07-11"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -489,9 +489,21 @@ function roamTargetFrom(x,y,z){
   const gardener=!!(z&&z.type==="gardener");
   const onField=S&&S.zombies?S.zombies.filter(zz=>inFieldDiamond(zz.x,zz.y,1.0)).length:0;
   if(gardener && Math.random()<0.02 && onField<2) return randFieldPos();
-  for(let tries=0;tries<14;tries++){
+  // gather a few legal destinations and pick the LONELIEST one — the horde
+  // spreads out instead of pooling in the same corners
+  const cands=[];
+  for(let tries=0;tries<14 && cands.length<5;tries++){
     const p=randRoamPos();
-    if(pathAvoidsField(x,y,p.x,p.y)) return p;
+    if(pathAvoidsField(x,y,p.x,p.y)) cands.push(p);
+  }
+  if(cands.length){
+    const room=p=>{
+      let m=1e9;
+      if(S&&S.zombies) S.zombies.forEach(zz=>{ if(zz!==z){ const dd=Math.hypot(zz.x-p.x,zz.y-p.y); if(dd<m)m=dd; } });
+      return m;
+    };
+    cands.sort((a,b)=>room(b)-room(a));
+    return cands[0];
   }
   for(let tries=0;tries<14;tries++){ // fall back: short hop nearby
     const p={x:clamp(x+rnd(-TW*2,TW*2),W*0.04,W*0.96), y:clamp(y+rnd(-TH*2,TH*2),H*0.16,H*0.94)};
@@ -631,7 +643,7 @@ function setPlantMode(kind,item){
   const chip=$("plantChip");
   const url=iconDataURL(kind,item.id,40);
   const ico=url ? "<img src='"+url+"' style='width:22px;height:22px;vertical-align:-5px'> " : "&#x1F331; ";
-  chip.innerHTML=ico+"Planting <b>"+item.name+"</b> ("+cost+" each) &mdash; tap plots! &nbsp;&nbsp;&#x2715; Stop";
+  chip.innerHTML=ico+"<b>"+item.name+"</b> "+cost+" &nbsp;&#x2715;";
   chip.style.display="block";
   if(url) cv.style.cursor='url("'+url+'") 20 34, pointer';
 }
@@ -2016,13 +2028,11 @@ function drawGravestone(g,x,y,s,prog,wob,vseed){
   {
     const stone=spriteGet("gravestone-"+(v+1));
     if(stone&&stone.img){
-      const w=s*0.78, h=w*(stone.h/stone.w), base=y+s*0.2;
-      if(prog>=0.7){
-        const gl=(prog>=1?0.5:0.3)+Math.sin(performance.now()/380)*0.14;
-        g.fillStyle="rgba(122,255,150,"+(gl*0.55)+")";
-        g.beginPath(); g.ellipse(x,base-h*0.42,w*0.85,h*0.62,0,0,TAU); g.fill();
-      }
-      g.drawImage(stone.img, x-w/2, base-h, w, h);
+      const w=s*0.9, h=w*(stone.h/stone.w), base=y+s*0.02;
+      // something stirs below: a slow breathing pulse, feet planted
+      const pu=prog>=0.7 ? 1+0.03*Math.sin(performance.now()/240) : 1;
+      const pw=w*pu, ph=h*(2-pu); // squash-and-stretch, volume conserved
+      g.drawImage(stone.img, x-pw/2, base-ph, pw, ph);
       return;
     }
   }
@@ -2642,11 +2652,11 @@ function drawYardDecor(dp){
   // ---- the entrance path: worn dirt winding from the field gate off-screen ----
   {
     const px0=ISOX, py0=botY+TH*0.75;
-    g.strokeStyle="rgba(150,115,62,.55)"; g.lineWidth=TW*0.42; g.lineCap="round";
+    g.strokeStyle="rgba(150,115,62,.55)"; g.lineWidth=TW*0.6; g.lineCap="round";
     g.beginPath(); g.moveTo(px0,py0);
     g.quadraticCurveTo(px0-TW*0.6,py0+(H-py0)*0.5, px0-TW*1.3,H+20);
     g.stroke();
-    g.strokeStyle="rgba(120,90,48,.35)"; g.lineWidth=TW*0.3;
+    g.strokeStyle="rgba(120,90,48,.35)"; g.lineWidth=TW*0.43;
     g.beginPath(); g.moveTo(px0,py0);
     g.quadraticCurveTo(px0-TW*0.6,py0+(H-py0)*0.5, px0-TW*1.3,H+20);
     g.stroke();
@@ -2657,7 +2667,7 @@ function drawYardDecor(dp){
       const sy=py0+(H+20-py0)*tt;
       if(sy>H-14) break;
       g.fillStyle="rgba(168,168,178,.75)";
-      g.beginPath(); g.ellipse(sx+(k%2?TW*0.1:-TW*0.08),sy,s*0.09,s*0.045,0,0,TAU); g.fill();
+      g.beginPath(); g.ellipse(sx+(k%2?TW*0.1:-TW*0.08),sy,s*0.13,s*0.065,0,0,TAU); g.fill();
       g.strokeStyle="rgba(190,225,120,.6)"; g.lineWidth=1.6;
       const gx2=sx+(k%2?-TW*0.26:TW*0.28);
       g.beginPath(); g.moveTo(gx2,sy); g.lineTo(gx2-3,sy-7); g.moveTo(gx2,sy); g.lineTo(gx2+3,sy-6); g.stroke();
@@ -2676,22 +2686,27 @@ function drawYardDecor(dp){
     if(sp.x<W*0.04||sp.x>W*0.96||sp.y<H*0.14||sp.y>H-20) return;
     if(inFieldDiamond(sp.x,sp.y,1.1)) return;
     const x=sp.x, y=sp.y;
-    // soft grounding shadow under every vignette
-    g.fillStyle="rgba(20,30,10,.2)";
-    g.beginPath(); g.ellipse(x,y+s*0.06,s*0.55,s*0.13,0,0,TAU); g.fill();
-    // wave 4 sprites: each vignette is one hand-drawn scene
+    // wave 4 sprites: each vignette is one hand-drawn scene, with a
+    // grounding shadow sized to the piece it grounds
     {
       const dsp=spriteGet("decor-"+sp.kind);
       if(dsp&&dsp.img){
         const flat=(sp.kind==="fairyring"||sp.kind==="pumpkinpatch");
-        const SZ={scarecrow:1.15,pumpkinpatch:1.3,sign:0.72,well:1.35,hay:1.3,mailcrates:1.3,fairyring:1.4};
+        const SZ={scarecrow:1.15,pumpkinpatch:1.6,sign:0.72,well:1.62,hay:1.56,mailcrates:1.56,fairyring:1.82};
         const w=s*(SZ[sp.kind]||1.05);
         const h=w*(dsp.h/dsp.w);
+        if(!flat){
+          g.fillStyle="rgba(20,30,10,.2)";
+          g.beginPath(); g.ellipse(x,y+s*0.06,w*0.52,w*0.13,0,0,TAU); g.fill();
+        }
         if(flat) g.drawImage(dsp.img,x-w/2,y-h/2,w,h);
         else g.drawImage(dsp.img,x-w/2,(y+s*0.12)-h,w,h);
         return;
       }
     }
+    // procedural fallback keeps its original one-size shadow
+    g.fillStyle="rgba(20,30,10,.2)";
+    g.beginPath(); g.ellipse(x,y+s*0.06,s*0.55,s*0.13,0,0,TAU); g.fill();
     if(sp.kind==="scarecrow"){
       // post
       g.fillStyle="#6e4e2a"; g.fillRect(x-s*0.04,y-s*1.0,s*0.08,s*1.04);
@@ -3021,8 +3036,8 @@ function drawFarm(dt){
     S.zombies.forEach(o=>{
       if(o===z) return;
       const ddx=z.x-o.x, ddy=z.y-o.y, dd=Math.hypot(ddx,ddy);
-      if(dd>0.001 && dd<TILE*0.42){
-        const push=(TILE*0.42-dd)*0.5*dt*4;
+      if(dd>0.001 && dd<TILE*0.62){
+        const push=(TILE*0.62-dd)*0.5*dt*4;
         z.x+=ddx/dd*push; z.y+=ddy/dd*push;
       }
     });
@@ -3226,7 +3241,7 @@ function renderMarket(tab){
         setPlantMode(kind,item);
         if(plantTarget>=0) plantAt(plantTarget,kind,item.id);
         closeModal();
-        toast("Tap plot after plot to keep planting "+item.name+"! Tap the green banner (or outside the fence) to stop.",3200);
+        toast("Keep tapping plots to plant more! &#x2715; to stop.",1800);
       };
       div.appendChild(btn);
     }
@@ -3314,17 +3329,11 @@ $("goalsBtn").onclick=()=>{
 // ---- save codes: deflate-compressed base64 ("ZFR1." prefix, ~5x shorter),
 // with the original uncompressed format still accepted on import so codes
 // copied before this build keep working ----
-async function encodeSave(){
-  const raw=JSON.stringify(S);
-  if(typeof CompressionStream!=="undefined" && typeof TextEncoder!=="undefined" && typeof Response!=="undefined"){
-    try{
-      const st=new Blob([new TextEncoder().encode(raw)]).stream().pipeThrough(new CompressionStream("deflate"));
-      const u8=new Uint8Array(await new Response(st).arrayBuffer());
-      let bin=""; for(let i=0;i<u8.length;i++) bin+=String.fromCharCode(u8[i]);
-      return "ZFR1."+btoa(bin);
-    }catch(e){} // ancient browser: fall through to the legacy format
-  }
-  return btoa(unescape(encodeURIComponent(raw)));
+function encodeSave(){
+  // SYNCHRONOUS on purpose: the clipboard only works inside the tap gesture,
+  // and awaiting compression first made browsers (iOS especially) deny the
+  // copy. Plain base64 codes are longer but they always copy.
+  return btoa(unescape(encodeURIComponent(JSON.stringify(S))));
 }
 async function decodeSave(code){
   code=String(code).replace(/\s+/g,""); // messengers and notes apps love inserting line breaks
@@ -3367,18 +3376,21 @@ $("helpBtn").onclick=()=>{
   // a default value and when pasting into one, silently corrupting codes.
   // Everything goes through a real textarea instead.
   const scMode=m=>{ $("scBox").style.display="block"; $("scMsg").textContent=m||""; };
-  const scCopy=async()=>{
+  const scCopy=()=>{ // NO awaits before the copy call — gesture must stay live
     const ta=$("scTA"), code=ta.value;
     ta.focus(); ta.select(); if(ta.setSelectionRange) ta.setSelectionRange(0,code.length);
     let ok=false;
-    if(navigator.clipboard&&navigator.clipboard.writeText){ try{ await navigator.clipboard.writeText(code); ok=true; }catch(e){} }
-    if(!ok){ try{ ok=document.execCommand("copy"); }catch(e){} }
-    $("scMsg").textContent = ok ? "Copied! Paste it somewhere safe (Notes, a message to yourself...)."
-                                : "Couldn't auto-copy — long-press the code above and copy it by hand.";
+    try{ ok=document.execCommand("copy"); }catch(e){}
+    if(ok){ $("scMsg").textContent="Copied! Paste it somewhere safe (Notes, a message to yourself...)."; return; }
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(code).then(
+        ()=>{ if($("scTA").value===code) $("scMsg").textContent="Copied! Paste it somewhere safe (Notes, a message to yourself...)."; },
+        ()=>{ if($("scTA").value===code) $("scMsg").textContent="The code is selected — press Cmd/Ctrl+C (or long-press → Copy)."; });
+    } else $("scMsg").textContent="The code is selected — press Cmd/Ctrl+C (or long-press → Copy).";
   };
-  $("expBtn").onclick=async()=>{
+  $("expBtn").onclick=()=>{
     save();
-    $("scTA").value=await encodeSave();
+    $("scTA").value=encodeSave();
     scMode(); scCopy();
   };
   $("impBtn").onclick=()=>{ $("scTA").value=""; scMode("Paste your save code above, then hit Load."); $("scTA").focus(); };
@@ -4942,17 +4954,16 @@ function drawHeartMini(g,x,y,r){
   g.beginPath(); g.ellipse(x-r*0.42,y-r*0.28,r*0.2,r*0.12,0.6,0,TAU); g.fill();
 }
 // tap a HUD pill to learn what it tracks — with the SAME drawn icons
-[["goldPill",()=>iconHTML(drawGoldMini)+"<b>GOLD</b> &mdash; sell crops &amp; win invasions to earn it; spends on plowing, seeds and zombies."],
- ["brainPill",()=>"&#x1F9E0; <b>BRAINS</b> &mdash; rare invasion loot. Buys premium zombies &amp; trees. Never sold, only won."],
- ["zedPill",()=>iconHTML(drawZedMini)+"<b>HORDE</b> &mdash; zombies roaming your farm now / max the farm holds (16)."],
+[["goldPill",()=>iconHTML(drawGoldMini)+"<b>GOLD</b> &mdash; harvests &amp; raids pay it."],
+ ["brainPill",()=>"&#x1F9E0; <b>BRAINS</b> &mdash; rare raid loot for premium buys."],
+ ["zedPill",()=>iconHTML(drawZedMini)+"<b>HORDE</b> &mdash; your zombies / farm max."],
  ["lfPill",()=>{
    const cur=Math.round(S.zombies.reduce((a,z)=>a+z.hp,0));
    const max=S.zombies.reduce((a,z)=>a+z.maxhp,0);
-   const hp=S.zombies.length?("Horde health: <b>"+cur+" / "+max+"</b>"+(cur<max?" (roam near trees to heal!)":" &mdash; everyone's in fighting shape!")):"No zombies yet &mdash; grow some!";
-   return iconHTML(drawHeartMini)+"<b>HORDE HEALTH</b> &mdash; "+hp+"<br>Trees radiate <b>life force</b> ("+S.lifeForce+" on your farm): it heals the horde and strengthens mutation odds.";
+   return iconHTML(drawHeartMini)+"<b>HEALTH</b> &mdash; "+(S.zombies.length?cur+"/"+max+". Trees heal the horde.":"no zombies yet!");
  }]].forEach(pr=>{
   const el=$(pr[0]);
-  if(el&&el.addEventListener) el.addEventListener("click",()=>{ toast(pr[1](),3600); sfx.tap(); });
+  if(el&&el.addEventListener) el.addEventListener("click",()=>{ toast(pr[1](),2400); sfx.tap(); });
 });
 $("startBtn").onclick=()=>{ startGame(load()); };
 $("newBtn").onclick=()=>{
