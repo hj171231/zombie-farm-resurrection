@@ -926,7 +926,7 @@ console.log("\n== content pack: data ==");
     eq(JSON.stringify(G.CROPS.map(c => c.sell)), JSON.stringify(wantSell));
   });
   check("zombie & tree price ladders (build 48 pricing decree)", () => {
-    const wantZ = [50, 100, 250, 400, 750, 1500, 0, 4000, 7500, 0, 10000, 0, 0];
+    const wantZ = [50, 100, 250, 400, 750, 1500, 0, 4000, 0, 7500, 0, 10000, 0];
     eq(JSON.stringify(G.ZTYPES.map(z => z.cost)), JSON.stringify(wantZ));
     eq(JSON.stringify(G.TREES.map(t => t.cost)), JSON.stringify([250, 750, 0, 2000, 0]));
   });
