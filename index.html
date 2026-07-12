@@ -42,7 +42,7 @@
   #menuItems .gbtn, #menuItems .gbtn.small { font-size:15px; padding:5px 0; width:128px; border-width:10px; text-align:center; }
   #menuItems.open { display:flex; animation:menuPop .16s ease-out; }
   @keyframes menuPop { from{ opacity:0; transform:translateY(8px);} to{ opacity:1; transform:translateY(0);} }
-  #menuBtn { font-size:30px; line-height:0.85; padding:5px 12px 7px; min-width:54px; }
+  #menuBtn { font-size:18px; line-height:1.05; padding:0 12px; min-width:54px; }
   #menuBtn.open { background:linear-gradient(#ffd97a 0%,#e0a83a 45%,#b07a1e 100%); border-color:#5e440c; }
   .btnbar-l { position:absolute; bottom:10px; left:10px; display:flex; flex-direction:column; gap:8px; z-index:5; align-items:flex-start; }
   .gbtn { background:linear-gradient(#b8e262 0%, #7fb33c 45%, #5d8a2a 100%); background-clip:padding-box; border:12px solid transparent; border-image:url("art/ui-btn-green.png") 46 fill stretch; border-radius:16px; color:#fff; font-weight:bold; font-size:15px; padding:0 6px; cursor:pointer; text-shadow:0 2px 2px rgba(0,0,0,.45); font-family:"Luckiest Guy","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-weight:400; letter-spacing:.5px; }
@@ -77,7 +77,7 @@
   .mutcard .mlbl { font-size:10px; line-height:1.3; color:#f3e9d2; margin-top:2px; font-family:"Baloo 2","Arial Rounded MT Bold",sans-serif; }
   .mutcard canvas { display:block; margin:0 auto; }
   .zrow .art { width:48px; height:48px; flex:none; }
-  .goal { background:rgba(255,240,210,.08); border-left:5px solid #b7e05c; border-radius:8px; padding:8px 10px; margin-bottom:8px; font-size:14px; }
+  .goal { background:rgba(255,240,210,.08); border-left:5px solid #b06fd0; border-radius:8px; padding:8px 10px; margin-bottom:8px; font-size:14px; }
   .goal.done { border-left-color:#7dffa0; opacity:.85; }
   .goal .rw { font-size:12px; color:#ffe9a8; }
 
@@ -205,8 +205,8 @@ const ZTYPES = [
  {id:"digger",   name:"Grave Digger",cost:4000,brains:0,time:240, pow:24, hp:70, spd:0.9, unlock:11,col:"#a8b060", shirt:"#c8842e", hat:"hardhat", prop:"shovel", desc:"Hardhat blocks 30% of projectile damage."},
  {id:"jester",   name:"Jester",    cost:7500,brains:0, time:300, pow:18, hp:50, spd:1.6, unlock:13,col:"#8fd8b8", shirt:"#7a3a9e", hat:"jester", motley:true, desc:"Confuses defenders &mdash; they throw much slower."},
  {id:"chef",     name:"Chef",      cost:0,  brains:5,time:360, pow:28, hp:80, spd:1.0, unlock:15,col:"#b8d86a", shirt:"#f0ede2", hat:"toque", prop:"ladle", desc:"After a won battle, survivors heal DOUBLE."},
- {id:"gravemound",name:"Gravemound",cost:0,  brains:10, time:600, pow:55, hp:220,spd:0.5, unlock:19,col:"#7a9a6a", shirt:"#4e5e42", big:true, colossus:true, desc:"A walking hillside. The ground remembers him."},
- {id:"golden",   name:"Golden Shambler",cost:10000,brains:0,time:60, pow:26, hp:90, spd:1.3, unlock:1, col:"#e8c84a", shirt:"#b8912e", plaid:true, glow:true, secret:true, desc:"A legend in solid gold. Earned, never found."}
+ {id:"golden",   name:"Golden Shambler",cost:10000,brains:0,time:60, pow:26, hp:90, spd:1.3, unlock:1, col:"#e8c84a", shirt:"#b8912e", plaid:true, glow:true, secret:true, desc:"A legend in solid gold. Earned, never found."},
+ {id:"gravemound",name:"Gravemound",cost:0,  brains:10, time:600, pow:55, hp:220,spd:0.5, unlock:19,col:"#7a9a6a", shirt:"#4e5e42", big:true, colossus:true, desc:"A walking hillside. The ground remembers him."}
 ];
 const TREES = [
  {id:"oak",    name:"Gnarly Oak",   cost:250, brains:0, lf:10, unlock:2, col:"#4e8a2e"},
@@ -265,7 +265,7 @@ const GOALS = [
  {id:"rich250k",desc:"Hold 250,000 gold at once",    n:250000, stat:"goldbank", brains:5}
 ];
 
-const BUILD = "build 48 · 2026-07-11"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 49 · 2026-07-11"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -3044,9 +3044,8 @@ function drawFarm(dt){
         }
       }
     } else if(t.st==="grass"){
-      // wave-4 fixed grass tiles: flat, seam-free diamonds (b/c carry accents)
-      const v=seedRnd(i,23), tg=spriteGet("tile-grass-"+(v>0.92?"b":v>0.84?"c":"a"));
-      if(tg&&tg.img){ cx.drawImage(tg.img,p.x-TW*0.51,p.y-TH*0.51,TW*1.02,TH*1.02); continue; }
+      // unplowed field cells read as tillable DIRT (distinct from the yard
+      // grass) so new farmers immediately see where to tap — user decision
       if((i%GRID+Math.floor(i/GRID))%2===0){
         cx.fillStyle="rgba(255,235,170,.05)";
         diamond(cx,p.x,p.y,TW*0.94,TH*0.94); cx.fill();
@@ -3189,7 +3188,7 @@ function drawFarm(dt){
     // a single bat crossing the night sky every so often (no moon — this is
     // a top-down view; a moon lying on the grass reads wrong)
     const bt1=spriteGet("sky-bat");
-    if(bt1&&bt1.img){
+    if(bt1&&bt1.img&&dp.dark>0.45){ // strictly nocturnal — no dusk stragglers
       const per=26, tt=ct%per;
       if(tt<7){
         const bxx=-70+(W+140)*(tt/7), byy=H*0.15+Math.sin(ct*3)*14;
@@ -3284,7 +3283,7 @@ function renderMarket(tab){
     let ds="";
     if(tab===0) ds="Grows in "+fmtTime(item.time)+" &middot; sells "+item.sell+"g &middot; +"+item.xp+"xp<br><i>Mutation gift: "+item.mut.label+"</i>";
     else if(tab===1) ds=item.desc+"<br>PWR "+item.pow+" &middot; HP "+item.hp+" &middot; rises in "+fmtTime(item.time);
-    else ds="+"+item.lf+" life force &mdash; every tree HEALS your roaming horde faster AND raises mutation odds. No trees, no healing!";
+    else ds="+"+item.lf+" life force &mdash; heals your roaming horde faster.";
     inf.innerHTML="<div class='nm'>"+item.name+" <span style='font-weight:normal;font-size:12px'>&mdash; "+costStr+"</span></div><div class='ds'>"+(locked?("Unlocks at level "+item.unlock):ds)+"</div>";
     div.appendChild(inf);
     if(!locked){
@@ -3382,7 +3381,7 @@ $("goalsBtn").onclick=()=>{
     const div=document.createElement("div"); div.className="goal"+(done?" done":"");
     const rw=[g.gold?g.gold+" gold":null,g.brains?g.brains+" brain"+(g.brains>1?"s":""):null,g.xp?g.xp+" xp":null,g.secretUnlock?"+ a MYSTERY":null].filter(Boolean).join(" &middot; ");
     div.innerHTML=(done?"<span style='color:#7dffa0'>&#x2705;</span> ":"")+g.desc+" <b>("+p+"/"+g.n+")</b>"+
-      "<div class='rw'>"+(done?"<span style='color:#7dffa0'>&#x2705; Reward claimed:</span> ":"Reward: ")+rw+"</div>";
+      "<div class='rw'>"+(done?"<span style='color:#7dffa0'>Reward claimed:</span> ":"Reward: ")+rw+"</div>";
     b.appendChild(div);
   });
 };
@@ -3693,7 +3692,7 @@ function openSquadPicker(target){
   const b=$("mBody"); b.innerHTML="";
   const info=document.createElement("p");
   info.style.cssText="font-size:12.5px;opacity:.85;padding:4px 6px";
-  info.innerHTML="Tap to enlist &mdash; up to <b>"+SQUAD_MAX+"</b>.";
+  info.innerHTML="Pick <b>"+SQUAD_MAX+"</b> to invade.";
   b.appendChild(info);
   S.zombies.forEach((z,ix)=>{
     const zd=zdefFor(z);
@@ -3727,12 +3726,13 @@ function openSquadPicker(target){
     paint();
     b.appendChild(row);
   });
-  const go=document.createElement("button"); go.className="gbtn red"; go.style.margin="8px";
+  const go=document.createElement("button"); go.className="gbtn red";
+  go.style.cssText="display:block;margin:8px auto";
   const paintGo=()=>{
     const n=squadSel.filter(Boolean).length;
     $("mTitle").innerHTML="Pick your squad <span style='color:#7dffa0'>("+n+"/"+SQUAD_MAX+")</span> &mdash; "+target.name;
-    go.innerHTML="&#x2694;&#xFE0F; MARCH! ("+n+"/"+SQUAD_MAX+")";
-    go.disabled=(n===0);
+    go.innerHTML="&#x2694;&#xFE0F; INVADE";
+    go.disabled=(n!==SQUAD_MAX); // lights up only with a full squad of 5
   };
   paintGo();
   go.onclick=()=>{
