@@ -1378,6 +1378,42 @@ console.log("\n== SPECIAL CHARACTERS & the Composter\u2019s wanted list ==");
   });
 }
 
+console.log("\n== the Composter waits + storms wait for a live player ==");
+{
+  const inst = loadGame(); const G = inst.G; const els = inst.els;
+  G.startGame(null);
+  G.S.zombies.push({type:"mini",name:"Pip",pow:3,hp:12,maxhp:12,spd:1,hunger:5,mut:[],kills:0,x:200,y:500,tx:200,ty:500,wob:0});
+  check("storm holds without recent input, starts with it, and blesses soil", () => {
+    G.S.stats.playSec = 99999; G.S.nextRainAt = 1; G.RAIN = null;
+    G.LAST_INPUT = 0;
+    eq(G.weatherTick(), false, "no player at the controls = no storm");
+    ok(G.RAIN === null);
+    G.LAST_INPUT = Date.now();
+    eq(G.weatherTick(), true, "player present = storm rolls in");
+    ok(G.RAIN !== null, "storm live");
+    ok(G.S.nextRainAt > 99999 + 2699 && G.S.nextRainAt <= 99999 + 5400, "next storm 45-90 played minutes out");
+    G.RAIN = null;
+  });
+  check("the Composter reopens his window until the PLAYER answers", () => {
+    G.COMPOST = { phase: "parked", t0: Date.now() - 3000, done: false, menuOpen: false, lastNag: 0 };
+    G.drawComposterTruck();
+    ok(els["mTitle"].innerHTML.includes("Composter"), "offer sheet opens by itself");
+    ok(G.COMPOST.menuOpen === true);
+    G.openModal("Something Else"); // displaced, not dismissed
+    eq(G.COMPOST.menuOpen, false); eq(G.COMPOST.done, false);
+    G.closeModal(); // closing another window is NOT an answer
+    eq(G.COMPOST.done, false, "he is not so easily brushed off");
+    G.COMPOST.lastNag = 0; G.COMPOST.t0 = Date.now() - 3000;
+    G.drawComposterTruck();
+    ok(els["mTitle"].innerHTML.includes("Composter"), "he reopens the offer sheet");
+    G.closeModal(); // THE answer: closing HIS window
+    eq(G.COMPOST.done, true, "dismissal registered");
+    G.COMPOST.t0 = Date.now() - 3000;
+    G.drawComposterTruck();
+    eq(G.COMPOST.phase, "out", "and off he drives");
+  });
+}
+
 console.log("\n== specials wing, goals & collector prices ==");
 {
   check("transforming logs the special + fires the spec1 goal", () => {

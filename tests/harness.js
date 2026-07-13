@@ -45,6 +45,10 @@ globalThis.__game = {
   get camZ(){ return camZ; }, set camZ(v){ camZ = v; },
   get camCX(){ return camCX; }, get camCY(){ return camCY; },
   gardenerTick, hungerTick, healTick, medicTick, uniqueZName, compostOffer, lzEncode, lzDecode, SPECIALS, specialFor, rollCompostWant, SPRITES, preloadSprites,
+  weatherTick, drawComposterTruck, openComposterMenu, openModal, closeModal,
+  get RAIN(){ return RAIN; }, set RAIN(v){ RAIN=v; },
+  get COMPOST(){ return COMPOST; }, set COMPOST(v){ COMPOST=v; },
+  set LAST_INPUT(v){ LAST_INPUT=v; },
   // art (for visual smoke tests)
   drawSplash, drawFarm, drawBattle, drawZombie, drawZHead, drawProduce, drawCropPlot,
   drawTree, drawGravestone, iconDataURL,

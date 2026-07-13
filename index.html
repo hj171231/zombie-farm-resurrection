@@ -339,7 +339,7 @@ const GOALS = [
  {id:"spec42",  desc:"Collect ALL 42 SPECIAL CHARACTERS", n:42, stat:"specialkinds", brains:25, gold:100000}
 ];
 
-const BUILD = "build 63 · 2026-07-13"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 64 · 2026-07-13"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -1097,9 +1097,13 @@ setInterval(()=>{
   if(S&&(typeof document.visibilityState==="undefined"||document.visibilityState==="visible")){
     S.stats.playSec=(S.stats.playSec||0)+1; // total screen time (Composter + weather)
   }
-  // storms hold until the player is ACTUALLY at the controls (input in the
-  // last 60s) — nobody's lightning show plays to an empty room
-  if(S&&scene==="farm"&&!RAIN&&(S.stats.playSec||0)>=(S.nextRainAt||Infinity)&&now()-LAST_INPUT<60000){
+  weatherTick();
+},1000);
+// storms hold until the player is ACTUALLY at the controls (input in the
+// last 60s) — nobody's lightning show plays to an empty room
+function weatherTick(){
+  if(!(S&&scene==="farm"&&!RAIN&&(S.stats.playSec||0)>=(S.nextRainAt||Infinity)&&now()-LAST_INPUT<60000)) return false;
+  {
     RAIN={until:now()+ri(80,115)*1000, bolts:1+(Math.random()<0.5?1:0), nextBolt:now()+ri(12,35)*1000, flash:0, hit:null};
     S.nextRainAt=(S.stats.playSec||0)+2700+Math.floor(Math.random()*2700); // next storm in 45-90 played minutes
     // the rain soaks 1-2 tiles: 5 hours of DOUBLE growing speed on that soil
@@ -1117,7 +1121,8 @@ setInterval(()=>{
     save();
     toast("&#x1F327;&#xFE0F; Storm clouds gather"+(nb?" &mdash; the rain blessed "+nb+" plot"+(nb>1?"s":"")+" with 5h of DOUBLE growing speed!":"..."),3400);
   }
-},1000);
+  return true;
+}
 
 // ============================================================
 //  ART LIBRARY (all hand-drawn on canvas)
@@ -3945,10 +3950,40 @@ function artCanvasSized(drawFn,px){
   setTimeout(paint,600); setTimeout(paint,1800);
   return c;
 }
-function openAlmanac(){
+function renderAlmanacSpecials(b){
+  const seenSp=S.specialsSeen||{};
+  const spHead=document.createElement("div");
+  spHead.style.cssText="text-align:center;margin:8px 0 6px;font-size:16px";
+  spHead.innerHTML="<b style='color:#ffd94d'>&#x1F31F; SPECIAL CHARACTERS "+Object.keys(seenSp).length+"/"+SPECIALS.length+"</b><br><span style='font-size:11.5px;opacity:.75'>the right zombie + the right mutations = a transformation. Experiment!</span>";
+  b.appendChild(spHead);
+  const spGrid=document.createElement("div"); spGrid.className="mutgrid";
+  SPECIALS.forEach(sp=>{
+    const got=!!seenSp[sp.id];
+    const card=document.createElement("div"); card.className="mutcard"+(got?" raised":" unknown");
+    const zdS=zdefFor({type:sp.type, special:sp.id, mut:[]});
+    card.appendChild(artCanvasSized((g,x,y,r)=>{
+      drawZombie(g,x,y+r*0.9,0.58,zdS,[],0.5,0,false,"idle");
+      if(!got){ g.globalCompositeOperation="source-atop"; g.fillStyle="#100b1c"; g.fillRect(0,0,300,300); g.globalCompositeOperation="source-over"; } // PITCH BLACK — shape only
+    },84));
+    const lbl=document.createElement("div"); lbl.className="mlbl";
+    lbl.innerHTML= got ? "<b style='color:#ffd94d'>"+sp.name+"</b>"
+                       : "<b>???</b><br><span style='opacity:.7'>a "+((ZTYPES.find(t=>t.id===sp.type)||{}).name||"?")+"...</span>";
+    card.appendChild(lbl);
+    spGrid.appendChild(card);
+  });
+  b.appendChild(spGrid);
+}
+function openAlmanac(tab){
+  tab=tab||0;
   openModal("&#x1F9EC; Mutation Almanac");
-  $("mTabs").innerHTML="";
+  const tabs=$("mTabs"); tabs.innerHTML="";
+  ["Mutations","&#x1F31F; Specials"].forEach((n,ix)=>{
+    const d=document.createElement("div"); d.className="tab"+(ix===tab?" on":""); d.innerHTML=n;
+    d.onclick=()=>{ sfx.tap(); openAlmanac(ix); };
+    tabs.appendChild(d);
+  });
   const b=$("mBody"); b.innerHTML="";
+  if(tab===1){ renderAlmanacSpecials(b); return; }
   const discovered=CROPS.filter(c=>mutTier(c.mut.label)>=1).length;
   const mastered=CROPS.filter(c=>mutTier(c.mut.label)>=2).length;
   const combosRaised=Object.keys(S.pairSeen||{}).length;
@@ -4088,29 +4123,6 @@ function openAlmanac(){
     }
     b.appendChild(div);
   });
-  // ---- the SPECIAL CHARACTERS wing: a collection of silhouettes to chase.
-  // Undiscovered cards reveal ONLY the shape and the base type — no recipes.
-  const seenSp=S.specialsSeen||{};
-  const spHead=document.createElement("div");
-  spHead.style.cssText="text-align:center;margin:14px 0 6px;font-size:16px";
-  spHead.innerHTML="<b style='color:#ffd94d'>&#x1F31F; SPECIAL CHARACTERS "+Object.keys(seenSp).length+"/"+SPECIALS.length+"</b><br><span style='font-size:11.5px;opacity:.75'>the right zombie + the right mutations = a transformation. Experiment!</span>";
-  b.appendChild(spHead);
-  const spGrid=document.createElement("div"); spGrid.className="mutgrid";
-  SPECIALS.forEach(sp=>{
-    const got=!!seenSp[sp.id];
-    const card=document.createElement("div"); card.className="mutcard"+(got?" raised":" unknown");
-    const zdS=zdefFor({type:sp.type, special:sp.id, mut:[]});
-    card.appendChild(artCanvasSized((g,x,y,r)=>{
-      drawZombie(g,x,y+r*0.9,0.58,zdS,[],0.5,0,false,"idle");
-      if(!got){ g.globalCompositeOperation="source-atop"; g.fillStyle="rgba(22,16,34,.93)"; g.fillRect(0,0,300,300); g.globalCompositeOperation="source-over"; }
-    },84));
-    const lbl=document.createElement("div"); lbl.className="mlbl";
-    lbl.innerHTML= got ? "<b style='color:#ffd94d'>"+sp.name+"</b>"
-                       : "<b>???</b><br><span style='opacity:.7'>a "+((ZTYPES.find(t=>t.id===sp.type)||{}).name||"?")+"...</span>";
-    card.appendChild(lbl);
-    spGrid.appendChild(card);
-  });
-  b.appendChild(spGrid);
   const foot=document.createElement("p");
   foot.style.cssText="font-size:11.5px;opacity:.7;padding:6px 8px";
   foot.innerHTML="&#x1F4A1; Pro tip: ring one plot with four different ripening crops, then plant the zombie in the middle for the best shot at a double mutation.";
