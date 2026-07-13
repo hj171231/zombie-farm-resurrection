@@ -339,7 +339,7 @@ const GOALS = [
  {id:"spec42",  desc:"Collect ALL 42 SPECIAL CHARACTERS", n:42, stat:"specialkinds", brains:25, gold:100000}
 ];
 
-const BUILD = "build 62 · 2026-07-13"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 63 · 2026-07-13"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -1097,7 +1097,9 @@ setInterval(()=>{
   if(S&&(typeof document.visibilityState==="undefined"||document.visibilityState==="visible")){
     S.stats.playSec=(S.stats.playSec||0)+1; // total screen time (Composter + weather)
   }
-  if(S&&scene==="farm"&&!RAIN&&(S.stats.playSec||0)>=(S.nextRainAt||Infinity)){
+  // storms hold until the player is ACTUALLY at the controls (input in the
+  // last 60s) — nobody's lightning show plays to an empty room
+  if(S&&scene==="farm"&&!RAIN&&(S.stats.playSec||0)>=(S.nextRainAt||Infinity)&&now()-LAST_INPUT<60000){
     RAIN={until:now()+ri(80,115)*1000, bolts:1+(Math.random()<0.5?1:0), nextBolt:now()+ri(12,35)*1000, flash:0, hit:null};
     S.nextRainAt=(S.stats.playSec||0)+2700+Math.floor(Math.random()*2700); // next storm in 45-90 played minutes
     // the rain soaks 1-2 tiles: 5 hours of DOUBLE growing speed on that soil
@@ -3427,7 +3429,9 @@ function drawFarm(dt){
 }
 
 // ---------- rain: a rare storm that supercharges a lucky zombie ----------
-let RAIN=null;
+let RAIN=null, LAST_INPUT=0;
+window.addEventListener("pointerdown",()=>{ LAST_INPUT=now(); },{passive:true});
+window.addEventListener("keydown",()=>{ LAST_INPUT=now(); });
 function drawRain(){
   const g=cx, t=performance.now();
   if(now()>RAIN.until && RAIN.flash<=0){ RAIN=null; return; }
@@ -3510,6 +3514,7 @@ function compostOffer(z){
 }
 function openComposterMenu(){
   openModal("&#x1F69B; The Composter");
+  if(COMPOST) COMPOST.menuOpen=true; // set AFTER openModal (which clears it)
   $("mTabs").innerHTML="";
   const b=$("mBody"); b.innerHTML="";
   const p=document.createElement("p");
@@ -3568,10 +3573,18 @@ function drawComposterTruck(){
     x=startX+(parkX-startX)*(1-Math.pow(1-k,2));
     if(k>=1){ COMPOST.phase="parked"; COMPOST.t0=performance.now(); openComposterMenu(); }
   } else if(COMPOST.phase==="parked"){
-    if($("shade")&&$("shade").classList&&!$("shade").classList.contains("open")&&(performance.now()-COMPOST.t0)>1500){
-      COMPOST.phase="out"; COMPOST.t0=performance.now();
-      rollCompostWant(); save(); // next visit's shopping list, announced on the way out
-      toast("&#x1F69B; \"Next time I'm paying DOUBLE for a <b>"+S.compostWant+"</b> zombie!\"",4200);
+    // he WAITS. Only a player action (closing his window or selling) sends
+    // him off; if another menu displaced his window, he politely reopens it.
+    const shadeOpen=$("shade")&&$("shade").classList&&$("shade").classList.contains("open");
+    if(!shadeOpen && (performance.now()-COMPOST.t0)>1500){
+      if(COMPOST.done){
+        COMPOST.phase="out"; COMPOST.t0=performance.now();
+        rollCompostWant(); save(); // next visit's shopping list, announced on the way out
+        toast("&#x1F69B; \"Next time I'm paying DOUBLE for a <b>"+S.compostWant+"</b> zombie!\"",4200);
+      } else if(performance.now()-(COMPOST.lastNag||0)>1200 && scene==="farm"){
+        COMPOST.lastNag=performance.now();
+        openComposterMenu();
+      }
     }
   } else { // out
     const k=Math.min(1,t/3);
@@ -3608,12 +3621,17 @@ function drawComposterTruck(){
 // ---------- market / modals ----------
 let plantTarget=-1;
 function openModal(title){
+  if(COMPOST) COMPOST.menuOpen=false; // any other menu displaces (not dismisses) the Composter
   $("mTitle").innerHTML=title; $("shade").classList.add("open");
   const mb=$("mBody"); if(mb) mb.scrollTop=0;
   // content is appended after this call — snap back to the top once it lands
   setTimeout(()=>{ const m2=$("mBody"); if(m2) m2.scrollTop=0; },0);
 }
-function closeModal(){ $("shade").classList.remove("open"); plantTarget=-1; }
+function closeModal(){
+  // closing the Composter's own window IS the player's answer — he leaves.
+  if(COMPOST && COMPOST.menuOpen){ COMPOST.menuOpen=false; COMPOST.done=true; }
+  $("shade").classList.remove("open"); plantTarget=-1;
+}
 $("mClose").onclick=closeModal;
 $("shade").addEventListener("pointerdown",e=>{ if(e.target===$("shade")) closeModal(); });
 
