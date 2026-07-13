@@ -71,7 +71,7 @@
   .shopitem.locked { opacity:.45; }
   .zrow { display:flex; gap:10px; align-items:center; background:rgba(255,240,210,.07); border-radius:12px; padding:6px 10px; margin-bottom:6px; font-size:13px; }
   /* mutation almanac combo cards */
-  .mutgrid { display:flex; gap:6px; flex-wrap:wrap; margin:6px 0 2px; }
+  .mutgrid { display:flex; gap:6px; flex-wrap:wrap; margin:6px 0 2px; justify-content:center; }
   .mutcard { background:rgba(18,12,6,.55); border:2px solid #5e4426; border-radius:10px; padding:4px 3px 5px; text-align:center; width:92px; }
   .mutcard.raised { border-color:#7dffa0; box-shadow:0 0 8px rgba(125,255,160,.25); }
   .mutcard.unknown { border-style:dashed; opacity:.75; }
@@ -339,7 +339,7 @@ const GOALS = [
  {id:"spec42",  desc:"Collect ALL 42 SPECIAL CHARACTERS", n:42, stat:"specialkinds", brains:25, gold:100000}
 ];
 
-const BUILD = "build 64 · 2026-07-13"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 65 · 2026-07-13"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
