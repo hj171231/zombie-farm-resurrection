@@ -1154,7 +1154,7 @@ function raiseGardenerWith(cropId, roll) {
     const G = raiseGardenerWith("eyeberry", () => 0);
     const z = G.S.zombies[0];
     ok(z.awakened === true);
-    eq(z.pow, 75); eq(z.hp, 300); eq(z.maxhp, 300);
+    eq(z.pow, 150); eq(z.hp, 500); eq(z.maxhp, 500);
     ok(z.mut.some(m => m.label === "All-Seeing"), "still carries the mutation");
     const zd = G.zdefFor(z);
     ok(zd.awk && zd.big, "draws on the heavy Awakened frame");
@@ -1175,7 +1175,7 @@ function raiseGardenerWith(cropId, roll) {
     G.save();
     const s2 = G.sanitizeState(G.load());
     ok(s2.zombies[0].awakened === true);
-    eq(s2.zombies[0].pow, 75); eq(s2.zombies[0].maxhp, 300);
+    eq(s2.zombies[0].pow, 150); eq(s2.zombies[0].maxhp, 500);
   });
   check("heart pill reads LIVE total horde hp", () => {
     const inst = loadGame(); const G = inst.G; const els = inst.els;

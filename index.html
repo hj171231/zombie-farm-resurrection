@@ -339,7 +339,7 @@ const GOALS = [
  {id:"spec42",  desc:"Collect ALL 42 SPECIAL CHARACTERS", n:42, stat:"specialkinds", brains:25, gold:100000}
 ];
 
-const BUILD = "build 66 · 2026-07-13"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 67 · 2026-07-13"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -850,7 +850,7 @@ function harvest(i){
           // (unwritten anywhere, untold to anyone: the gardener who Sees
           //  stops tending the crops and starts tending the BATTLEFIELD)
           z.awakened=true;
-          z.pow=75; z.hp=300; z.maxhp=300; z.spd=1.2;
+          z.pow=150; z.hp=500; z.maxhp=500; z.spd=1.2; // supreme, above every special, always
           setTimeout(()=>{ toast("&#x1F441;&#xFE0F; <b>"+z.name+"</b> has seen EVERYTHING.",3800); sfx.brain(); sfx.zomb(); },1400);
         }
         if(z.mut.length===2){ // a combo! log it in the almanac
