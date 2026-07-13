@@ -912,9 +912,9 @@ console.log("\n== PERFECTED mutations ==");
 console.log("\n== content pack: data ==");
 {
   const { G } = boot();
-  check("content counts: 10 crops, 14 zombies (1 secret), 5 trees, 8 targets, 38 goals", () => {
+  check("content counts: 10 crops, 14 zombies (1 secret), 5 trees, 8 targets, 41 goals", () => {
     eq(G.CROPS.length, 10); eq(G.ZTYPES.length, 14);
-    eq(G.TREES.length, 5); eq(G.TARGETS.length, 8); eq(G.GOALS.length, 38);
+    eq(G.TREES.length, 5); eq(G.TARGETS.length, 8); eq(G.GOALS.length, 41);
   });
   check("crop grow times are the approved nice numbers", () => {
     const want = [25, 50, 100, 200, 330, 540, 780, 1320, 1980, 3000];
@@ -1375,6 +1375,33 @@ console.log("\n== SPECIAL CHARACTERS & the Composter\u2019s wanted list ==");
     const parts = G.S.compostWant.split(" + ");
     const labels = G.CROPS.map(c => c.mut.label);
     ok(parts.length === 2 && labels.includes(parts[0]) && labels.includes(parts[1]) && parts[0] < parts[1]);
+  });
+}
+
+console.log("\n== specials wing, goals & collector prices ==");
+{
+  check("transforming logs the special + fires the spec1 goal", () => {
+    const G = zombieWithNeighbors(["melon", "beet"], 0.7, () => 0, "mini");
+    ok(G.S.specialsSeen && G.S.specialsSeen.baby === true, "discovery logged");
+    ok(G.S.goalsDone.includes("spec1"), "first-special goal fires");
+    const s2 = G.sanitizeState(JSON.parse(JSON.stringify(G.S)));
+    ok(s2.specialsSeen.baby === true, "discovery survives saves");
+  });
+  check("the Composter pays collector prices for specials", () => {
+    const { G } = boot();
+    const z = { type: "mini", name: "B", pow: 3, hp: 12, maxhp: 12, spd: 1, hunger: 0, kills: 0,
+      special: "baby", mut: [{ label: "Moon-Touched" }, { label: "Big-Hearted" }], x: 0, y: 0, tx: 0, ty: 0, wob: 0 };
+    G.S.compostWant = null;
+    const off = G.compostOffer(z);
+    eq(off.gold, Math.round(Math.round(100 * 0.5 * 1.3) * 1.75), "1.75x collector premium");
+    ok(off.special && off.brains >= 1, "specials always fetch a brain");
+  });
+  check("old saves get their storm clocks pulled onto the new cadence", () => {
+    const { G } = boot();
+    const raw = G.freshState();
+    raw.nextRainAt = 99999; raw.stats.playSec = 0;
+    const s = G.sanitizeState(raw);
+    ok(s.nextRainAt <= 5400, "3-5h schedules migrate to 45-90min");
   });
 }
 

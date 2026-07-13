@@ -333,10 +333,13 @@ const GOALS = [
  {id:"wins60",  desc:"Win 60 invasions",             n:60,   stat:"wins",    brains:4},
  {id:"perf1",   desc:"PERFECT a mutation (raise its every combo)", n:1, stat:"perfect", brains:3},
  {id:"perf10",  desc:"PERFECT all 10 mutations",     n:10,   stat:"perfect", brains:10},
- {id:"rich250k",desc:"Hold 250,000 gold at once",    n:250000, stat:"goldbank", brains:5}
+ {id:"rich250k",desc:"Hold 250,000 gold at once",    n:250000, stat:"goldbank", brains:5},
+ {id:"spec1",   desc:"Transform your first SPECIAL CHARACTER", n:1, stat:"specialkinds", brains:2},
+ {id:"spec10",  desc:"Collect 10 SPECIAL CHARACTERS",  n:10,  stat:"specialkinds", brains:5},
+ {id:"spec42",  desc:"Collect ALL 42 SPECIAL CHARACTERS", n:42, stat:"specialkinds", brains:25, gold:100000}
 ];
 
-const BUILD = "build 61 · 2026-07-12"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 62 · 2026-07-13"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -365,7 +368,7 @@ function freshState(){
     tiles, zombies:[], lifeForce:0,
     lastInvade:0, muted:false,
     stats:{plowed:0,crops:0,zombies:0,trees:0,wins:0,muts:0,apples:0,gmound:0,mallwin:0,moonwin:0,ferts:0,renames:0,doubles:0,garlics:0,playSec:0,composted:0,specials:0},
-    goalsDone:[], claimed:[], mutSeen:{}, pairSeen:{}, perfected:{}, lastHealAt:now(), lastCompost:0, nextRainAt:10800+Math.floor(Math.random()*7200), blessed:{}, compostWant:null, created:now()
+    goalsDone:[], claimed:[], mutSeen:{}, pairSeen:{}, perfected:{}, lastHealAt:now(), lastCompost:0, nextRainAt:2700+Math.floor(Math.random()*2700), blessed:{}, compostWant:null, specialsSeen:{}, created:now()
   };
 }
 // ---- horde management ----
@@ -400,6 +403,12 @@ function sanitizeState(raw){
   s.xp=num(raw.xp,s.xp); s.level=Math.max(1,Math.floor(num(raw.level,1)));
   s.lastInvade=num(raw.lastInvade,0); s.created=num(raw.created,s.created);
   s.lastCompost=num(raw.lastCompost,0); s.nextRainAt=num(raw.nextRainAt,s.nextRainAt);
+  // older saves scheduled storms 3-5h out — pull them onto the new cadence
+  const ps=(raw.stats&&typeof raw.stats.playSec==="number")?raw.stats.playSec:0;
+  if(s.nextRainAt>ps+5400) s.nextRainAt=ps+2700+Math.floor(Math.random()*2700);
+  if(raw.specialsSeen && typeof raw.specialsSeen==="object"){
+    SPECIALS.forEach(sp=>{ if(raw.specialsSeen[sp.id]===true) s.specialsSeen[sp.id]=true; });
+  }
   if(typeof raw.compostWant==="string"){
     const parts=raw.compostWant.split(" + "), labels=CROPS.map(c=>c.mut.label);
     if(parts.length===2 && labels.includes(parts[0]) && labels.includes(parts[1])) s.compostWant=raw.compostWant;
@@ -860,6 +869,8 @@ function harvest(i){
             if(eff.stat==="spd") z.spd+=eff.amt*0.25;
           });
           S.stats.specials=(S.stats.specials||0)+1;
+          if(!S.specialsSeen) S.specialsSeen={};
+          S.specialsSeen[sp.id]=true;
           setTimeout(()=>{ toast("&#x1F31F; <b>"+z.name+"</b> transformed into the <b>"+sp.name.toUpperCase()+"</b>!",4000); sfx.brain(); sfx.zomb(); },900);
         }
       }
@@ -1044,6 +1055,7 @@ function goalProgress(g){
     case "zoo": return new Set(S.zombies.map(z=>z.type)).size;
     case "mutkinds": return Object.keys(S.mutSeen||{}).length;
     case "combokinds": return Object.keys(S.pairSeen||{}).length;
+    case "specialkinds": return Object.keys(S.specialsSeen||{}).length;
     case "perfect": return Object.keys(S.perfected||{}).length;
     default: return S.stats[g.stat]||0;
   }
@@ -1087,7 +1099,7 @@ setInterval(()=>{
   }
   if(S&&scene==="farm"&&!RAIN&&(S.stats.playSec||0)>=(S.nextRainAt||Infinity)){
     RAIN={until:now()+ri(80,115)*1000, bolts:1+(Math.random()<0.5?1:0), nextBolt:now()+ri(12,35)*1000, flash:0, hit:null};
-    S.nextRainAt=(S.stats.playSec||0)+10800+Math.floor(Math.random()*7200); // next storm in 3-5 played hours
+    S.nextRainAt=(S.stats.playSec||0)+2700+Math.floor(Math.random()*2700); // next storm in 45-90 played minutes
     // the rain soaks 1-2 tiles: 5 hours of DOUBLE growing speed on that soil
     if(!S.blessed) S.blessed={};
     Object.keys(S.blessed).forEach(k=>{ if(S.blessed[k]<=now()) delete S.blessed[k]; });
@@ -3399,7 +3411,7 @@ function drawFarm(dt){
   }
   // ---- the Composter arrives at dawn, once the farmer's put in an hour ----
   if(__lastDark>0.3 && dp.dark<=0.02 && !COMPOST &&
-     (S.stats.playSec||0)>=3600 && now()-(S.lastCompost||0)>3600e3 && S.zombies.length){
+     (S.stats.playSec||0)>=900 && now()-(S.lastCompost||0)>2400e3 && S.zombies.length){
     COMPOST={phase:"in",t0:performance.now()};
     if(!S.compostWant) rollCompostWant(); // first visit: he already has a shopping list
     S.lastCompost=now(); save();
@@ -3485,12 +3497,16 @@ function compostOffer(z){
     const legend=(L("Gourd-Headed")&&L("Flaming"))||(L("Sporified")&&L("Flaming"))||(L("All-Seeing")&&L("Gourd-Headed"));
     if(legend) brains=(z.kills||0)>=5?2:1;                    // legends fetch brains
   }
+  let special=false;
+  if(z.special){ // collectors pay collector prices
+    special=true; gold=Math.round(gold*1.75); xp=Math.round(xp*1.75); brains=Math.max(1,brains);
+  }
   let wanted=false;
   if(S.compostWant && z.mut && z.mut.length===2 &&
      z.mut.map(m=>m.label).sort().join(" + ")===S.compostWant){
     wanted=true; gold*=2; xp*=2; brains=Math.max(1,brains*2); // the combo he's been hunting
   }
-  return {gold,xp,brains,wanted};
+  return {gold,xp,brains,wanted,special};
 }
 function openComposterMenu(){
   openModal("&#x1F69B; The Composter");
@@ -3522,6 +3538,7 @@ function openComposterMenu(){
     row.appendChild(txt);
     const off=compostOffer(z);
     if(off.wanted){ row.style.outline="2px dashed #ffd94d"; row.style.borderRadius="10px"; txt.innerHTML+="<br><span style='color:#ffd94d;font-size:11px'>&#x1F4CB; WANTED &mdash; DOUBLE PAY!</span>"; }
+    if(off.special) txt.innerHTML+="<br><span style='color:#ffd94d;font-size:11px'>&#x1F31F; SPECIAL &mdash; collector prices!</span>";
     const btns=document.createElement("div"); btns.style.cssText="display:flex;flex-direction:column;gap:4px";
     const takeIt=(kind,amt,label)=>{
       if(!confirm("Compost "+z.name+" for "+label+"? No take-backs!")) return;
@@ -4053,6 +4070,29 @@ function openAlmanac(){
     }
     b.appendChild(div);
   });
+  // ---- the SPECIAL CHARACTERS wing: a collection of silhouettes to chase.
+  // Undiscovered cards reveal ONLY the shape and the base type — no recipes.
+  const seenSp=S.specialsSeen||{};
+  const spHead=document.createElement("div");
+  spHead.style.cssText="text-align:center;margin:14px 0 6px;font-size:16px";
+  spHead.innerHTML="<b style='color:#ffd94d'>&#x1F31F; SPECIAL CHARACTERS "+Object.keys(seenSp).length+"/"+SPECIALS.length+"</b><br><span style='font-size:11.5px;opacity:.75'>the right zombie + the right mutations = a transformation. Experiment!</span>";
+  b.appendChild(spHead);
+  const spGrid=document.createElement("div"); spGrid.className="mutgrid";
+  SPECIALS.forEach(sp=>{
+    const got=!!seenSp[sp.id];
+    const card=document.createElement("div"); card.className="mutcard"+(got?" raised":" unknown");
+    const zdS=zdefFor({type:sp.type, special:sp.id, mut:[]});
+    card.appendChild(artCanvasSized((g,x,y,r)=>{
+      drawZombie(g,x,y+r*0.9,0.58,zdS,[],0.5,0,false,"idle");
+      if(!got){ g.globalCompositeOperation="source-atop"; g.fillStyle="rgba(22,16,34,.93)"; g.fillRect(0,0,300,300); g.globalCompositeOperation="source-over"; }
+    },84));
+    const lbl=document.createElement("div"); lbl.className="mlbl";
+    lbl.innerHTML= got ? "<b style='color:#ffd94d'>"+sp.name+"</b>"
+                       : "<b>???</b><br><span style='opacity:.7'>a "+((ZTYPES.find(t=>t.id===sp.type)||{}).name||"?")+"...</span>";
+    card.appendChild(lbl);
+    spGrid.appendChild(card);
+  });
+  b.appendChild(spGrid);
   const foot=document.createElement("p");
   foot.style.cssText="font-size:11.5px;opacity:.7;padding:6px 8px";
   foot.innerHTML="&#x1F4A1; Pro tip: ring one plot with four different ripening crops, then plant the zombie in the middle for the best shot at a double mutation.";
