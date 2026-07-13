@@ -72,7 +72,7 @@
   .zrow { display:flex; gap:10px; align-items:center; background:rgba(255,240,210,.07); border-radius:12px; padding:6px 10px; margin-bottom:6px; font-size:13px; }
   /* mutation almanac combo cards */
   .mutgrid { display:flex; gap:6px; flex-wrap:wrap; margin:6px 0 2px; justify-content:center; }
-  .mutcard { background:rgba(18,12,6,.55); border:2px solid #5e4426; border-radius:10px; padding:4px 3px 5px; text-align:center; width:92px; }
+  .mutcard { background:rgba(18,12,6,.55); border:2px solid #5e4426; border-radius:10px; padding:4px 3px 5px; text-align:center; width:112px; }
   .mutcard.raised { border-color:#7dffa0; box-shadow:0 0 8px rgba(125,255,160,.25); }
   .mutcard.unknown { border-style:dashed; opacity:.75; }
   .mutcard .mlbl { font-size:10px; line-height:1.3; color:#f3e9d2; margin-top:2px; font-family:"Baloo 2","Arial Rounded MT Bold",sans-serif; }
@@ -339,7 +339,7 @@ const GOALS = [
  {id:"spec42",  desc:"Collect ALL 42 SPECIAL CHARACTERS", n:42, stat:"specialkinds", brains:25, gold:100000}
 ];
 
-const BUILD = "build 65 · 2026-07-13"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 66 · 2026-07-13"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -860,14 +860,11 @@ function harvest(i){
           S.stats.doubles=(S.stats.doubles||0)+1;
         }
         const sp=!z.awakened && specialFor(zd.id,z.mut);
-        if(sp){ // a SPECIAL CHARACTER rises: the mutation gains pay +25% extra
+        if(sp){ // a SPECIAL CHARACTER rises: the whole zombie is 25% MORE
           z.special=sp.id;
-          z.mut.forEach(m=>{
-            const eff=mutAmt(m.label);
-            if(eff.stat==="pow") z.pow+=Math.max(1,Math.round(eff.amt*0.25));
-            if(eff.stat==="hp"){ const b=Math.max(1,Math.round(eff.amt*0.25)); z.hp+=b; z.maxhp+=b; }
-            if(eff.stat==="spd") z.spd+=eff.amt*0.25;
-          });
+          z.pow=Math.round(z.pow*1.25);
+          z.maxhp=Math.round(z.maxhp*1.25);
+          z.hp=z.maxhp; // transformation leaves them whole
           S.stats.specials=(S.stats.specials||0)+1;
           if(!S.specialsSeen) S.specialsSeen={};
           S.specialsSeen[sp.id]=true;
@@ -3540,11 +3537,11 @@ function openComposterMenu(){
   S.zombies.slice().forEach(z=>{
     const zd=zdefFor(z);
     const row=document.createElement("div"); row.className="zrow";
-    row.appendChild(artCanvas((g,x,y,r)=>drawZombie(g,x,y+22,0.5,zd,z.mut,0.5,0,false,"idle")));
-    const txt=document.createElement("div"); txt.style.flex="1";
+    row.appendChild(artCanvasSized((g,x,y,r)=>drawZombie(g,x,y+r*1.05,0.82,zd,z.mut,0.5,0,false,"idle"),78));
+    const txt=document.createElement("div"); txt.style.cssText="flex:1;font-size:15px;line-height:1.35";
     txt.innerHTML="<b style='color:#ffe9a8'>"+z.name+"</b> the "+zd.name+
-      (z.mut&&z.mut.length?"<br><span style='font-size:11px;opacity:.8'>"+z.mut.map(m=>m.label).join(" + ")+"</span>":"")+
-      ((z.kills||0)>0?"<br><span style='font-size:11px;color:#ffca5a'>"+z.kills+" battle kill"+(z.kills>1?"s":"")+"</span>":"");
+      (z.mut&&z.mut.length?"<br><span style='font-size:12.5px;opacity:.8'>"+z.mut.map(m=>m.label).join(" + ")+"</span>":"")+
+      ((z.kills||0)>0?"<br><span style='font-size:12.5px;color:#ffca5a'>"+z.kills+" battle kill"+(z.kills>1?"s":"")+"</span>":"");
     row.appendChild(txt);
     const off=compostOffer(z);
     if(off.wanted){ row.style.outline="2px dashed #ffd94d"; row.style.borderRadius="10px"; txt.innerHTML+="<br><span style='color:#ffd94d;font-size:11px'>&#x1F4CB; WANTED &mdash; DOUBLE PAY!</span>"; }
@@ -3560,10 +3557,12 @@ function openComposterMenu(){
       toast("&#x1F69B; "+z.name+" hops in the truck. Farewell!",2200);
       openComposterMenu();
     };
-    const mk=(label,fn,red)=>{ const bt=document.createElement("button"); bt.className="gbtn small"+(red?" red":""); bt.innerHTML=label; bt.onclick=fn; btns.appendChild(bt); };
+    const mk=(label,fn)=>{ const bt=document.createElement("button"); bt.className="gbtn small";
+      bt.style.cssText="width:108px;height:36px;padding:0;box-sizing:border-box"; // one size fits all offers
+      bt.innerHTML=label; bt.onclick=fn; btns.appendChild(bt); };
     mk(off.gold+" "+iconHTML(drawGoldMini),()=>takeIt("gold",off.gold,off.gold+" gold"));
     mk(off.xp+" xp",()=>takeIt("xp",off.xp,off.xp+" xp"));
-    if(off.brains) mk(off.brains+" &#x1F9E0;",()=>takeIt("brains",off.brains,off.brains+" brain"+(off.brains>1?"s":"")),true);
+    if(off.brains) mk(off.brains+" &#x1F9E0;",()=>takeIt("brains",off.brains,off.brains+" brain"+(off.brains>1?"s":"")));
     row.appendChild(btns);
     b.appendChild(row);
   });
@@ -3962,9 +3961,9 @@ function renderAlmanacSpecials(b){
     const card=document.createElement("div"); card.className="mutcard"+(got?" raised":" unknown");
     const zdS=zdefFor({type:sp.type, special:sp.id, mut:[]});
     card.appendChild(artCanvasSized((g,x,y,r)=>{
-      drawZombie(g,x,y+r*0.9,0.58,zdS,[],0.5,0,false,"idle");
+      drawZombie(g,x,y+r*0.98,0.74,zdS,[],0.5,0,false,"idle");
       if(!got){ g.globalCompositeOperation="source-atop"; g.fillStyle="#100b1c"; g.fillRect(0,0,300,300); g.globalCompositeOperation="source-over"; } // PITCH BLACK — shape only
-    },84));
+    },104));
     const lbl=document.createElement("div"); lbl.className="mlbl";
     lbl.innerHTML= got ? "<b style='color:#ffd94d'>"+sp.name+"</b>"
                        : "<b>???</b><br><span style='opacity:.7'>a "+((ZTYPES.find(t=>t.id===sp.type)||{}).name||"?")+"...</span>";
@@ -3977,7 +3976,7 @@ function openAlmanac(tab){
   tab=tab||0;
   openModal("&#x1F9EC; Mutation Almanac");
   const tabs=$("mTabs"); tabs.innerHTML="";
-  ["Mutations","&#x1F31F; Specials"].forEach((n,ix)=>{
+  ["&#x1F9EC; Mutations &#x1F9EC;","&#x1F31F; Specials &#x1F31F;"].forEach((n,ix)=>{
     const d=document.createElement("div"); d.className="tab"+(ix===tab?" on":""); d.innerHTML=n;
     d.onclick=()=>{ sfx.tap(); openAlmanac(ix); };
     tabs.appendChild(d);

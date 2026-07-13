@@ -1336,8 +1336,10 @@ console.log("\n== SPECIAL CHARACTERS & the Composter\u2019s wanted list ==");
     const z = G.S.zombies[0];
     eq(z.special, "baby");
     const zd = G.ZTYPES.find(t => t.id === "mini");
-    // hp: base + moon 25 + beet 35 + 25% of each (6+9 rounded) = base+75... 25*.25=6.25->6, 35*.25=8.75->9
-    eq(z.maxhp, zd.hp + 25 + 35 + 6 + 9, "mutation gains plus 25% extra");
+    // transformation: (base + moon 25 + beet 35) * 1.25, born at full health
+    eq(z.maxhp, Math.round((zd.hp + 25 + 35) * 1.25), "whole zombie is 25% more");
+    eq(z.hp, z.maxhp, "transformation leaves them whole");
+    eq(z.pow, Math.round(zd.pow * 1.25));
     eq(G.zdefFor(z).name, "Baby Zombie", "wears the new identity");
     eq(G.S.stats.specials, 1);
   });
