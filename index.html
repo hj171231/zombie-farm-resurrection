@@ -72,7 +72,7 @@
   .zrow { display:flex; gap:10px; align-items:center; background:rgba(255,240,210,.07); border-radius:12px; padding:6px 10px; margin-bottom:6px; font-size:13px; }
   /* mutation almanac combo cards */
   .mutgrid { display:flex; gap:6px; flex-wrap:wrap; margin:6px 0 2px; justify-content:center; }
-  .mutcard { background:rgba(18,12,6,.55); border:2px solid #5e4426; border-radius:10px; padding:4px 3px 5px; text-align:center; width:112px; }
+  .mutcard { background:rgba(18,12,6,.55); border:2px solid #5e4426; border-radius:10px; padding:4px 3px 5px; text-align:center; width:134px; }
   .mutcard.raised { border-color:#7dffa0; box-shadow:0 0 8px rgba(125,255,160,.25); }
   .mutcard.unknown { border-style:dashed; opacity:.75; }
   .mutcard .mlbl { font-size:10px; line-height:1.3; color:#f3e9d2; margin-top:2px; font-family:"Baloo 2","Arial Rounded MT Bold",sans-serif; }
@@ -263,26 +263,26 @@ const CROPS = [
  {id:"garlic",   name:"Grave Garlic", cost:24500,time:3000,sell:49000,xp:40,unlock:20,col:"#e8e2d0", mut:{stat:"pow", amt:50,  label:"Pungent"}}
 ];
 const ZTYPES = [
- {id:"shambler", name:"Shambler",  cost:50,  brains:0, time:30,  pow:5,  hp:22, spd:1.0, unlock:1, col:"#82c356", shirt:"#b23a2c", plaid:true, desc:"Your everyday hard-working corpse."},
- {id:"mini",     name:"Mini Z",    cost:100,  brains:0, time:15,  pow:3,  hp:12, spd:1.7, unlock:1, col:"#98d86a", shirt:"#4e8fbe", small:true, desc:"Tiny, quick, adorable-ish."},
- {id:"headless", name:"Headless",  cost:250, brains:0, time:60,  pow:9,  hp:32, spd:0.9, unlock:3, col:"#79ab8f", shirt:"#8f5a4e", headless:true, desc:"Lost its head. Never lost a fight."},
- {id:"gardener", name:"Gardener",  cost:400, brains:0, time:45,  pow:2,  hp:16, spd:1.0, unlock:4, col:"#6fcf96", shirt:"#3e7a4e", hat:"straw", desc:"Fertilizes crops for DOUBLE gold. Weak fighter."},
- {id:"bruiser",  name:"Bruiser",   cost:750, brains:0, time:120, pow:15, hp:60, spd:0.7, unlock:6, col:"#9a8bc0", shirt:"#5c4a7a", big:true, desc:"Built like a barn door."},
+ {id:"shambler", name:"Shambler",  cost:100,  brains:0, time:30,  pow:5,  hp:22, spd:1.0, unlock:1, col:"#82c356", shirt:"#b23a2c", plaid:true, desc:"Your everyday hard-working corpse."},
+ {id:"mini",     name:"Mini Z",    cost:250,  brains:0, time:15,  pow:3,  hp:12, spd:1.7, unlock:1, col:"#98d86a", shirt:"#4e8fbe", small:true, desc:"Tiny, quick, adorable-ish."},
+ {id:"headless", name:"Headless",  cost:1000, brains:0, time:60,  pow:9,  hp:32, spd:0.9, unlock:3, col:"#79ab8f", shirt:"#8f5a4e", headless:true, desc:"Lost its head. Never lost a fight."},
+ {id:"gardener", name:"Gardener",  cost:2000, brains:0, time:45,  pow:2,  hp:16, spd:1.0, unlock:4, col:"#6fcf96", shirt:"#3e7a4e", hat:"straw", desc:"Fertilizes crops for DOUBLE gold. Weak fighter."},
+ {id:"bruiser",  name:"Bruiser",   cost:5000, brains:0, time:120, pow:15, hp:60, spd:0.7, unlock:6, col:"#9a8bc0", shirt:"#5c4a7a", big:true, desc:"Built like a barn door."},
  {id:"sawbones", name:"Patches",   cost:0,   brains:1, time:90,  pow:3,  hp:20, spd:1.1, unlock:7, col:"#9ad0a8", shirt:"#f0ede2", hat:"toque", medic:true, desc:"Half doctor, all dead. Tends your wounded like a walking Gnarly Oak."},
- {id:"banshee",  name:"Banshee",   cost:1500,brains:0, time:180, pow:20, hp:45, spd:1.4, unlock:8, col:"#c3d3ea", shirt:"#7a8fb0", glow:true, desc:"Fast, furious, faintly glowing."},
- {id:"abom",     name:"Abomination",cost:0,  brains:2, time:200, pow:32, hp:110,spd:0.6, unlock:9, col:"#cf7d7d", shirt:"#6e3a3a", big:true, hulk:true, desc:"A premium pile of muscle. Costs brains."},
- {id:"digger",   name:"Grave Digger",cost:4000,brains:0,time:240, pow:24, hp:70, spd:0.9, unlock:11,col:"#a8b060", shirt:"#c8842e", hat:"hardhat", prop:"shovel", desc:"Hardhat blocks 30% of projectile damage."},
- {id:"chef",     name:"Chef",      cost:0,  brains:5,time:360, pow:28, hp:80, spd:1.0, unlock:15,col:"#b8d86a", shirt:"#f0ede2", hat:"toque", prop:"ladle", desc:"After a won battle, survivors heal DOUBLE."},
- {id:"jester",   name:"Jester",    cost:7500,brains:0, time:300, pow:18, hp:50, spd:1.6, unlock:13,col:"#8fd8b8", shirt:"#7a3a9e", hat:"jester", motley:true, desc:"Confuses defenders &mdash; they throw much slower."},
+ {id:"banshee",  name:"Banshee",   cost:7500,brains:0, time:180, pow:20, hp:45, spd:1.4, unlock:8, col:"#c3d3ea", shirt:"#7a8fb0", glow:true, desc:"Fast, furious, faintly glowing."},
+ {id:"chef",     name:"Chef",      cost:0,  brains:3,time:360, pow:28, hp:80, spd:1.0, unlock:15,col:"#b8d86a", shirt:"#f0ede2", hat:"toque", prop:"ladle", desc:"After a won battle, survivors heal DOUBLE."},
+ {id:"digger",   name:"Grave Digger",cost:10000,brains:0,time:240, pow:24, hp:70, spd:0.9, unlock:11,col:"#a8b060", shirt:"#c8842e", hat:"hardhat", prop:"shovel", desc:"Hardhat blocks 30% of projectile damage."},
+ {id:"abom",     name:"Abomination",cost:0,  brains:5, time:200, pow:32, hp:110,spd:0.6, unlock:9, col:"#cf7d7d", shirt:"#6e3a3a", big:true, hulk:true, desc:"A premium pile of muscle. Costs brains."},
+ {id:"jester",   name:"Jester",    cost:15000,brains:0, time:300, pow:18, hp:50, spd:1.6, unlock:13,col:"#8fd8b8", shirt:"#7a3a9e", hat:"jester", motley:true, desc:"Confuses defenders &mdash; they throw much slower."},
  {id:"gravemound",name:"Gravemound",cost:0,  brains:10, time:600, pow:55, hp:220,spd:0.5, unlock:19,col:"#7a9a6a", shirt:"#4e5e42", big:true, colossus:true, desc:"A walking hillside. The ground remembers him."},
- {id:"golden",   name:"Golden Shambler",cost:10000,brains:0,time:60, pow:26, hp:90, spd:1.3, unlock:1, col:"#e8c84a", shirt:"#b8912e", plaid:true, glow:true, secret:true, desc:"A legend in solid gold. Earned, never found."},
+ {id:"golden",   name:"Golden Shambler",cost:20000,brains:0,time:60, pow:26, hp:90, spd:1.3, unlock:1, col:"#e8c84a", shirt:"#b8912e", plaid:true, glow:true, secret:true, desc:"A legend in solid gold. Earned, never found."},
  {id:"voltz",    name:"Voltz",     cost:0,  brains:15, time:900, pow:60, hp:250,spd:1.0, unlock:24,col:"#9ab8a2", shirt:"#5a6672", big:true, robo:true, desc:"Half corpse, half chrome. ERROR 404: pain not found."}
 ];
 const TREES = [
- {id:"oak",    name:"Gnarly Oak",   cost:250, brains:0, lf:10, unlock:2, col:"#4e8a2e"},
- {id:"willow", name:"Weeping Willow",cost:750,brains:0, lf:25, unlock:5, col:"#72aa50"},
- {id:"spooky", name:"Spooky Tree",  cost:0,   brains:2, lf:60, unlock:7, col:"#6a568a"},
- {id:"bonebirch",name:"Bone Birch", cost:2000,brains:0, lf:100,unlock:12,col:"#cfe0c0"},
+ {id:"oak",    name:"Gnarly Oak",   cost:2000, brains:0, lf:10, unlock:2, col:"#4e8a2e"},
+ {id:"willow", name:"Weeping Willow",cost:5000,brains:0, lf:25, unlock:5, col:"#72aa50"},
+ {id:"bonebirch",name:"Bone Birch", cost:10000,brains:0, lf:100,unlock:12,col:"#cfe0c0"},
+ {id:"spooky", name:"Spooky Tree",  cost:0,   brains:3, lf:60, unlock:7, col:"#6a568a"},
  {id:"lantern", name:"Lantern Tree",cost:0,   brains:5, lf:180,unlock:16,col:"#3a3048"}
 ];
 const TARGETS = [
@@ -339,7 +339,7 @@ const GOALS = [
  {id:"spec42",  desc:"Collect ALL 42 SPECIAL CHARACTERS", n:42, stat:"specialkinds", brains:25, gold:100000}
 ];
 
-const BUILD = "build 67 · 2026-07-13"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 68 · 2026-07-13"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -368,7 +368,7 @@ function freshState(){
     tiles, zombies:[], lifeForce:0,
     lastInvade:0, muted:false,
     stats:{plowed:0,crops:0,zombies:0,trees:0,wins:0,muts:0,apples:0,gmound:0,mallwin:0,moonwin:0,ferts:0,renames:0,doubles:0,garlics:0,playSec:0,composted:0,specials:0},
-    goalsDone:[], claimed:[], mutSeen:{}, pairSeen:{}, perfected:{}, lastHealAt:now(), lastCompost:0, nextRainAt:2700+Math.floor(Math.random()*2700), blessed:{}, compostWant:null, specialsSeen:{}, created:now()
+    goalsDone:[], claimed:[], mutSeen:{}, pairSeen:{}, perfected:{}, lastHealAt:now(), lastCompost:0, nextCompostAt:1800, compostVisits:0, nextRainAt:3600, blessed:{}, compostWant:null, specialsSeen:{}, created:now()
   };
 }
 // ---- horde management ----
@@ -403,9 +403,12 @@ function sanitizeState(raw){
   s.xp=num(raw.xp,s.xp); s.level=Math.max(1,Math.floor(num(raw.level,1)));
   s.lastInvade=num(raw.lastInvade,0); s.created=num(raw.created,s.created);
   s.lastCompost=num(raw.lastCompost,0); s.nextRainAt=num(raw.nextRainAt,s.nextRainAt);
-  // older saves scheduled storms 3-5h out — pull them onto the new cadence
+  s.nextCompostAt=num(raw.nextCompostAt,0); s.compostVisits=Math.floor(num(raw.compostVisits,0));
+  // pull stale schedules onto the current cadence, and make sure a returning
+  // player meets both events EARLY in their next session
   const ps=(raw.stats&&typeof raw.stats.playSec==="number")?raw.stats.playSec:0;
-  if(s.nextRainAt>ps+5400) s.nextRainAt=ps+2700+Math.floor(Math.random()*2700);
+  if(s.nextRainAt>ps+3600) s.nextRainAt=ps+1200;
+  if(!s.nextCompostAt || s.nextCompostAt>ps+1800) s.nextCompostAt=ps+600;
   if(raw.specialsSeen && typeof raw.specialsSeen==="object"){
     SPECIALS.forEach(sp=>{ if(raw.specialsSeen[sp.id]===true) s.specialsSeen[sp.id]=true; });
   }
@@ -1000,10 +1003,10 @@ function healTick(){
 // ---------- goals ----------
 // Mutation odds ladder (user-decreed) —
 //   no trees 15% · first oaks (50 LF) 30% · typical grove (600) 50%
-//   serious grove (1800) 75% · full grove (3600+) a guaranteed 100%
+//   serious grove (1200) 75% · TEN LANTERN TREES (1800 LF) = guaranteed 100%
 // — linearly interpolated between anchors, PER adjacent ripening crop, so
 // surrounding a grave with crops still multiplies your chances.
-const MUT_ODDS=[[0,0.15],[50,0.30],[600,0.50],[1800,0.75],[3600,1.00]];
+const MUT_ODDS=[[0,0.15],[50,0.30],[600,0.50],[1200,0.75],[1800,1.00]]; // 10 Lantern Trees (1800 LF) = guaranteed 100%
 function mutationChance(){
   const lf=Math.min(S.lifeForce,3600);
   for(let i=1;i<MUT_ODDS.length;i++){
@@ -1095,28 +1098,41 @@ setInterval(()=>{
     S.stats.playSec=(S.stats.playSec||0)+1; // total screen time (Composter + weather)
   }
   weatherTick();
+  compostTick();
 },1000);
+// the Composter runs on COLLECTIVE screen time: every ~30 played minutes,
+// arriving only while the player is at the controls — phones included.
+function compostTick(){
+  if(!(S&&scene==="farm"&&!COMPOST&&(S.stats.playSec||0)>=(S.nextCompostAt||Infinity)&&now()-LAST_INPUT<60000&&S.zombies.length)) return false;
+  COMPOST={phase:"in",t0:performance.now()};
+  S.nextCompostAt=(S.stats.playSec||0)+1800;
+  S.compostVisits=(S.compostVisits||0)+1;
+  if(!S.compostWant) rollCompostWant(); // first visit: he already has a shopping list
+  save(); sfx.tap();
+  toast("&#x1F69B; The Composter rumbles up the track!",2600);
+  return true;
+}
 // storms hold until the player is ACTUALLY at the controls (input in the
 // last 60s) — nobody's lightning show plays to an empty room
 function weatherTick(){
   if(!(S&&scene==="farm"&&!RAIN&&(S.stats.playSec||0)>=(S.nextRainAt||Infinity)&&now()-LAST_INPUT<60000)) return false;
   {
-    RAIN={until:now()+ri(80,115)*1000, bolts:1+(Math.random()<0.5?1:0), nextBolt:now()+ri(12,35)*1000, flash:0, hit:null};
-    S.nextRainAt=(S.stats.playSec||0)+2700+Math.floor(Math.random()*2700); // next storm in 45-90 played minutes
-    // the rain soaks 1-2 tiles: 5 hours of DOUBLE growing speed on that soil
+    RAIN={until:now()+ri(85,120)*1000, bolts:1, nextBolt:now()+ri(12,35)*1000, flash:0, hit:null};
+    S.nextRainAt=(S.stats.playSec||0)+3600; // one storm per COLLECTIVE played hour
+    // the rain soaks ONE tile: 4 hours of DOUBLE growing speed on that soil
     if(!S.blessed) S.blessed={};
     Object.keys(S.blessed).forEach(k=>{ if(S.blessed[k]<=now()) delete S.blessed[k]; });
     const cand=[]; S.tiles.forEach((t,i)=>{ if((t.st==="plot"||t.st==="planted")&&!S.blessed[i]) cand.push(i); });
     if(!cand.length) S.tiles.forEach((t,i)=>{ if(t.st==="grass") cand.push(i); });
     let nb=0;
-    for(let k=0;k<1+(Math.random()<0.5?1:0) && cand.length;k++){
-      const i=cand.splice(Math.floor(Math.random()*cand.length),1)[0];
-      S.blessed[i]=now()+5*3600*1000; nb++;
+    if(cand.length){
+      const i=cand[Math.floor(Math.random()*cand.length)];
+      S.blessed[i]=now()+4*3600*1000; nb=1;
       if(S.tiles[i].st==="planted") S.tiles[i].boostUntil=S.blessed[i];
       const p=cellXY(i); addFloat(p.x,p.y-TH,"rain-blessed! 2x speed","#7adcff");
     }
     save();
-    toast("&#x1F327;&#xFE0F; Storm clouds gather"+(nb?" &mdash; the rain blessed "+nb+" plot"+(nb>1?"s":"")+" with 5h of DOUBLE growing speed!":"..."),3400);
+    toast("&#x1F327;&#xFE0F; Storm clouds gather"+(nb?" &mdash; the rain blessed a plot with 4h of DOUBLE growing speed!":"..."),3400);
   }
   return true;
 }
@@ -3413,15 +3429,6 @@ function drawFarm(dt){
       }
     }
   }
-  // ---- the Composter arrives at dawn, once the farmer's put in an hour ----
-  if(__lastDark>0.3 && dp.dark<=0.02 && !COMPOST &&
-     (S.stats.playSec||0)>=900 && now()-(S.lastCompost||0)>2400e3 && S.zombies.length){
-    COMPOST={phase:"in",t0:performance.now()};
-    if(!S.compostWant) rollCompostWant(); // first visit: he already has a shopping list
-    S.lastCompost=now(); save();
-    sfx.tap();
-    toast("&#x1F69B; The Composter rumbles up the track!",2600);
-  }
   __lastDark=dp.dark;
   drawComposterTruck();
   if(RAIN) drawRain();
@@ -3494,14 +3501,14 @@ function rollCompostWant(){
 function compostOffer(z){
   const zd=ZTYPES.find(t=>t.id===z.type)||{};
   const baseGold = zd.cost>0 ? zd.cost : (zd.brains||0)*2500; // brains trade ~2500g
-  const mutBump = 1 + 0.15*((z.mut&&z.mut.length)||0);        // mutations sweeten the deal
+  const mutBump = 1 + 0.2*((z.mut&&z.mut.length)||0);         // mutations sweeten the deal
   let gold = Math.max(10,Math.round(baseGold*0.5*mutBump));
-  let xp = Math.round(gold/15) + (z.kills||0)*5;              // he pays extra for battle heroes
-  let brains=0;
+  let xp = Math.round(gold/15) + (z.kills||0)*8;              // battle tenure pays handsomely
+  let brains = (zd.brains||0)>0 ? Math.ceil(zd.brains/3) : 0; // premium stock partially refunds in brains
   if(z.mut&&z.mut.length===2){
     const L=l=>z.mut.some(m=>m.label===l);
     const legend=(L("Gourd-Headed")&&L("Flaming"))||(L("Sporified")&&L("Flaming"))||(L("All-Seeing")&&L("Gourd-Headed"));
-    if(legend) brains=(z.kills||0)>=5?2:1;                    // legends fetch brains
+    if(legend) brains=Math.max(brains,(z.kills||0)>=5?2:1);   // legends fetch brains
   }
   let special=false;
   if(z.special){ // collectors pay collector prices
@@ -3583,8 +3590,10 @@ function drawComposterTruck(){
     if(!shadeOpen && (performance.now()-COMPOST.t0)>1500){
       if(COMPOST.done){
         COMPOST.phase="out"; COMPOST.t0=performance.now();
-        rollCompostWant(); save(); // next visit's shopping list, announced on the way out
-        toast("&#x1F69B; \"Next time I'm paying DOUBLE for a <b>"+S.compostWant+"</b> zombie!\"",4200);
+        const fresh=(S.compostVisits||0)%2===0; // a NEW wanted combo every other visit
+        if(fresh) rollCompostWant();
+        save();
+        toast("&#x1F69B; \""+(fresh?"Next time I'm":"Still")+" paying DOUBLE for a <b>"+S.compostWant+"</b> zombie!\"",4200);
       } else if(performance.now()-(COMPOST.lastNag||0)>1200 && scene==="farm"){
         COMPOST.lastNag=performance.now();
         openComposterMenu();
@@ -3961,9 +3970,9 @@ function renderAlmanacSpecials(b){
     const card=document.createElement("div"); card.className="mutcard"+(got?" raised":" unknown");
     const zdS=zdefFor({type:sp.type, special:sp.id, mut:[]});
     card.appendChild(artCanvasSized((g,x,y,r)=>{
-      drawZombie(g,x,y+r*0.98,0.74,zdS,[],0.5,0,false,"idle");
+      drawZombie(g,x,y+r*1.02,0.92,zdS,[],0.5,0,false,"idle");
       if(!got){ g.globalCompositeOperation="source-atop"; g.fillStyle="#100b1c"; g.fillRect(0,0,300,300); g.globalCompositeOperation="source-over"; } // PITCH BLACK — shape only
-    },104));
+    },126));
     const lbl=document.createElement("div"); lbl.className="mlbl";
     lbl.innerHTML= got ? "<b style='color:#ffd94d'>"+sp.name+"</b>"
                        : "<b>???</b><br><span style='opacity:.7'>a "+((ZTYPES.find(t=>t.id===sp.type)||{}).name||"?")+"...</span>";

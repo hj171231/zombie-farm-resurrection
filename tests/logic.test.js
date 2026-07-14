@@ -79,18 +79,18 @@ console.log("\n== economy ==");
     G.tapTile(24);
     eq(G.S.gold, before + 30);
   });
-  check("abomination costs brains, refused with 0, accepted with 2", () => {
+  check("abomination costs brains, refused with 0, accepted with 5", () => {
     forcePlot(G, 31);
     G.S.level = 99; // abom unlocks at 9
     G.S.brains = 0;
     ok(G.plantAt(31, "zombie", "abom") === false);
-    G.S.brains = 2;
+    G.S.brains = 5;
     ok(G.plantAt(31, "zombie", "abom") === true);
     eq(G.S.brains, 0); eq(G.S.tiles[31].plant, "abom");
   });
-  check("spooky tree costs 2 brains", () => {
+  check("spooky tree costs 3 brains", () => {
     forcePlot(G, 32);
-    G.S.brains = 2;
+    G.S.brains = 3;
     ok(G.plantAt(32, "tree", "spooky") === true);
     eq(G.S.brains, 0); eq(G.S.tiles[32].st, "tree");
   });
@@ -239,11 +239,11 @@ console.log("\n== horde ==");
   check("full horde (20): overflow zombie sells for cost*1.2+20", () => {
     while (G.S.zombies.length < 20) G.S.zombies.push({ type: "mini", hp: 1, maxhp: 1, pow: 1, spd: 1, hunger: 0, mut: [], kills: 0, x: 0, y: 0, tx: 0, ty: 0, wob: 0, name: "Dummy" });
     G.S.gold = 0;
-    forcePlot(G, 6); G.S.gold = 200; G.plantAt(6, "zombie", "mini"); // 200-100=100
+    forcePlot(G, 6); G.S.gold = 300; G.plantAt(6, "zombie", "mini"); // 300-250=50
     backdate(G, 6, 16);
     G.tapTile(6);
     eq(G.S.zombies.length, 20, "horde stays capped");
-    eq(G.S.gold, 100 + Math.floor(100 * 1.2) + 20); // +140
+    eq(G.S.gold, 50 + Math.floor(250 * 1.2) + 20); // +320
   });
 }
 
@@ -251,7 +251,7 @@ console.log("\n== trees & life force ==");
 {
   const { G } = boot();
   check("oak radiates 10 life force", () => {
-    G.S.gold = 1000; G.S.level = 2; // oak unlocks at 2
+    G.S.gold = 5000; G.S.level = 2; // oak unlocks at 2
     forcePlot(G, 8); G.plantAt(8, "tree", "oak");
     eq(G.S.lifeForce, 10); eq(G.S.stats.trees, 1);
   });
@@ -709,13 +709,13 @@ function mutationRoll(lifeForce, roll) {
     eq(mutationRoll(0, 0.14), 1);
     eq(mutationRoll(0, 0.16), 0);
   });
-  check("odds ladder anchors: 50 LF=30%, 600=50%, 1800=75%", () => {
+  check("odds ladder anchors: 50 LF=30%, 600=50%, 1200=75%", () => {
     eq(mutationRoll(50, 0.29), 1);  eq(mutationRoll(50, 0.31), 0);
     eq(mutationRoll(600, 0.49), 1); eq(mutationRoll(600, 0.51), 0);
-    eq(mutationRoll(1800, 0.74), 1); eq(mutationRoll(1800, 0.76), 0);
+    eq(mutationRoll(1200, 0.74), 1); eq(mutationRoll(1200, 0.76), 0);
   });
-  check("a lantern-tree fanatic (3600 LF) reaches GUARANTEED mutations", () => {
-    eq(mutationRoll(3600, 0.999), 1);
+  check("TEN lantern trees (1800 LF) reach GUARANTEED mutations", () => {
+    eq(mutationRoll(1800, 0.999), 1);
     eq(mutationRoll(999999, 0.999), 1, "capped at 100%, no overflow");
   });
   check("mutationChance interpolates exactly between anchors", () => {
@@ -723,9 +723,10 @@ function mutationRoll(lifeForce, roll) {
     G.S.lifeForce = 0;    ok(Math.abs(G.mutationChance() - 0.15) < 1e-9);
     G.S.lifeForce = 25;   ok(Math.abs(G.mutationChance() - 0.225) < 1e-9);  // halfway 0->50
     G.S.lifeForce = 325;  ok(Math.abs(G.mutationChance() - 0.40) < 1e-9);   // halfway 50->600
-    G.S.lifeForce = 1200; ok(Math.abs(G.mutationChance() - 0.625) < 1e-9);  // halfway 600->1800
-    G.S.lifeForce = 2700; ok(Math.abs(G.mutationChance() - 0.875) < 1e-9);  // halfway 1800->3600
-    G.S.lifeForce = 3600; eq(G.mutationChance(), 1);
+    G.S.lifeForce = 900;  ok(Math.abs(G.mutationChance() - 0.625) < 1e-9);  // halfway 600->1200
+    G.S.lifeForce = 1500; ok(Math.abs(G.mutationChance() - 0.875) < 1e-9);  // halfway 1200->1800
+    G.S.lifeForce = 1800; eq(G.mutationChance(), 1);
+    G.S.lifeForce = 3600; eq(G.mutationChance(), 1, "capped past ten lanterns");
   });
   check("a wilted neighbor never gifts a mutation (even lucky roll)", () => {
     const inst = loadGame(); const G = inst.G;
@@ -926,10 +927,11 @@ console.log("\n== content pack: data ==");
     eq(JSON.stringify(G.CROPS.map(c => c.cost)), JSON.stringify(wantCost));
     eq(JSON.stringify(G.CROPS.map(c => c.sell)), JSON.stringify(wantSell));
   });
-  check("zombie & tree price ladders (build 48 pricing decree)", () => {
-    const wantZ = [50, 100, 250, 400, 750, 0, 1500, 0, 4000, 0, 7500, 0, 10000, 0];
+  check("zombie & tree price ladders (build 68 pricing decree)", () => {
+    const wantZ = [100, 250, 1000, 2000, 5000, 0, 7500, 0, 10000, 0, 15000, 0, 20000, 0];
     eq(JSON.stringify(G.ZTYPES.map(z => z.cost)), JSON.stringify(wantZ));
-    eq(JSON.stringify(G.TREES.map(t => t.cost)), JSON.stringify([250, 750, 0, 2000, 0]));
+    eq(JSON.stringify(G.ZTYPES.map(z => z.id).slice(6,10)), JSON.stringify(["banshee","chef","digger","abom"]), "market order decree");
+    eq(JSON.stringify(G.TREES.map(t => t.cost)), JSON.stringify([2000, 5000, 10000, 0, 0]));
   });
   check("every crop's mutation label is unique (visual zone ownership)", () => {
     const labels = G.CROPS.map(c => c.mut.label);
@@ -939,14 +941,14 @@ console.log("\n== content pack: data ==");
     eq(Math.max(...G.TARGETS.map(t => t.unlock)), 24);
     eq(G.TARGETS[7].scen, "moon");
   });
-  check("premium brains pricing: Lantern 5, Gravemound 10, Chef 5, Abom 2, Spooky 2", () => {
+  check("premium brains pricing: Lantern 5, Gravemound 10, Chef 3, Abom 5, Spooky 3", () => {
     eq(G.TREES.find(t => t.id === "lantern").brains, 5);
     eq(G.ZTYPES.find(z => z.id === "gravemound").brains, 10);
     eq(G.ZTYPES.find(z => z.id === "voltz").brains, 15);
     eq(G.ZTYPES.find(z => z.id === "sawbones").brains, 1);
-    eq(G.ZTYPES.find(z => z.id === "chef").brains, 5);
-    eq(G.ZTYPES.find(z => z.id === "abom").brains, 2);
-    eq(G.TREES.find(t => t.id === "spooky").brains, 2);
+    eq(G.ZTYPES.find(z => z.id === "chef").brains, 3);
+    eq(G.ZTYPES.find(z => z.id === "abom").brains, 5);
+    eq(G.TREES.find(t => t.id === "spooky").brains, 3);
   });
 }
 
@@ -1365,7 +1367,7 @@ console.log("\n== SPECIAL CHARACTERS & the Composter\u2019s wanted list ==");
       mut: [{ label: "Speedy" }, { label: "Pungent" }], x: 0, y: 0, tx: 0, ty: 0, wob: 0 };
     G.S.compostWant = "Pungent + Speedy";
     const off = G.compostOffer(z);
-    eq(off.gold, Math.round(750 * 0.5 * 1.3) * 2, "double gold");
+    eq(off.gold, Math.round(5000 * 0.5 * 1.4) * 2, "double gold");
     eq(off.brains, 1, "wanted combos always fetch at least a brain");
     ok(off.wanted);
     G.S.compostWant = "Flaming + Gourd-Headed";
@@ -1393,7 +1395,7 @@ console.log("\n== the Composter waits + storms wait for a live player ==");
     G.LAST_INPUT = Date.now();
     eq(G.weatherTick(), true, "player present = storm rolls in");
     ok(G.RAIN !== null, "storm live");
-    ok(G.S.nextRainAt > 99999 + 2699 && G.S.nextRainAt <= 99999 + 5400, "next storm 45-90 played minutes out");
+    eq(G.S.nextRainAt, 99999 + 3600, "next storm one collective played hour out");
     G.RAIN = null;
   });
   check("the Composter reopens his window until the PLAYER answers", () => {
@@ -1431,15 +1433,18 @@ console.log("\n== specials wing, goals & collector prices ==");
       special: "baby", mut: [{ label: "Moon-Touched" }, { label: "Big-Hearted" }], x: 0, y: 0, tx: 0, ty: 0, wob: 0 };
     G.S.compostWant = null;
     const off = G.compostOffer(z);
-    eq(off.gold, Math.round(Math.round(100 * 0.5 * 1.3) * 1.75), "1.75x collector premium");
+    eq(off.gold, Math.round(Math.round(250 * 0.5 * 1.4) * 1.75), "1.75x collector premium");
     ok(off.special && off.brains >= 1, "specials always fetch a brain");
   });
   check("old saves get their storm clocks pulled onto the new cadence", () => {
     const { G } = boot();
     const raw = G.freshState();
-    raw.nextRainAt = 99999; raw.stats.playSec = 0;
+    raw.nextRainAt = 99999; raw.nextCompostAt = 99999; raw.stats.playSec = 0;
     const s = G.sanitizeState(raw);
-    ok(s.nextRainAt <= 5400, "3-5h schedules migrate to 45-90min");
+    eq(s.nextRainAt, 1200, "stale schedules migrate: a storm early next session");
+    eq(s.nextCompostAt, 600, "and the Composter comes early too");
+    const fresh = G.sanitizeState(G.freshState());
+    eq(fresh.nextCompostAt, 1800, "fresh farms wait the honest 30 minutes");
   });
 }
 
@@ -1541,11 +1546,13 @@ console.log("\n== sawbones, composter, names & compact codes ==");
   });
   check("compostOffer: 50% base + mutation bump, XP pays for kills, legends fetch brains", () => {
     const plain=mkz("bruiser","A",15,60,60);
-    eq(G.compostOffer(plain).gold, 375, "50% of 750");
+    eq(G.compostOffer(plain).gold, 2500, "50% of 5000");
     const mut1={...plain, mut:[{label:"Flaming"}]};
-    eq(G.compostOffer(mut1).gold, Math.round(750*0.5*1.15));
+    eq(G.compostOffer(mut1).gold, Math.round(5000*0.5*1.2));
     const hero={...plain, kills:8};
-    eq(G.compostOffer(hero).xp, Math.round(375/15)+40, "battle heroes pay extra XP");
+    eq(G.compostOffer(hero).xp, Math.round(2500/15)+64, "battle tenure pays extra XP");
+    const premium=mkz("voltz","V",60,250,250);
+    eq(G.compostOffer(premium).brains, 5, "premium stock refunds brains (15/3)");
     const legend={...plain, mut:[{label:"Gourd-Headed"},{label:"Flaming"}], kills:8};
     eq(G.compostOffer(legend).brains, 2, "veteran Jack-o-Lantern = 2 brains");
     const freshLegend={...plain, mut:[{label:"Sporified"},{label:"Flaming"}], kills:0};
