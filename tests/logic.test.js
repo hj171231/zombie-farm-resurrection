@@ -109,12 +109,12 @@ console.log("\n== growth & wilt ==");
     const g = G.growthInfo(G.S.tiles[10]);
     ok(g.ready); eq(g.prog, 1);
   });
-  check("ripe crop survives 11h59m unpicked", () => {
-    backdate(G, 10, 25 + 12 * 3600 - 60);
+  check("ripe crop survives 2h59m unpicked", () => {
+    backdate(G, 10, 25 + 3 * 3600 - 60);
     ok(!G.growthInfo(G.S.tiles[10]).wilted);
   });
-  check("crop withers 12 hours after ripening (offline clock too)", () => {
-    backdate(G, 10, 25 + 12 * 3600 + 60);
+  check("crop withers 3 hours after ripening (offline clock too)", () => {
+    backdate(G, 10, 25 + 3 * 3600 + 60);
     ok(G.growthInfo(G.S.tiles[10]).wilted);
   });
   check("tapping a wilted crop plows it under (no gold)", () => {
@@ -403,9 +403,10 @@ function simulate(G, maxSteps) {
     eq(G.S.stats.wins, wins0 + 1);
     G.scene = "farm"; G.B = null;
   });
-  check("after a win, survivors reset hunger (<=15), gain a kill, heal", () => {
+  check("after a win: hunger resets for all, but only FIGHTERS log the win", () => {
     ok(G.S.zombies.length > 0, "some zombies survived");
-    G.S.zombies.forEach(z => { ok(z.hunger <= 15); ok(z.kills >= 1); });
+    G.S.zombies.forEach(z => { ok(z.hunger <= 15); });
+    ok(G.S.zombies.some(z => z.kills >= 1), "the ones sent in earned their record");
   });
   check("full sim: toothless horde times out and loses; dead are removed", () => {
     armyOf(G, 6, 100, 0); // 0 pow: can never win
@@ -1210,12 +1211,16 @@ console.log("\n== save backup net ==");
     eq(inst.storage.get("zfr_save_backup"), original, "old farm preserved");
     ok(JSON.parse(inst.storage.get("zfr_save")).gold === 200, "new farm installed");
   });
-  check("New Farm backs up the old farm before wiping", () => {
+  check("Reset Farm (Help menu) backs up the old farm before wiping", () => {
     G.startGame(G.load());
     G.S.gold = 9999; G.save();
     const original = inst.storage.get("zfr_save");
-    els["newBtn"].onclick(); // confirm() stub says yes
+    ctx.location.reload = () => {};
+    els["helpBtn"].onclick();
+    els["resetBtn2"].onclick(); // confirm() stub says yes
     eq(inst.storage.get("zfr_save_backup"), original);
+    ok(!inst.storage.get("zfr_save"), "live save wiped for the fresh start");
+    G.startGame(null); G.save();
     eq(G.S.gold, 200, "fresh farm started");
   });
   check("Restore swaps current and backup (so you can swap back)", () => {
@@ -1342,7 +1347,7 @@ console.log("\n== SPECIAL CHARACTERS & the Composter\u2019s wanted list ==");
     eq(z.maxhp, Math.round((zd.hp + 25 + 35) * 1.25), "whole zombie is 25% more");
     eq(z.hp, z.maxhp, "transformation leaves them whole");
     eq(z.pow, Math.round(zd.pow * 1.25));
-    eq(G.zdefFor(z).name, "Baby Zombie", "wears the new identity");
+    eq(G.zdefFor(z).name, "Baby", "wears the new identity (no -Zombie suffix)");
     eq(G.S.stats.specials, 1);
   });
   check("wrong type or wrong combo = no transformation", () => {

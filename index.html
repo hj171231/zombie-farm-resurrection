@@ -60,7 +60,7 @@
   .modal h2 { background:linear-gradient(#a5823f,#7d5d2c); padding:9px 14px; font-size:18px; color:#fff; text-shadow:0 2px 2px rgba(0,0,0,.5); display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid #3d2810; }
   .modal h2 .x { cursor:pointer; background:#5e4426; border:2px solid #3d2810; border-radius:10px; padding:0 10px; font-size:18px; box-shadow:0 2px 0 #2a1c08; }
   .modal .body { padding:10px; overflow-y:auto; }
-  .tabs { display:flex; gap:4px; padding:8px 10px 0; }
+  .tabs { display:flex; gap:4px; padding:8px 10px 0; border-bottom:3px solid #8a6d3b; }
   .tab { flex:1; text-align:center; padding:3px 4px; background:#4a3c28; background-clip:padding-box; border:8px solid transparent; border-bottom:none; border-image:url("art/ui-tab.png") 24 fill stretch; border-radius:10px 10px 0 0; cursor:pointer; font-weight:bold; font-size:13px; color:#3a2413; opacity:.72; }
   .tab.on { opacity:1; color:#2a1808; filter:brightness(1.12); }
   .shopitem { display:flex; gap:10px; align-items:center; background:rgba(255,240,210,.07); border:2px solid rgba(255,230,180,.16); border-radius:14px; padding:8px; margin-bottom:8px; }
@@ -72,8 +72,10 @@
   .zrow { display:flex; gap:10px; align-items:center; background:rgba(255,240,210,.07); border-radius:12px; padding:6px 10px; margin-bottom:6px; font-size:13px; }
   /* mutation almanac combo cards */
   .mutgrid { display:flex; gap:6px; flex-wrap:wrap; margin:6px 0 2px; justify-content:center; }
-  .mutcard { background:rgba(18,12,6,.55); border:2px solid #5e4426; border-radius:10px; padding:4px 3px 5px; text-align:center; width:134px; }
+  .mutcard { background:rgba(18,12,6,.55); border:2px solid #5e4426; border-radius:10px; padding:4px 3px 5px; text-align:center; width:158px; }
   .mutcard.raised { border-color:#7dffa0; box-shadow:0 0 8px rgba(125,255,160,.25); }
+  .mutcard.goldcard { border:3px solid #ffd94d; animation:goldGlisten 2.2s ease-in-out infinite; }
+  @keyframes goldGlisten { 0%,100%{ box-shadow:0 0 8px rgba(255,217,77,.45); border-color:#ffd94d; } 50%{ box-shadow:0 0 20px rgba(255,231,140,.9); border-color:#fff3b8; } }
   .mutcard.unknown { border-style:dashed; opacity:.75; }
   .mutcard .mlbl { font-size:10px; line-height:1.3; color:#f3e9d2; margin-top:2px; font-family:"Baloo 2","Arial Rounded MT Bold",sans-serif; }
   .mutcard canvas { display:block; margin:0 auto; }
@@ -158,7 +160,6 @@
   <div class="sub">Plow. Plant. <b>Raise the dead.</b> Grow crops for gold, grow zombies for your horde, mutate them with clever planting, and when they're hungry enough&hellip; <b>INVADE!</b></div>
   <div id="splashBtns">
     <button class="gbtn" id="startBtn" style="font-size:20px; padding:14px 34px;">&#x25B6; Start Farming</button>
-    <button class="gbtn red" id="newBtn" style="display:none">&#x1F331; New Farm</button>
   </div>
   <div class="tiny">A loving fan-made tribute to a classic 2010 mobile farm. All-original art &amp; code. Free forever &mdash; no brains sold here, only grown. Your farm auto-saves in this browser.</div>
 </div>
@@ -186,48 +187,48 @@ const ZNAMES = ["Grubbs","Mortimer","Squelch","Petunia","Boggart","Lurleen","Fes
 // a head-to-toe transformation, with a +25% bonus on the mutation gains.
 // (mut lists are stored sorted; singles are single-element)
 const SPECIALS=[
- {id:"scarecrow", name:"Scarecrow Zombie",   type:"shambler",  muts:["Gourd-Headed","Kernel-Powered"]},
- {id:"cowboy",    name:"Cowboy Zombie",      type:"shambler",  muts:["Kernel-Powered","Speedy"]},
- {id:"vampire",   name:"Vampire Zombie",     type:"shambler",  muts:["Moon-Touched","Pungent"]},
- {id:"baby",      name:"Baby Zombie",        type:"mini",      muts:["Big-Hearted","Moon-Touched"]},
- {id:"bunny",     name:"Bunny Zombie",       type:"mini",      muts:["Speedy"]},
- {id:"devil",     name:"Devil Zombie",       type:"mini",      muts:["Flaming","Speedy"]},
+ {id:"scarecrow", name:"Scarecrow",   type:"shambler",  muts:["Gourd-Headed","Kernel-Powered"]},
+ {id:"cowboy",    name:"Cowboy",      type:"shambler",  muts:["Kernel-Powered","Speedy"]},
+ {id:"vampire",   name:"Vampire",     type:"shambler",  muts:["Moon-Touched","Pungent"]},
+ {id:"baby",      name:"Baby",        type:"mini",      muts:["Big-Hearted","Moon-Touched"]},
+ {id:"bunny",     name:"Bunny",       type:"mini",      muts:["Speedy"]},
+ {id:"devil",     name:"Devil",       type:"mini",      muts:["Flaming","Speedy"]},
  {id:"horseman",  name:"Headless Horseman",  type:"headless",  muts:["Gourd-Headed"]},
- {id:"knight",    name:"Knight Zombie",      type:"headless",  muts:["Big-Hearted","Kernel-Powered"]},
- {id:"mummy",     name:"Mummy Zombie",       type:"headless",  muts:["Pungent","Wormfriend"]},
- {id:"stoner",    name:"Stoner Zombie",      type:"gardener",  muts:["Flaming","Sporified"]},
- {id:"druid",     name:"Druid Zombie",       type:"gardener",  muts:["Moon-Touched","Sporified"]},
- {id:"beekeeper", name:"Beekeeper Zombie",   type:"gardener",  muts:["Speedy","Wormfriend"]},
- {id:"trippy",    name:"Trippy Zombie",      type:"bruiser",   muts:["Sporified"]},
- {id:"wolf",      name:"Wolf Zombie",        type:"bruiser",   muts:["Gourd-Headed","Moon-Touched"]},
- {id:"luchador",  name:"Luchador Zombie",    type:"bruiser",   muts:["Big-Hearted","Flaming"]},
- {id:"angel",     name:"Angel Zombie",       type:"sawbones",  muts:["Big-Hearted","Moon-Touched"]},
+ {id:"knight",    name:"Knight",      type:"headless",  muts:["Big-Hearted","Kernel-Powered"]},
+ {id:"mummy",     name:"Mummy",       type:"headless",  muts:["Pungent","Wormfriend"]},
+ {id:"stoner",    name:"Stoner",      type:"gardener",  muts:["Flaming","Sporified"]},
+ {id:"druid",     name:"Druid",       type:"gardener",  muts:["Moon-Touched","Sporified"]},
+ {id:"beekeeper", name:"Beekeeper",   type:"gardener",  muts:["Speedy","Wormfriend"]},
+ {id:"trippy",    name:"Trippy",      type:"bruiser",   muts:["Sporified"]},
+ {id:"wolf",      name:"Wolf",        type:"bruiser",   muts:["Gourd-Headed","Moon-Touched"]},
+ {id:"luchador",  name:"Luchador",    type:"bruiser",   muts:["Big-Hearted","Flaming"]},
+ {id:"angel",     name:"Angel",       type:"sawbones",  muts:["Big-Hearted","Moon-Touched"]},
  {id:"plague",    name:"Plague Doctor",      type:"sawbones",  muts:["Pungent","Wormfriend"]},
  {id:"scientist", name:"Mad Scientist",      type:"sawbones",  muts:["All-Seeing","Sporified"]},
- {id:"ghost",     name:"Ghost Zombie",       type:"banshee",   muts:["Moon-Touched"]},
+ {id:"ghost",     name:"Ghost",       type:"banshee",   muts:["Moon-Touched"]},
  {id:"bride",     name:"Ghost Bride",        type:"banshee",   muts:["All-Seeing","Big-Hearted"]},
- {id:"siren",     name:"Siren Zombie",       type:"banshee",   muts:["Flaming","Speedy"]},
- {id:"golem",     name:"Golem Zombie",       type:"abom",      muts:["Kernel-Powered","Pungent"]},
- {id:"ogre",      name:"Ogre Zombie",        type:"abom",      muts:["Gourd-Headed","Wormfriend"]},
- {id:"yeti",      name:"Yeti Zombie",        type:"abom",      muts:["All-Seeing","Moon-Touched"]},
- {id:"miner",     name:"Miner Zombie",       type:"digger",    muts:["Kernel-Powered","Speedy"]},
- {id:"pirate",    name:"Pirate Zombie",      type:"digger",    muts:["All-Seeing","Wormfriend"]},
- {id:"reaper",    name:"Reaper Zombie",      type:"digger",    muts:["Moon-Touched","Pungent"]},
- {id:"cheer",     name:"Cheerleader Zombie", type:"jester",    muts:["Big-Hearted","Speedy"]},
- {id:"clown",     name:"Clown Zombie",       type:"jester",    muts:["Flaming","Gourd-Headed"]},
- {id:"mime",      name:"Mime Zombie",        type:"jester",    muts:["All-Seeing","Moon-Touched"]},
- {id:"mariachi",  name:"Mariachi Zombie",    type:"chef",      muts:["Flaming","Kernel-Powered"]},
- {id:"baker",     name:"Baker Zombie",       type:"chef",      muts:["Big-Hearted","Sporified"]},
+ {id:"siren",     name:"Siren",       type:"banshee",   muts:["Flaming","Speedy"]},
+ {id:"golem",     name:"Golem",       type:"abom",      muts:["Kernel-Powered","Pungent"]},
+ {id:"ogre",      name:"Ogre",        type:"abom",      muts:["Gourd-Headed","Wormfriend"]},
+ {id:"yeti",      name:"Yeti",        type:"abom",      muts:["All-Seeing","Moon-Touched"]},
+ {id:"miner",     name:"Miner",       type:"digger",    muts:["Kernel-Powered","Speedy"]},
+ {id:"pirate",    name:"Pirate",      type:"digger",    muts:["All-Seeing","Wormfriend"]},
+ {id:"reaper",    name:"Reaper",      type:"digger",    muts:["Moon-Touched","Pungent"]},
+ {id:"cheer",     name:"Cheerleader", type:"jester",    muts:["Big-Hearted","Speedy"]},
+ {id:"clown",     name:"Clown",       type:"jester",    muts:["Flaming","Gourd-Headed"]},
+ {id:"mime",      name:"Mime",        type:"jester",    muts:["All-Seeing","Moon-Touched"]},
+ {id:"mariachi",  name:"Mariachi",    type:"chef",      muts:["Flaming","Kernel-Powered"]},
+ {id:"baker",     name:"Baker",       type:"chef",      muts:["Big-Hearted","Sporified"]},
  {id:"sushi",     name:"Sushi Chef",         type:"chef",      muts:["All-Seeing","Wormfriend"]},
- {id:"treant",    name:"Treant Zombie",      type:"gravemound",muts:["Sporified","Wormfriend"]},
- {id:"volcano",   name:"Volcano Zombie",     type:"gravemound",muts:["Flaming","Gourd-Headed"]},
- {id:"frosty",    name:"Frosty Zombie",      type:"gravemound",muts:["Moon-Touched","Pungent"]},
- {id:"midas",     name:"King Midas Zombie",  type:"golden",    muts:["Big-Hearted","Gourd-Headed"]},
- {id:"pharaoh",   name:"Pharaoh Zombie",     type:"golden",    muts:["Moon-Touched","Pungent"]},
- {id:"disco",     name:"Disco Zombie",       type:"golden",    muts:["Flaming","Speedy"]},
- {id:"astronaut", name:"Astronaut Zombie",   type:"voltz",     muts:["Moon-Touched"]},
- {id:"mecha",     name:"Mecha Zombie",       type:"voltz",     muts:["All-Seeing","Kernel-Powered"]},
- {id:"dynamo",    name:"Dynamo Zombie",      type:"voltz",     muts:["Flaming","Speedy"]}
+ {id:"treant",    name:"Treant",      type:"gravemound",muts:["Sporified","Wormfriend"]},
+ {id:"volcano",   name:"Volcano",     type:"gravemound",muts:["Flaming","Gourd-Headed"]},
+ {id:"frosty",    name:"Frosty",      type:"gravemound",muts:["Moon-Touched","Pungent"]},
+ {id:"midas",     name:"King Midas",  type:"golden",    muts:["Big-Hearted","Gourd-Headed"]},
+ {id:"pharaoh",   name:"Pharaoh",     type:"golden",    muts:["Moon-Touched","Pungent"]},
+ {id:"disco",     name:"Disco",       type:"golden",    muts:["Flaming","Speedy"]},
+ {id:"astronaut", name:"Astronaut",   type:"voltz",     muts:["Moon-Touched"]},
+ {id:"mecha",     name:"Mecha",       type:"voltz",     muts:["All-Seeing","Kernel-Powered"]},
+ {id:"dynamo",    name:"Dynamo",      type:"voltz",     muts:["Flaming","Speedy"]}
 ];
 const SPECIAL_LOOKUP={};
 SPECIALS.forEach(sp=>{ SPECIAL_LOOKUP[sp.type+"|"+sp.muts.slice().sort().join(" + ")]=sp; });
@@ -339,7 +340,7 @@ const GOALS = [
  {id:"spec42",  desc:"Collect ALL 42 SPECIAL CHARACTERS", n:42, stat:"specialkinds", brains:25, gold:100000}
 ];
 
-const BUILD = "build 68 · 2026-07-13"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 69 · 2026-07-16"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -356,7 +357,7 @@ const INVADE_MIN = 6;
 const INVADE_CD = 600;
 const PLOW_COST = 10;
 const DAY_LEN = 240;
-const WILT_AFTER = 12*3600; // seconds a ripe crop survives unpicked
+const WILT_AFTER = 3*3600; // seconds a ripe crop survives unpicked
 
 // ---------- state ----------
 let S = null;
@@ -368,7 +369,7 @@ function freshState(){
     tiles, zombies:[], lifeForce:0,
     lastInvade:0, muted:false,
     stats:{plowed:0,crops:0,zombies:0,trees:0,wins:0,muts:0,apples:0,gmound:0,mallwin:0,moonwin:0,ferts:0,renames:0,doubles:0,garlics:0,playSec:0,composted:0,specials:0},
-    goalsDone:[], claimed:[], mutSeen:{}, pairSeen:{}, perfected:{}, lastHealAt:now(), lastCompost:0, nextCompostAt:1800, compostVisits:0, nextRainAt:3600, blessed:{}, compostWant:null, specialsSeen:{}, created:now()
+    goalsDone:[], claimed:[], mutSeen:{}, pairSeen:{}, perfected:{}, lastHealAt:now(), lastCompost:0, nextCompostAt:1800, compostVisits:0, nextRainAt:3600, blessed:{}, compostWant:null, specialsSeen:{}, daily:{last:"",streak:0}, created:now()
   };
 }
 // ---- horde management ----
@@ -409,6 +410,9 @@ function sanitizeState(raw){
   const ps=(raw.stats&&typeof raw.stats.playSec==="number")?raw.stats.playSec:0;
   if(s.nextRainAt>ps+3600) s.nextRainAt=ps+1200;
   if(!s.nextCompostAt || s.nextCompostAt>ps+1800) s.nextCompostAt=ps+600;
+  if(raw.daily && typeof raw.daily==="object"){
+    s.daily={ last:(typeof raw.daily.last==="string")?raw.daily.last:"", streak:Math.max(0,Math.floor(num(raw.daily.streak,0))) };
+  }
   if(raw.specialsSeen && typeof raw.specialsSeen==="object"){
     SPECIALS.forEach(sp=>{ if(raw.specialsSeen[sp.id]===true) s.specialsSeen[sp.id]=true; });
   }
@@ -714,7 +718,8 @@ function growthInfo(t){
   const p = clamp(el2/def.time,0,11.999);
   // crops wither 12 real-world hours after ripening — the clock runs whether
   // the game is open or closed. Zombies never wither.
-  return {def, el, prog:Math.min(p,1), ready:p>=1, wilted:(t.kind==="crop" && el>=def.time+WILT_AFTER)};
+  const boosting=!!(t.boostUntil && t.boostUntil>now());
+  return {def, el, el2, boosting, prog:Math.min(p,1), ready:p>=1, wilted:(t.kind==="crop" && el>=def.time+WILT_AFTER)};
 }
 
 // ---- actions ----
@@ -790,8 +795,9 @@ function tapTile(i){
       save(); return;
     }
     if(!g.ready){
-      const rem = Math.ceil(g.def.time - g.el);
-      toast(g.def.name+" ripens in "+fmtTime(rem)); sfx.tap(); return;
+      // rain-blessed soil counts every second twice — the countdown says so
+      const rem = Math.ceil(Math.max(0,(g.def.time - g.el2) / (g.boosting?2:1)));
+      toast(g.def.name+" ripens in "+fmtTime(rem)+(g.boosting?" &#x1F327;&#xFE0F; (rain-blessed 2x!)":"")); sfx.tap(); return;
     }
     harvest(i); return;
   }
@@ -822,13 +828,22 @@ function harvest(i){
       const z = { type:zd.id, name:uniqueZName(), pow:zd.pow, hp:zd.hp, maxhp:zd.hp, spd:zd.spd,
                   hunger:ri(20,45), x:px, y:py+TILE/2, tx:px, ty:py, wob:Math.random()*7, mut:[], kills:0 };
       let mutated=false;
-      neighbors(i).forEach(ni=>{
+      // all EIGHT surrounding tiles matter: shared-side crops at full odds,
+      // corner crops at half — ring the grave for the best shot
+      const adj=neighbors(i).map(n=>({ni:n,w:1}));
+      { const r0=Math.floor(i/GRID), c0=i%GRID;
+        [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(dd=>{
+          const c=c0+dd[0], r=r0+dd[1];
+          if(c>=0&&c<GRID&&r>=0&&r<GRID) adj.push({ni:r*GRID+c,w:0.5});
+        });
+      }
+      adj.forEach(({ni,w})=>{
         if(z.mut.length>=2) return;
         const nt=S.tiles[ni];
         if(nt.st==="planted" && nt.kind==="crop"){
           const ng=growthInfo(nt);
           if(ng.prog>0.5 && !ng.wilted){
-            const chance = mutationChance();
+            const chance = mutationChance()*w;
             if(Math.random()<chance){
               const m=ng.def.mut;
               if(!z.mut.find(x=>x.label===m.label)){
@@ -849,7 +864,7 @@ function harvest(i){
       if(zd.id==="gravemound") S.stats.gmound++;
       if(mutated){
         S.stats.muts++; sfx.brain(); toast("&#x1F9EA; <b>MUTATION!</b> "+z.name+" is "+z.mut.map(m=>m.label).join(" & ")+"!",2800);
-        if(zd.id==="gardener" && z.mut.some(m=>m.label==="All-Seeing")){
+        if(zd.id==="gardener" && z.mut.some(m=>m.label==="All-Seeing") && Math.random()<0.25){
           // (unwritten anywhere, untold to anyone: the gardener who Sees
           //  stops tending the crops and starts tending the BATTLEFIELD)
           z.awakened=true;
@@ -954,14 +969,24 @@ function medicTick(dt){
   if(!medics.length) return;
   medics.forEach(m=>{
     const wounded=S.zombies.filter(z=>z!==m && z.hp<z.maxhp);
-    if(!wounded.length) return; // off duty — free to stroll
-    wounded.sort((a,b)=>b.pow-a.pow || b.maxhp-a.maxhp); // triage: strongest first
-    const t=wounded[0];
-    m.tx=t.x+TILE*0.35; m.ty=t.y; // hustle to the bedside
-    if(Math.hypot(m.x-t.x,m.y-t.y)<TILE*1.0){
+    if(!wounded.length){ m.__patient=null; return; } // off duty — free to stroll
+    // triage: strongest first, with STABLE tie-breaks (pow, maxhp, then name)
+    // so two equal patients can't make him dither between bedsides — and he
+    // finishes his current patient before switching to an equal one
+    wounded.sort((a,b)=>b.pow-a.pow || b.maxhp-a.maxhp || (a.name<b.name?-1:1));
+    let t=wounded[0];
+    if(m.__patient && wounded.includes(m.__patient) &&
+       m.__patient.pow===t.pow && m.__patient.maxhp===t.maxhp) t=m.__patient;
+    m.__patient=t;
+    m.__duty=now(); // the roam brain leaves on-duty medics alone
+    const side=(m.__side=m.__side!==undefined&&Math.abs(m.x-t.x)<TILE*1.4?m.__side:(m.x<t.x?-1:1));
+    const dist=Math.hypot(m.x-t.x,m.y-t.y);
+    if(dist<TILE*0.9){ m.tx=m.x; m.ty=m.y; } // at the bedside: stand STILL
+    else { m.tx=t.x+side*TILE*0.4; m.ty=t.y; }
+    if(dist<TILE*1.0){
       t.hp=Math.min(t.maxhp, t.hp + t.maxhp*MEDIC_RATE*dt);
-      if(Math.random()<0.06) spawnParts(t.x,t.y-30,"#a8f0c0",2);
-    }
+      if(Math.random()<0.05) addFloat(t.x+rnd(-12,12), t.y-34-rnd(0,14), "&#x2764;", "#ff7a9a"); // little hearts
+    } else m.__side=undefined;
   });
 }
 let lastHunger=0;
@@ -1132,7 +1157,7 @@ function weatherTick(){
       const p=cellXY(i); addFloat(p.x,p.y-TH,"rain-blessed! 2x speed","#7adcff");
     }
     save();
-    toast("&#x1F327;&#xFE0F; Storm clouds gather"+(nb?" &mdash; the rain blessed a plot with 4h of DOUBLE growing speed!":"..."),3400);
+    toast("&#x1F327;&#xFE0F; Storm clouds gather"+(nb?" &mdash; the rain blessed a plot with 4h of DOUBLE growing speed!":"..."),5000);
   }
   return true;
 }
@@ -2895,28 +2920,22 @@ function drawYardDecor(dp){
   const g=cx;
   const topY=ISOY, botY=ISOY+GRID*TH, midY=ISOY+GRID*TH/2;
   const leftX=ISOX-GRID*TW/2, rightX=ISOX+GRID*TW/2;
-  // ---- the entrance path: worn dirt winding from the field gate off-screen ----
+  // ---- the driveway: a wide dirt road along the Composter's actual route ----
   {
-    const px0=ISOX, py0=botY+TH*0.75;
-    g.strokeStyle="rgba(150,115,62,.55)"; g.lineWidth=TW*0.6; g.lineCap="round";
-    g.beginPath(); g.moveTo(px0,py0);
-    g.quadraticCurveTo(px0-TW*0.6,py0+(H-py0)*0.5, px0-TW*1.3,H+20);
-    g.stroke();
-    g.strokeStyle="rgba(120,90,48,.35)"; g.lineWidth=TW*0.43;
-    g.beginPath(); g.moveTo(px0,py0);
-    g.quadraticCurveTo(px0-TW*0.6,py0+(H-py0)*0.5, px0-TW*1.3,H+20);
-    g.stroke();
-    // stepping stones + tufts along the edges
-    for(let k=0;k<4;k++){
-      const tt=(k+0.6)/4.6;
-      const sx=px0+(px0-TW*1.3-px0)*tt*tt - TW*0.6*tt*(1-tt)*2*0.5;
-      const sy=py0+(H+20-py0)*tt;
-      if(sy>H-14) break;
-      g.fillStyle="rgba(168,168,178,.75)";
-      g.beginPath(); g.ellipse(sx+(k%2?TW*0.1:-TW*0.08),sy,s*0.13,s*0.065,0,0,TAU); g.fill();
-      g.strokeStyle="rgba(190,225,120,.6)"; g.lineWidth=1.6;
-      const gx2=sx+(k%2?-TW*0.26:TW*0.28);
-      g.beginPath(); g.moveTo(gx2,sy); g.lineTo(gx2-3,sy-7); g.moveTo(gx2,sy); g.lineTo(gx2+3,sy-6); g.stroke();
+    const ry=H*0.885, endX=W*0.46;
+    g.strokeStyle="rgba(150,115,62,.55)"; g.lineWidth=TW*1.0; g.lineCap="round";
+    g.beginPath(); g.moveTo(-60,ry+8); g.quadraticCurveTo(W*0.2,ry-4,endX,ry); g.stroke();
+    g.strokeStyle="rgba(120,90,48,.35)"; g.lineWidth=TW*0.72;
+    g.beginPath(); g.moveTo(-60,ry+8); g.quadraticCurveTo(W*0.2,ry-4,endX,ry); g.stroke();
+    // twin tire ruts — a truck drives here, not a scarecrow
+    g.strokeStyle="rgba(90,66,34,.4)"; g.lineWidth=3;
+    [-TW*0.16,TW*0.16].forEach(off=>{
+      g.beginPath(); g.moveTo(-60,ry+8+off*0.4); g.quadraticCurveTo(W*0.2,ry-4+off,endX-14,ry+off); g.stroke();
+    });
+    for(let k=0;k<4;k++){ // gravel
+      const tt=(k+0.5)/4, gx2=-60+(endX+60)*tt, gy2=ry+(k%2?TW*0.22:-TW*0.2);
+      g.fillStyle="rgba(168,168,178,.6)";
+      g.beginPath(); g.ellipse(gx2,gy2,s*0.09,s*0.05,0,0,TAU); g.fill();
     }
   }
   const spots=[
@@ -3300,7 +3319,8 @@ function drawFarm(dt){
       }
     });
     const d=Math.hypot(z.tx-z.x,z.ty-z.y);
-    if(d<6 || Math.random()<0.002){
+    const onDuty=z.__duty && now()-z.__duty<1500; // medics mid-house-call don't wander off
+    if((d<6 || Math.random()<0.002) && !onDuty){
       const rp=roamTargetFrom(z.x,z.y,z); z.tx=rp.x; z.ty=rp.y;
       if(inFieldDiamond(rp.x,rp.y,1.0)) z.__fieldUntil=now()+7000; // brief visit only
     } else {
@@ -3448,8 +3468,8 @@ function drawRain(){
   g.fillStyle="rgba(40,52,84,.22)"; g.fillRect(0,0,W,H);
   // storm clouds crawling along the top (sprite-first)
   const cl=spriteGet("sky-storm-cloud");
-  for(let k=0;k<3;k++){
-    const xx=((t/1000*(9+k*4)+k*380)%(W+460))-230, yy=H*(0.05+k*0.045);
+  for(let k=0;k<2;k++){ // two clouds, half a screen apart, different speeds
+    const xx=((t/1000*(8+k*7)+k*(W+460)*0.5)%(W+460))-230, yy=H*(0.05+k*0.06);
     if(cl&&cl.img){ g.save(); g.globalAlpha=0.92; g.drawImage(cl.img,xx-140,yy-40,280,120); g.restore(); }
     else{ g.fillStyle="rgba(66,76,102,.85)"; blob(g,xx,yy,46); blob(g,xx+44,yy+10,36); blob(g,xx-42,yy+11,32); }
   }
@@ -3494,9 +3514,12 @@ function drawRain(){
 // ---------- the Composter: a dawn visitor for veteran farmers ----------
 let COMPOST=null, __lastDark=0;
 function rollCompostWant(){
-  const L=CROPS.map(c=>c.mut.label);
-  let a=pick(L), b=pick(L); while(b===a) b=pick(L);
-  S.compostWant=[a,b].sort().join(" + ");
+  // his shopping list is drawn from SPECIAL CHARACTER recipes — chase the
+  // bounty and you might just pull a transformation while you're at it
+  const pool=[...new Set(SPECIALS.filter(sp=>sp.muts.length===2).map(sp=>sp.muts.slice().sort().join(" + ")))];
+  const cur=S.compostWant;
+  let next=pick(pool); if(pool.length>1) while(next===cur) next=pick(pool);
+  S.compostWant=next;
 }
 function compostOffer(z){
   const zd=ZTYPES.find(t=>t.id===z.type)||{};
@@ -3509,6 +3532,9 @@ function compostOffer(z){
     const L=l=>z.mut.some(m=>m.label===l);
     const legend=(L("Gourd-Headed")&&L("Flaming"))||(L("Sporified")&&L("Flaming"))||(L("All-Seeing")&&L("Gourd-Headed"));
     if(legend) brains=Math.max(brains,(z.kills||0)>=5?2:1);   // legends fetch brains
+  }
+  if(z.awakened){ // he has seen everything — including his own price tag
+    return {gold:66666, xp:6666, brains:13, wanted:false, special:true};
   }
   let special=false;
   if(z.special){ // collectors pay collector prices
@@ -3941,6 +3967,67 @@ $("helpBtn").onclick=()=>{
   };
 };
 
+// ---- daily check-in: one gift per calendar day, brains every 7th day in a
+// row, a 3-brain jackpot on day 28 of the cycle. Commitment, celebrated. ----
+function dailyPrize(day){
+  if(day===28) return {brains:3};
+  if(day%7===0) return {brains:ri(1,2)};
+  return {gold:200+S.level*60+ri(0,150)};
+}
+function checkDaily(){
+  if(!S) return false;
+  if(!S.daily) S.daily={last:"",streak:0};
+  const today=new Date().toDateString();
+  if(S.daily.last===today) return false; // already celebrated today
+  openDailyModal();
+  return true;
+}
+function openDailyModal(){
+  const today=new Date().toDateString();
+  const yest=new Date(Date.now()-86400e3).toDateString();
+  const streak=(S.daily.last===yest)?(S.daily.streak||0)+1:1;
+  const day=((streak-1)%28)+1;
+  openModal("&#x1F381; Daily Check-In");
+  $("mTabs").innerHTML="";
+  const b=$("mBody"); b.innerHTML="";
+  const head=document.createElement("div");
+  head.style.cssText="text-align:center;font-size:15px;line-height:1.5;padding:4px";
+  head.innerHTML="<b style='color:#ffe9a8'>Day "+day+" of 28</b> &middot; streak: <b style='color:#7dffa0'>"+streak+" day"+(streak>1?"s":"")+"</b><br><span style='font-size:12px;opacity:.8'>brains every 7th day in a row &middot; day 28: <b>3 BRAINS</b></span>";
+  b.appendChild(head);
+  // the 28-day calendar
+  const cal=document.createElement("div");
+  cal.style.cssText="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin:8px auto;max-width:320px";
+  for(let d2=1;d2<=28;d2++){
+    const cell=document.createElement("div");
+    const isBrain=d2%7===0, isToday=d2===day, done2=d2<day;
+    cell.style.cssText="width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:"+(isBrain?"15":"12")+"px;border:2px solid "+(isToday?"#ffd94d":done2?"#7dffa0":"#5e4426")+";background:"+(done2?"rgba(125,255,160,.15)":"rgba(18,12,6,.5)")+(isToday?";box-shadow:0 0 8px rgba(255,217,77,.6)":"");
+    cell.innerHTML= done2 ? "&#x2713;" : isBrain ? (d2===28?"&#x1F9E0;&#x1F9E0;":"&#x1F9E0;") : d2;
+    cal.appendChild(cell);
+  }
+  b.appendChild(cal);
+  // the gift
+  const gift=document.createElement("button");
+  gift.className="gbtn"; gift.style.cssText="display:block;margin:10px auto;font-size:34px;padding:6px 26px";
+  gift.innerHTML="&#x1F381;";
+  const hint=document.createElement("div");
+  hint.style.cssText="text-align:center;font-size:12.5px;opacity:.8;margin-bottom:6px";
+  hint.innerHTML="Tap the gift to open it!";
+  gift.onclick=()=>{
+    gift.disabled=true; gift.innerHTML="&#x2728;"; sfx.tap();
+    setTimeout(()=>{
+      const prize=dailyPrize(day);
+      S.daily={last:today,streak};
+      let msg;
+      if(prize.brains){ S.brains+=prize.brains; msg=prize.brains+" &#x1F9E0; BRAIN"+(prize.brains>1?"S":"")+"!"; sfx.brain(); }
+      else { gold(prize.gold); msg=prize.gold+" GOLD!"; sfx.win(); }
+      gift.innerHTML="&#x1F31F;";
+      hint.innerHTML="<b style='font-size:17px;color:#ffd94d'>"+msg+"</b><br><span style='opacity:.8'>See you tomorrow, farmer.</span>";
+      hud(); save(); checkGoals();
+    },800);
+  };
+  b.appendChild(gift); b.appendChild(hint);
+}
+
 // ---- Mutation Almanac: discovered by doing, mastered by raising 3 ----
 function mutTier(label){
   const n=(S.mutSeen&&S.mutSeen[label])||0;
@@ -3967,13 +4054,13 @@ function renderAlmanacSpecials(b){
   const spGrid=document.createElement("div"); spGrid.className="mutgrid";
   SPECIALS.forEach(sp=>{
     const got=!!seenSp[sp.id];
-    const card=document.createElement("div"); card.className="mutcard"+(got?" raised":" unknown");
+    const card=document.createElement("div"); card.className="mutcard"+(got?" goldcard":" unknown");
     const zdS=zdefFor({type:sp.type, special:sp.id, mut:[]});
     card.appendChild(artCanvasSized((g,x,y,r)=>{
-      drawZombie(g,x,y+r*1.02,0.92,zdS,[],0.5,0,false,"idle");
-      if(!got){ g.globalCompositeOperation="source-atop"; g.fillStyle="#100b1c"; g.fillRect(0,0,300,300); g.globalCompositeOperation="source-over"; } // PITCH BLACK — shape only
-    },126));
-    const lbl=document.createElement("div"); lbl.className="mlbl";
+      drawZombie(g,x,y+r*1.06,1.12,zdS,[],0.5,0,false,"idle");
+      if(!got){ g.globalCompositeOperation="source-atop"; g.fillStyle="#100b1c"; g.fillRect(0,0,400,400); g.globalCompositeOperation="source-over"; } // PITCH BLACK — shape only
+    },150));
+    const lbl=document.createElement("div"); lbl.className="mlbl"; lbl.style.fontSize="13.5px";
     lbl.innerHTML= got ? "<b style='color:#ffd94d'>"+sp.name+"</b>"
                        : "<b>???</b><br><span style='opacity:.7'>a "+((ZTYPES.find(t=>t.id===sp.type)||{}).name||"?")+"...</span>";
     card.appendChild(lbl);
@@ -4020,46 +4107,7 @@ function openAlmanac(tab){
     "<div style='font-size:10.5px;opacity:.75;margin-top:2px'>"+(combosRaised>=totalCombos?"Every combo raised. The earth itself applauds.":(totalCombos-combosRaised)+" combos still waiting to shamble")+"</div>";
   b.appendChild(rankDiv);
   const zd=ZTYPES.find(t=>t.id==="shambler");
-  // ---- legendary combos: signature pairings with special art ----
-  const LEGENDS=[
-    {a:"Gourd-Headed", b:"Flaming", name:"The Jack-o'-Lantern", flavor:"Its carved grin glows from within.", crops:"Pumpkin + Ghost Pepper"},
-    {a:"Sporified", b:"Flaming", name:"The Smolder-Cap", flavor:"Flames flare out from under the mushroom cap.", crops:"Gloomshroom + Ghost Pepper"},
-    {a:"All-Seeing", b:"Gourd-Headed", name:"The Watching Gourd", flavor:"A third carved eye that never blinks.", crops:"Eyeball Berries + Pumpkin"}
-  ];
-  const legHead=document.createElement("div");
-  legHead.style.cssText="font-family:'Luckiest Guy','Comic Sans MS',sans-serif;font-size:14px;color:#ffd94d;text-align:center;margin:4px 0 4px";
-  legHead.innerHTML="&#x2B50; LEGENDARY COMBOS &#x2B50;";
-  b.appendChild(legHead);
-  const legGrid=document.createElement("div");
-  legGrid.className="mutgrid"; legGrid.style.justifyContent="center";
-  LEGENDS.forEach(L=>{
-    const ca=CROPS.find(c=>c.mut.label===L.a), cb=CROPS.find(c=>c.mut.label===L.b);
-    const got=pairRaised(L.a,L.b);
-    const card=document.createElement("div");
-    card.className="mutcard"+(got?" raised":" unknown");
-    card.style.width="112px";
-    if(got){
-      card.appendChild(artCanvasSized((g,x,y,r)=>drawZombie(g,x,y+r*0.9,0.72,zd,[{label:L.a,col:ca.col},{label:L.b,col:cb.col}],0.5,0,false,"idle"),100));
-    } else {
-      card.appendChild(artCanvasSized((g,x,y,r)=>{
-        // shadowy silhouette tease
-        g.save(); g.globalAlpha=0.9;
-        drawZombie(g,x,y+r*0.9,0.72,zd,[{label:L.a,col:ca.col},{label:L.b,col:cb.col}],0.5,0,false,"idle");
-        g.globalCompositeOperation="source-atop";
-        g.fillStyle="#241a30"; g.fillRect(0,0,200,200);
-        g.restore();
-        g.fillStyle="#e8d8b0"; g.font="bold "+(r*1.1)+"px 'Luckiest Guy','Comic Sans MS',sans-serif";
-        g.textAlign="center"; g.textBaseline="middle"; g.fillText("?",x,y);
-      },100));
-    }
-    const lbl=document.createElement("div"); lbl.className="mlbl";
-    lbl.innerHTML=got
-      ? "<b style='color:#ffd94d'>"+L.name+"</b><br><span style='opacity:.85'>"+L.flavor+"</span><br><span style='color:#7dffa0'>&#x2713; in your almanac!</span>"
-      : "<b>???</b><br><span style='opacity:.8'>Rumored recipe:<br>"+L.crops+"</span>";
-    card.appendChild(lbl);
-    legGrid.appendChild(card);
-  });
-  b.appendChild(legGrid);
+  // (legendary-combos section retired — the SPECIALS tab is the collection now)
   CROPS.forEach(c=>{
     const label=c.mut.label, tier=mutTier(label);
     const seen=(S.mutSeen&&S.mutSeen[label])||0;
@@ -4100,17 +4148,15 @@ function openAlmanac(tab){
           : "<div class='ds' style='color:#c9f'><b>&#x2B50; MASTERED</b></div>";
         inf.innerHTML=html;
         const grid=document.createElement("div"); grid.className="mutgrid";
-        CROPS.filter(o=>o.mut.label!==label).forEach(o=>{
+        CROPS.filter(o=>o.mut.label>label).forEach(o=>{ // each pair appears ONCE, under its alphabetical first
           const oLabel=o.mut.label, oKnown=mutTier(oLabel)>=1;
           const card=document.createElement("div");
           const lbl=document.createElement("div"); lbl.className="mlbl";
           if(oKnown){
             const raised=pairRaised(label,oLabel);
             card.className="mutcard"+(raised?" raised":"");
-            card.appendChild(artCanvasSized((g,x,y,r)=>drawZombie(g,x,y+r*0.9,0.6,zd,[{label,col:c.col},{label:oLabel,col:o.col}],0.5,0,false,"idle"),84));
-            lbl.innerHTML="<b>+ "+oLabel+"</b><br>"+
-              (raised?"<span style='color:#7dffa0'>&#x2713; RAISED!</span>"
-                     :"<span style='opacity:.75'>possible &mdash; try "+c.name+" + "+o.name+"</span>");
+            card.appendChild(artCanvasSized((g,x,y,r)=>drawZombie(g,x,y+r*1.0,0.88,zd,[{label,col:c.col},{label:oLabel,col:o.col}],0.5,0,false,"idle"),112));
+            lbl.innerHTML="<b style='font-size:13px'>+ "+oLabel+"</b>";
           } else {
             card.className="mutcard unknown";
             card.appendChild(artCanvasSized((g,x,y,r)=>{
@@ -4421,7 +4467,8 @@ function endBattle(won){
     if(target.scen==="moon") S.stats.moonwin++;
     // Chef trait: a surviving chef cooks a victory feast — everyone heals double
     const heal = S.zombies.some(z=>z.type==="chef"&&z.hp>0) ? 16 : 8;
-    S.zombies.forEach(z=>{ if(z.hp>0){ z.hunger=ri(0,15); z.kills++; z.hp=Math.min(z.maxhp,z.hp+heal); } });
+    S.zombies.forEach(z=>{ if(z.hp>0){ z.hunger=ri(0,15); z.hp=Math.min(z.maxhp,z.hp+heal); } });
+    if(B.sent) B.sent.forEach(z=>{ if(z.hp>0) z.kills++; }); // only actual fighters earn the win
   } else { sfx.lose(); }
   S.zombies = S.zombies.filter(z=>z.hp>0);
   S.lastInvade=now();
@@ -5522,15 +5569,9 @@ function drawHeartMini(g,x,y,r){
   const el=$(pr[0]);
   if(el&&el.addEventListener) el.addEventListener("click",()=>{ toast(pr[1](),2400); sfx.tap(); });
 });
-$("startBtn").onclick=()=>{ startGame(load()); };
-$("newBtn").onclick=()=>{
-  if(confirm("Start a brand new farm? This replaces your saved farm! (The old farm is kept as a backup — restorable from the ? Help menu.)")){
-    backupSave();
-    localStorage.removeItem("zfr_save");
-    startGame(null);
-  }
-};
-if(load()){ $("startBtn").innerHTML="&#x25B6; Continue Farming"; $("newBtn").style.display="inline-block"; }
+$("startBtn").onclick=()=>{ startGame(load()); setTimeout(checkDaily,700); };
+// (New Farm button retired — Reset Farm lives in the Help menu)
+if(load()){ $("startBtn").innerHTML="&#x25B6; Continue Farming"; }
 
 setInterval(()=>{ if(S)save(); },5000);
 document.addEventListener("visibilitychange",()=>{ if(S)save(); });
