@@ -930,7 +930,7 @@ console.log("\n== content pack: data ==");
     eq(JSON.stringify(G.CROPS.map(c => c.sell)), JSON.stringify(wantSell));
   });
   check("zombie & tree price ladders (build 68 pricing decree)", () => {
-    const wantZ = [100, 250, 1000, 2000, 5000, 0, 7500, 0, 10000, 0, 15000, 0, 20000, 0];
+    const wantZ = [100, 250, 1000, 2000, 5000, 0, 7500, 0, 10000, 0, 15000, 0, 50000, 0];
     eq(JSON.stringify(G.ZTYPES.map(z => z.cost)), JSON.stringify(wantZ));
     eq(JSON.stringify(G.ZTYPES.map(z => z.id).slice(6,10)), JSON.stringify(["banshee","chef","digger","abom"]), "market order decree");
     eq(JSON.stringify(G.TREES.map(t => t.cost)), JSON.stringify([2000, 5000, 10000, 0, 0]));

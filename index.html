@@ -277,7 +277,7 @@ const ZTYPES = [
  {id:"abom",     name:"Abomination",cost:0,  brains:5, time:200, pow:32, hp:110,spd:0.6, unlock:9, col:"#cf7d7d", shirt:"#6e3a3a", big:true, hulk:true, desc:"A premium pile of muscle. Costs brains."},
  {id:"jester",   name:"Jester",    cost:15000,brains:0, time:300, pow:18, hp:50, spd:1.6, unlock:13,col:"#8fd8b8", shirt:"#7a3a9e", hat:"jester", motley:true, desc:"Confuses defenders &mdash; they throw much slower."},
  {id:"gravemound",name:"Gravemound",cost:0,  brains:10, time:600, pow:55, hp:220,spd:0.5, unlock:19,col:"#7a9a6a", shirt:"#4e5e42", big:true, colossus:true, desc:"A walking hillside. The ground remembers him."},
- {id:"golden",   name:"Golden Shambler",cost:20000,brains:0,time:60, pow:135,hp:380,spd:1.3, unlock:1, col:"#e8c84a", shirt:"#b8912e", plaid:true, glow:true, secret:true, desc:"A legend in solid gold. Earned, never found."},
+ {id:"golden",   name:"Golden Shambler",cost:50000,brains:0,time:60, pow:135,hp:380,spd:1.3, unlock:1, col:"#e8c84a", shirt:"#b8912e", plaid:true, glow:true, secret:true, desc:"A legend in solid gold. Earned, never found."},
  {id:"voltz",    name:"Voltz",     cost:0,  brains:15, time:900, pow:60, hp:250,spd:1.0, unlock:24,col:"#9ab8a2", shirt:"#5a6672", big:true, robo:true, desc:"Half corpse, half chrome. ERROR 404: pain not found."}
 ];
 const TREES = [
@@ -341,7 +341,7 @@ const GOALS = [
  {id:"spec42",  desc:"Collect ALL 42 SPECIAL CHARACTERS", n:42, stat:"specialkinds", brains:25, gold:100000}
 ];
 
-const BUILD = "build 71 · 2026-07-16"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 72 · 2026-07-16"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -1624,6 +1624,11 @@ function drawZombie(g,x,y,s,zd,muts,wob,seed,hungry,pose,face){
     // a SPECIAL CHARACTER: one complete transformation, head to toe
   } else if(SPRITE_IDS[zd.id]){
     spr = poseOf(variantBase(zd.id,muts));
+    if(!spr && zd.id==="gardener" && muts && muts.some(m=>m.label==="All-Seeing")){
+      // the gardener-allseeing sheets don't exist (that recipe belongs to the
+      // Awakened) — a non-awakened one wears his other mutation's look
+      spr = poseOf(variantBase(zd.id,muts.filter(m=>m.label!=="All-Seeing")));
+    }
   }
   if(spr && spr.img){
     const k = s*73/630; // class scale is baked into each sprite canvas
@@ -4160,6 +4165,7 @@ function openAlmanac(tab){
       div.appendChild(inf);
     } else {
       // discovered: the mutation in the flesh — big art, lore, and the road to PERFECTION
+      const seen=(S.mutSeen&&S.mutSeen[label])||0;
       const pairsDone=CROPS.filter(o=>o.mut.label!==label && pairRaised(label,o.mut.label)).length;
       div.appendChild(artCanvasSized((g,x,y,r)=>drawZombie(g,x,y+r*1.05,1.05,zd,[{label,col:c.col}],0.5,0,false,"idle"),96));
       const inf=document.createElement("div"); inf.className="inf";
