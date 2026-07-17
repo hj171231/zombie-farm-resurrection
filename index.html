@@ -48,6 +48,7 @@
   .btnbar-l { position:absolute; bottom:10px; left:10px; display:flex; flex-direction:column; gap:8px; z-index:5; align-items:flex-start; }
   .gbtn { background:linear-gradient(#b8e262 0%, #7fb33c 45%, #5d8a2a 100%); background-clip:padding-box; border:12px solid transparent; border-image:url("art/ui-btn-green.png") 46 fill stretch; border-radius:16px; color:#fff; font-weight:bold; font-size:15px; padding:0 6px; cursor:pointer; text-shadow:0 2px 2px rgba(0,0,0,.45); font-family:"Luckiest Guy","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-weight:400; letter-spacing:.5px; }
   .gbtn:active { transform:translateY(3px); }
+  .gbtn:hover:not(:disabled) { filter:brightness(1.08); }
   .gbtn.red { background:linear-gradient(#ff9a6a 0%, #e0603a 45%, #b03a1e 100%); border-image-source:url("art/ui-btn-red.png"); }
   .gbtn.small { font-size:13px; padding:0 3px; }
   #invadeBtn { font-size:17px; display:flex; align-items:center; justify-content:center; gap:7px; }
@@ -80,9 +81,9 @@
   .mutcard .mlbl { font-size:10px; line-height:1.3; color:#f3e9d2; margin-top:2px; font-family:"Baloo 2","Arial Rounded MT Bold",sans-serif; }
   .mutcard canvas { display:block; margin:0 auto; }
   .zrow .art { width:48px; height:48px; flex:none; }
-  .goal { background:rgba(255,240,210,.08); border-left:5px solid #b06fd0; border-radius:8px; padding:8px 10px; margin-bottom:8px; font-size:14px; }
+  .goal { background:rgba(255,240,210,.08); border-left:5px solid #b06fd0; border-radius:8px; padding:8px 10px; margin-bottom:8px; font-size:16.5px; line-height:1.35; }
   .goal.done { border-left-color:#7dffa0; opacity:.85; }
-  .goal .rw { font-size:12px; color:#ffe9a8; }
+  .goal .rw { font-size:14px; color:#ffe9a8; }
 
   #toast { position:fixed; top:66px; left:50%; transform:translateX(-50%); background:linear-gradient(#57432a,#3a2c1a); border:3px solid #b7e05c; color:#fff; padding:9px 18px; border-radius:22px; font-weight:bold; font-size:14px; z-index:30; display:none; text-align:center; max-width:90vw; box-shadow:0 6px 18px rgba(0,0,0,.5); text-shadow:0 1px 2px #000; }
 
@@ -104,7 +105,7 @@
   #startBtn { animation:pulseBtn 1.8s ease-in-out infinite; }
   @keyframes pulseBtn { 0%,100%{ transform:scale(1);} 50%{ transform:scale(1.06);} }
   #splash .sub { color:#e8ffc8; font-size:15px; max-width:430px; line-height:1.5; text-shadow:0 1px 2px rgba(0,0,0,.5); }
-  #splash .tiny { color:#a8c486; font-size:11px; max-width:430px; }
+  #splash .tiny { color:#a8c486; font-size:9.5px; position:fixed; left:50%; bottom:6px; transform:translateX(-50%); width:min(92vw,560px); margin:0; }
   #splashArt { width:min(340px,80vw); height:110px; }
   .modal h2, #splash h1, #toast, .shopitem .nm, .tab, #splash .sub b, .goal b { font-family:"Luckiest Guy","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-weight:400; letter-spacing:.4px; }
   .modal .body, .goal, .shopitem .ds, #splash .sub, #splash .tiny, .zrow { font-family:"Baloo 2","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS","Trebuchet MS",sans-serif; }
@@ -276,7 +277,7 @@ const ZTYPES = [
  {id:"abom",     name:"Abomination",cost:0,  brains:5, time:200, pow:32, hp:110,spd:0.6, unlock:9, col:"#cf7d7d", shirt:"#6e3a3a", big:true, hulk:true, desc:"A premium pile of muscle. Costs brains."},
  {id:"jester",   name:"Jester",    cost:15000,brains:0, time:300, pow:18, hp:50, spd:1.6, unlock:13,col:"#8fd8b8", shirt:"#7a3a9e", hat:"jester", motley:true, desc:"Confuses defenders &mdash; they throw much slower."},
  {id:"gravemound",name:"Gravemound",cost:0,  brains:10, time:600, pow:55, hp:220,spd:0.5, unlock:19,col:"#7a9a6a", shirt:"#4e5e42", big:true, colossus:true, desc:"A walking hillside. The ground remembers him."},
- {id:"golden",   name:"Golden Shambler",cost:20000,brains:0,time:60, pow:26, hp:90, spd:1.3, unlock:1, col:"#e8c84a", shirt:"#b8912e", plaid:true, glow:true, secret:true, desc:"A legend in solid gold. Earned, never found."},
+ {id:"golden",   name:"Golden Shambler",cost:20000,brains:0,time:60, pow:135,hp:380,spd:1.3, unlock:1, col:"#e8c84a", shirt:"#b8912e", plaid:true, glow:true, secret:true, desc:"A legend in solid gold. Earned, never found."},
  {id:"voltz",    name:"Voltz",     cost:0,  brains:15, time:900, pow:60, hp:250,spd:1.0, unlock:24,col:"#9ab8a2", shirt:"#5a6672", big:true, robo:true, desc:"Half corpse, half chrome. ERROR 404: pain not found."}
 ];
 const TREES = [
@@ -340,7 +341,7 @@ const GOALS = [
  {id:"spec42",  desc:"Collect ALL 42 SPECIAL CHARACTERS", n:42, stat:"specialkinds", brains:25, gold:100000}
 ];
 
-const BUILD = "build 69 · 2026-07-16"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 70 · 2026-07-16"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -880,8 +881,8 @@ function harvest(i){
         const sp=!z.awakened && specialFor(zd.id,z.mut);
         if(sp){ // a SPECIAL CHARACTER rises: the whole zombie is 25% MORE
           z.special=sp.id;
-          z.pow=Math.round(z.pow*1.25);
-          z.maxhp=Math.round(z.maxhp*1.25);
+          z.pow=Math.min(145,Math.round(z.pow*1.25));   // no transformation outranks
+          z.maxhp=Math.min(470,Math.round(z.maxhp*1.25)); // the One We Don't Speak Of
           z.hp=z.maxhp; // transformation leaves them whole
           S.stats.specials=(S.stats.specials||0)+1;
           if(!S.specialsSeen) S.specialsSeen={};
@@ -985,7 +986,7 @@ function medicTick(dt){
     else { m.tx=t.x+side*TILE*0.4; m.ty=t.y; }
     if(dist<TILE*1.0){
       t.hp=Math.min(t.maxhp, t.hp + t.maxhp*MEDIC_RATE*dt);
-      if(Math.random()<0.05) addFloat(t.x+rnd(-12,12), t.y-34-rnd(0,14), "&#x2764;", "#ff7a9a"); // little hearts
+      if(Math.random()<0.05) addFloat(t.x+rnd(-12,12), t.y-34-rnd(0,14), "\u2665", "#ff7a9a"); // little hearts (canvas text: real char, not an entity)
     } else m.__side=undefined;
   });
 }
@@ -1103,11 +1104,27 @@ function checkGoals(){
 }
 
 // ---------- HUD ----------
+// the pills COUNT to their totals instead of teleporting — a living HUD
+const HUDV={gold:null,brains:null,z:null,lf:null,tg:0,tb:0,tz:0,tl:0};
+function hudTween(dt){
+  if(!S) return;
+  const step=(cur,target)=>{
+    if(cur===null||dt>=9) return target;
+    const diff=target-cur;
+    if(Math.abs(diff)<0.6) return target;
+    return cur+diff*Math.min(1,dt*2.6); // rolls up over ~1-2 seconds
+  };
+  HUDV.gold=step(HUDV.gold,HUDV.tg); HUDV.brains=step(HUDV.brains,HUDV.tb);
+  HUDV.z=step(HUDV.z,HUDV.tz);       HUDV.lf=step(HUDV.lf,HUDV.tl);
+  $("goldTxt").textContent = Math.round(HUDV.gold);
+  $("brainTxt").textContent = Math.round(HUDV.brains);
+  $("zcountTxt").textContent = Math.round(HUDV.z)+"/"+MAX_Z;
+  $("lfTxt").textContent = Math.round(HUDV.lf);
+}
 function hud(){
-  $("goldTxt").textContent = Math.floor(S.gold);
-  $("brainTxt").textContent = S.brains;
-  $("zcountTxt").textContent = S.zombies.length+"/"+MAX_Z;
-  $("lfTxt").textContent = Math.round(S.zombies.reduce((a,z)=>a+z.hp,0));
+  HUDV.tg=Math.floor(S.gold); HUDV.tb=S.brains; HUDV.tz=S.zombies.length;
+  HUDV.tl=Math.round(S.zombies.reduce((a,z)=>a+z.hp,0));
+  if(HUDV.gold===null) hudTween(99); // first paint: snap, then tween forever after
   const need=xpNeeded(S.level);
   $("xpbar").style.width = clamp(S.xp/need*100,0,100)+"%";
   $("xptext").textContent = "Lv "+S.level+"  ("+S.xp+"/"+need+" xp)";
@@ -2920,24 +2937,7 @@ function drawYardDecor(dp){
   const g=cx;
   const topY=ISOY, botY=ISOY+GRID*TH, midY=ISOY+GRID*TH/2;
   const leftX=ISOX-GRID*TW/2, rightX=ISOX+GRID*TW/2;
-  // ---- the driveway: a wide dirt road along the Composter's actual route ----
-  {
-    const ry=H*0.885, endX=W*0.46;
-    g.strokeStyle="rgba(150,115,62,.55)"; g.lineWidth=TW*1.0; g.lineCap="round";
-    g.beginPath(); g.moveTo(-60,ry+8); g.quadraticCurveTo(W*0.2,ry-4,endX,ry); g.stroke();
-    g.strokeStyle="rgba(120,90,48,.35)"; g.lineWidth=TW*0.72;
-    g.beginPath(); g.moveTo(-60,ry+8); g.quadraticCurveTo(W*0.2,ry-4,endX,ry); g.stroke();
-    // twin tire ruts — a truck drives here, not a scarecrow
-    g.strokeStyle="rgba(90,66,34,.4)"; g.lineWidth=3;
-    [-TW*0.16,TW*0.16].forEach(off=>{
-      g.beginPath(); g.moveTo(-60,ry+8+off*0.4); g.quadraticCurveTo(W*0.2,ry-4+off,endX-14,ry+off); g.stroke();
-    });
-    for(let k=0;k<4;k++){ // gravel
-      const tt=(k+0.5)/4, gx2=-60+(endX+60)*tt, gy2=ry+(k%2?TW*0.22:-TW*0.2);
-      g.fillStyle="rgba(168,168,178,.6)";
-      g.beginPath(); g.ellipse(gx2,gy2,s*0.09,s*0.05,0,0,TAU); g.fill();
-    }
-  }
+  // (no path, no driveway — the yard stays green by decree)
   const spots=[
     {x:ISOX-TW*2.4,y:topY+TH*0.6, kind:"scarecrow"},
     {x:ISOX+TW*2.5,y:topY+TH*0.8, kind:"well"},
@@ -3534,7 +3534,7 @@ function compostOffer(z){
     if(legend) brains=Math.max(brains,(z.kills||0)>=5?2:1);   // legends fetch brains
   }
   if(z.awakened){ // he has seen everything — including his own price tag
-    return {gold:66666, xp:6666, brains:13, wanted:false, special:true};
+    return {gold:100000, xp:10000, brains:10, wanted:false, special:true};
   }
   let special=false;
   if(z.special){ // collectors pay collector prices
@@ -3807,7 +3807,7 @@ $("goalsBtn").onclick=()=>{
     const done=S.goalsDone.includes(g.id);
     const p=Math.min(goalProgress(g), g.n);
     const div=document.createElement("div"); div.className="goal"+(done?" done":"");
-    const rw=[g.gold?g.gold+" gold":null,g.brains?g.brains+" brain"+(g.brains>1?"s":""):null,g.xp?g.xp+" xp":null,g.secretUnlock?"+ a MYSTERY":null].filter(Boolean).join(" &middot; ");
+    const rw=[g.gold?g.gold+" gold":null,g.brains?g.brains+" brain"+(g.brains>1?"s":""):null,g.xp?g.xp+" xp":null,g.secretUnlock?"+ the GOLDEN SHAMBLER!":null].filter(Boolean).join(" &middot; ");
     div.innerHTML=(done?"<span style='color:#7dffa0'>&#x2705;</span> ":"")+g.desc+" <b>("+p+"/"+g.n+")</b>"+
       "<div class='rw'>"+(done?"<span style='color:#7dffa0'>Reward claimed:</span> ":"Reward: ")+rw+"</div>";
     b.appendChild(div);
@@ -4005,27 +4005,46 @@ function openDailyModal(){
     cal.appendChild(cell);
   }
   b.appendChild(cal);
-  // the gift
-  const gift=document.createElement("button");
-  gift.className="gbtn"; gift.style.cssText="display:block;margin:10px auto;font-size:34px;padding:6px 26px";
-  gift.innerHTML="&#x1F381;";
+  // the gift: free-standing, GROWS when tapped, then reveals — then you COLLECT
+  spriteGet("daily-gift"); // kick the lazy load (Design asset; emoji fallback)
+  const stage=document.createElement("div");
+  stage.style.cssText="text-align:center;min-height:190px;display:flex;flex-direction:column;align-items:center;justify-content:center";
+  const gift=document.createElement("div");
+  gift.style.cssText="width:110px;height:110px;cursor:pointer;transition:transform 1.15s cubic-bezier(.34,1.6,.64,1);display:flex;align-items:center;justify-content:center;transform:scale(1)";
+  const gs=SPRITES["daily-gift"];
+  gift.innerHTML=(gs&&gs.img)?"<img src='art/daily-gift.png' style='width:100%;height:100%;object-fit:contain'>":"<span style='font-size:78px;filter:drop-shadow(0 4px 6px rgba(0,0,0,.4))'>&#x1F381;</span>";
   const hint=document.createElement("div");
-  hint.style.cssText="text-align:center;font-size:12.5px;opacity:.8;margin-bottom:6px";
-  hint.innerHTML="Tap the gift to open it!";
+  hint.style.cssText="font-size:13px;opacity:.85;margin-top:6px";
+  hint.innerHTML="Tap your gift!";
+  let opened=false;
   gift.onclick=()=>{
-    gift.disabled=true; gift.innerHTML="&#x2728;"; sfx.tap();
+    if(opened) return; opened=true;
+    sfx.tap();
+    gift.style.transform="scale(1.75) rotate(-4deg)"; // it swells...
+    hint.innerHTML="&#x2728; something is stirring inside &#x2728;";
     setTimeout(()=>{
       const prize=dailyPrize(day);
-      S.daily={last:today,streak};
-      let msg;
-      if(prize.brains){ S.brains+=prize.brains; msg=prize.brains+" &#x1F9E0; BRAIN"+(prize.brains>1?"S":"")+"!"; sfx.brain(); }
-      else { gold(prize.gold); msg=prize.gold+" GOLD!"; sfx.win(); }
-      gift.innerHTML="&#x1F31F;";
-      hint.innerHTML="<b style='font-size:17px;color:#ffd94d'>"+msg+"</b><br><span style='opacity:.8'>See you tomorrow, farmer.</span>";
-      hud(); save(); checkGoals();
-    },800);
+      const msg = prize.brains ? prize.brains+" &#x1F9E0; BRAIN"+(prize.brains>1?"S":"") : prize.gold+" GOLD";
+      gift.style.transform="scale(0.001)";
+      hint.innerHTML="<b style='font-family:\'Luckiest Guy\',\'Comic Sans MS\',sans-serif;font-size:26px;color:#ffd94d;text-shadow:0 2px 3px rgba(0,0,0,.5)'>"+msg+"!</b>";
+      const collect=document.createElement("button");
+      collect.className="gbtn"; collect.style.cssText="display:block;margin:10px auto;font-size:17px";
+      collect.innerHTML="&#x1F3C6; COLLECT";
+      collect.onclick=()=>{
+        collect.disabled=true;
+        S.daily={last:today,streak};
+        if(prize.brains){ S.brains+=prize.brains; sfx.brain(); }
+        else { gold(prize.gold); sfx.win(); }
+        hud(); save(); checkGoals(); // the pills count UP to the new totals
+        hint.innerHTML="<b style='color:#7dffa0;font-size:16px'>Collected!</b><br><span style='opacity:.8;font-size:12.5px'>Day "+day+" of 28 done &mdash; see you tomorrow, farmer.</span>";
+        collect.style.display="none";
+      };
+      stage.appendChild(collect);
+      sfx.win();
+    },1200);
   };
-  b.appendChild(gift); b.appendChild(hint);
+  stage.appendChild(gift); stage.appendChild(hint);
+  b.appendChild(stage);
 }
 
 // ---- Mutation Almanac: discovered by doing, mastered by raising 3 ----
@@ -4057,7 +4076,7 @@ function renderAlmanacSpecials(b){
     const card=document.createElement("div"); card.className="mutcard"+(got?" goldcard":" unknown");
     const zdS=zdefFor({type:sp.type, special:sp.id, mut:[]});
     card.appendChild(artCanvasSized((g,x,y,r)=>{
-      drawZombie(g,x,y+r*1.06,1.12,zdS,[],0.5,0,false,"idle");
+      drawZombie(g,x,y+r*1.12,1.34,zdS,[],0.5,0,false,"idle");
       if(!got){ g.globalCompositeOperation="source-atop"; g.fillStyle="#100b1c"; g.fillRect(0,0,400,400); g.globalCompositeOperation="source-over"; } // PITCH BLACK — shape only
     },150));
     const lbl=document.createElement("div"); lbl.className="mlbl"; lbl.style.fontSize="13.5px";
@@ -4086,14 +4105,13 @@ function openAlmanac(tab){
   const intro=document.createElement("div");
   intro.style.cssText="font-size:12.5px;padding:6px 8px;line-height:1.55";
   intro.innerHTML=
-    "<div style='text-align:center;font-size:14px;margin-bottom:4px'><b style='color:#ffe9a8'>Discovered "+discovered+"/"+CROPS.length+"</b> &middot; <b style='color:#c9f'>Mastered "+mastered+"/"+CROPS.length+"</b> &middot; <b style='color:#ffd94d'>Perfected "+Object.keys(S.perfected||{}).length+"/"+CROPS.length+"</b> &middot; <b style='color:#7dffa0'>Combos "+combosRaised+"/"+totalCombos+"</b></div>"+
+    "<div style='text-align:center;font-size:14px;margin-bottom:4px'><b style='color:#ffe9a8'>Discovered "+discovered+"/"+CROPS.length+"</b> &middot; <b style='color:#ffd94d'>Perfected "+Object.keys(S.perfected||{}).length+"/"+CROPS.length+"</b> &middot; <b style='color:#7dffa0'>Combos "+combosRaised+"/"+totalCombos+"</b></div>"+
     "<div style='text-align:center;font-size:13px;margin-bottom:6px;color:#b7e05c'>&#x1F9EA; Farm mutation odds: <b>"+Math.round(mutationChance()*100)+"%</b> &mdash; grow trees to raise them</div>"+
     "<b>&#x1F52C; How mutations work:</b> plant a <b>zombie</b> in a plot right <b>next to</b> a crop that's <b>over half grown</b>. "+
     "When the zombie rises, each ripening neighbor gives a chance to gift its mutation &mdash; "+
     "and the more <b>life force</b> your trees radiate, the better the odds. A farm truly packed "+
     "with the finest trees can make mutation a <b>certainty</b>. "+
-    "A zombie can carry <b>up to 2</b> mutations at once &mdash; a <b>combo</b>! Stats AND looks stack. Wilted crops gift nothing.<br>"+
-    "<b>&#x1F4D6; Reading this almanac:</b> raise <b>1</b> zombie with a mutation to discover it &middot; raise <b>3</b> to master it and reveal its full combo chart below.";
+    "A zombie can carry <b>up to 2</b> mutations at once &mdash; a <b>combo</b>! The rarest recipes birth the <b>&#x1F31F; Specials</b> next tab over.";
   b.appendChild(intro);
   // collector rank + progress toward all 45 combos
   const RANKS=[[0,"Fresh Gravekeeper"],[1,"Budding Necrobotanist"],[5,"Mad Grafter"],[15,"Combo Cultivator"],[30,"Master of Mutation"],[45,"THE OMNIGROWER"]];
@@ -4110,70 +4128,30 @@ function openAlmanac(tab){
   // (legendary-combos section retired — the SPECIALS tab is the collection now)
   CROPS.forEach(c=>{
     const label=c.mut.label, tier=mutTier(label);
-    const seen=(S.mutSeen&&S.mutSeen[label])||0;
-    const eff=mutAmt(c.mut.label), perf=!!(S.perfected&&S.perfected[c.mut.label]);
+    const eff=mutAmt(label), perf=!!(S.perfected&&S.perfected[label]);
     const statTxt=(eff.stat==="pow"?"+"+eff.amt+" POWER":eff.stat==="hp"?"+"+eff.amt+" HP":"+"+eff.amt+" SPEED")+(perf?" (x2!)":"");
     const lockedByLevel=S.level<c.unlock;
     const div=document.createElement("div"); div.className="shopitem"+(tier===0?" locked":"");
     if(tier===0){
-      // undiscovered: show the source crop so you know what to farm
-      div.appendChild(artCanvas((g,x,y,r)=>{
-        drawProduce(g,c.id,x,y,26);
-        g.fillStyle="rgba(30,20,10,.55)"; g.beginPath(); g.arc(x,y,24,0,TAU); g.fill();
-        g.fillStyle="#e8d8b0"; g.font="bold 26px 'Luckiest Guy','Comic Sans MS',sans-serif";
+      // undiscovered: the source crop wears a question mark
+      div.appendChild(artCanvasSized((g,x,y,r)=>{
+        drawProduce(g,c.id,x,y,30);
+        g.fillStyle="rgba(30,20,10,.55)"; g.beginPath(); g.arc(x,y,r*0.85,0,TAU); g.fill();
+        g.fillStyle="#e8d8b0"; g.font="bold "+Math.round(r*0.9)+"px 'Luckiest Guy','Comic Sans MS',sans-serif";
         g.textAlign="center"; g.textBaseline="middle"; g.fillText("?",x,y+1);
-      }));
+      },64));
       const inf=document.createElement("div"); inf.className="inf";
-      inf.innerHTML="<div class='nm'>??? <span style='font-weight:normal;font-size:12px'>&mdash; "+statTxt+"</span></div>"+
-        "<div class='ds'><b>Recipe:</b> grow a zombie beside a ripening <b>"+c.name+"</b>"+
-        (lockedByLevel?" <i>(unlocks at level "+c.unlock+")</i>":"")+
-        ", then harvest the zombie and cross your fingers.</div>";
+      inf.innerHTML="<div class='nm'>??? <span style='font-weight:normal;font-size:13px'>&mdash; "+statTxt+"</span></div>"+
+        "<div class='ds'>Grow a zombie beside a ripening <b>"+c.name+"</b>"+
+        (lockedByLevel?" <i>(unlocks at level "+c.unlock+")</i>":"")+".</div>";
       div.appendChild(inf);
     } else {
-      // discovered: zombie wearing it + the crop that causes it
-      div.appendChild(artCanvas((g,x,y,r)=>{
-        drawZombie(g,x-8,y+22,0.46,zd,[{label,col:c.col}],0.5);
-        drawProduce(g,c.id,x+22,y+14,14);
-      }));
+      // discovered: the mutation in the flesh — big, clean, uniform
+      div.appendChild(artCanvasSized((g,x,y,r)=>drawZombie(g,x,y+r*1.05,0.86,zd,[{label,col:c.col}],0.5,0,false,"idle"),64));
       const inf=document.createElement("div"); inf.className="inf";
-      let html="<div class='nm'>"+label+" <span style='font-weight:normal;font-size:12px'>&mdash; "+statTxt+"</span></div>"+
-        "<div class='ds'><b>Made by:</b> "+c.name+" (grows in "+fmtTime(c.time)+")"+
-        " &middot; <b>You've raised:</b> "+seen+" zombie"+(seen===1?"":"s")+" with this"+
-        (c.id==="wormapple"?"<br><i>&#x1FAB1; Gardeners with a worm pal compost twice as fast.</i>":"")+"</div>";
+      inf.innerHTML="<div class='nm'>"+label+" <span style='font-weight:normal;font-size:13px'>&mdash; "+statTxt+"</span></div>"+
+        "<div class='ds'>"+(perf?"<span style='color:#ffd94d'><b>&#x1F3C6; PERFECTED &mdash; bonus doubled forever</b></span>":"<b>From:</b> "+c.name)+"</div>";
       div.appendChild(inf);
-      if(tier===2){
-        // full combo chart: this mutation x every other, discovered or not
-        html+= perf
-          ? "<div class='ds' style='color:#ffd94d'><b>&#x1F3C6; PERFECTED &mdash; bonus DOUBLED forever</b></div>"
-          : "<div class='ds' style='color:#c9f'><b>&#x2B50; MASTERED</b></div>";
-        inf.innerHTML=html;
-        const grid=document.createElement("div"); grid.className="mutgrid";
-        CROPS.filter(o=>o.mut.label>label).forEach(o=>{ // each pair appears ONCE, under its alphabetical first
-          const oLabel=o.mut.label, oKnown=mutTier(oLabel)>=1;
-          const card=document.createElement("div");
-          const lbl=document.createElement("div"); lbl.className="mlbl";
-          if(oKnown){
-            const raised=pairRaised(label,oLabel);
-            card.className="mutcard"+(raised?" raised":"");
-            card.appendChild(artCanvasSized((g,x,y,r)=>drawZombie(g,x,y+r*1.0,0.88,zd,[{label,col:c.col},{label:oLabel,col:o.col}],0.5,0,false,"idle"),112));
-            lbl.innerHTML="<b style='font-size:13px'>+ "+oLabel+"</b>";
-          } else {
-            card.className="mutcard unknown";
-            card.appendChild(artCanvasSized((g,x,y,r)=>{
-              g.fillStyle="rgba(60,45,25,.6)"; g.beginPath(); g.arc(x,y,r*1.6,0,TAU); g.fill();
-              g.fillStyle="#c8b088"; g.font="bold "+(r*1.6)+"px 'Luckiest Guy','Comic Sans MS',sans-serif";
-              g.textAlign="center"; g.textBaseline="middle"; g.fillText("?",x,y);
-            },84));
-            lbl.innerHTML="<b>+ ???</b><br><span style='opacity:.75'>discover via "+o.name+"</span>";
-          }
-          card.appendChild(lbl);
-          grid.appendChild(card);
-        });
-        inf.appendChild(grid);
-      } else {
-        html+="<div class='ds' style='color:#c9f'>Raise <b>"+(3-seen)+" more</b> to master it and reveal its full combo chart.</div>";
-        inf.innerHTML=html;
-      }
     }
     b.appendChild(div);
   });
@@ -4308,7 +4286,7 @@ function sendZombie(k){
   // straight into the fight. Hunger still matters — it feeds the damage
   // bonus — but nobody stops to daydream anymore.
   const a={z, slot, x:-40, y:H*0.68-slot*10, state:"march", bubbleT:0, atkT:0, charged:!!z.charged};
-  if(z.charged){ z.charged=false; addFloat(W*0.2,H*0.5,"&#x26A1; SUPERCHARGED!","#ffe97a"); } // one battle, then it's spent
+  if(z.charged){ z.charged=false; addFloat(W*0.2,H*0.5,"\u26A1 SUPERCHARGED!","#ffe97a"); } // one battle, then it's spent
   B.sent.add(z); B.actives.push(a); sfx.zomb();
   B.sendCount++;
   if(B.sendCount>=FREE_SENDS) B.nextSendAt=B.t+SEND_COOLDOWN;
@@ -5243,7 +5221,7 @@ function loop(ts){
   const dt=Math.min((ts-lastT)/1000,0.1); lastT=ts;
   if(S){
     if(scene==="farm"){
-      hungerTick(); gardenerTick(); medicTick(dt); healTick();
+      hungerTick(); gardenerTick(); medicTick(dt); healTick(); hudTween(dt);
       cx.save(); camApply();          // world-space: everything zooms & pans together
       drawFarm(dt);
       drawFloats(dt); drawParts(dt); drawPops(dt); drawTapFX(dt);

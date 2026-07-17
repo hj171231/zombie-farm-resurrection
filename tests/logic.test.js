@@ -1185,7 +1185,7 @@ function raiseGardenerWith(cropId, roll) {
     G.startGame(null);
     G.S.zombies.push({type:"shambler",name:"A",pow:5,hp:10,maxhp:22,spd:1,hunger:30,x:0,y:0,tx:0,ty:0,wob:0,mut:[],kills:0});
     G.S.zombies.push({type:"bruiser",name:"B",pow:15,hp:44.6,maxhp:60,spd:0.7,hunger:30,x:0,y:0,tx:0,ty:0,wob:0,mut:[],kills:0});
-    G.hud();
+    G.hud(); G.hudTween(99); // dt>=9 snaps the counting pills instantly
     eq(els["lfTxt"].textContent, 55); // round(10+44.6)
   });
 }
