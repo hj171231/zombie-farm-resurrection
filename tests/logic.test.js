@@ -1358,8 +1358,8 @@ console.log("\n== SPECIAL CHARACTERS & the Composter\u2019s wanted list ==");
   check("every special has a unique (type, mutation-set) trigger", () => {
     const { G } = boot();
     const keys = G.SPECIALS.map(sp => sp.type + "|" + sp.muts.slice().sort().join(" + "));
-    eq(new Set(keys).size, 42);
-    eq(G.SPECIALS.length, 42);
+    eq(new Set(keys).size, 56, "every trigger unique");
+    eq(G.SPECIALS.length, 56);
     ok(!G.SPECIALS.some(sp => sp.type === "gardener" && sp.muts.includes("All-Seeing")), "the Awakened stays untouchable");
   });
   check("special survives the save cycle", () => {

@@ -231,6 +231,20 @@ const SPECIALS=[
  {id:"pharaoh",   name:"Pharaoh",     type:"golden",    muts:["Moon-Touched","Pungent"]},
  {id:"disco",     name:"Disco",       type:"golden",    muts:["Flaming","Speedy"]},
  {id:"astronaut", name:"Astronaut",   type:"voltz",     muts:["Moon-Touched"]},
+ {id:"rockstar",  name:"Rockstar",    type:"shambler",  muts:["Big-Hearted","Flaming"]},
+ {id:"gnome",     name:"Gnome",       type:"mini",      muts:["Sporified","Wormfriend"]},
+ {id:"juggler",   name:"Juggler",     type:"headless",  muts:["Kernel-Powered","Speedy"]},
+ {id:"florist",   name:"Florist",     type:"gardener",  muts:["Big-Hearted","Gourd-Headed"]},
+ {id:"smith",     name:"Blacksmith",  type:"bruiser",   muts:["Flaming","Kernel-Powered"]},
+ {id:"dentist",   name:"Dentist",     type:"sawbones",  muts:["All-Seeing","Kernel-Powered"]},
+ {id:"diva",      name:"Opera Diva",  type:"banshee",   muts:["Big-Hearted","Pungent"]},
+ {id:"sumo",      name:"Sumo",        type:"abom",      muts:["Big-Hearted","Speedy"]},
+ {id:"prospector",name:"Prospector",  type:"digger",    muts:["Gourd-Headed","Kernel-Powered"]},
+ {id:"magician",  name:"Magician",    type:"jester",    muts:["Sporified","Wormfriend"]},
+ {id:"grill",     name:"Grillmaster", type:"chef",      muts:["Gourd-Headed","Pungent"]},
+ {id:"keep",      name:"The Keep",    type:"gravemound",muts:["Big-Hearted","Kernel-Powered"]},
+ {id:"statue",    name:"Living Statue",type:"golden",   muts:["All-Seeing","Kernel-Powered"]},
+ {id:"deejay",    name:"DJ Voltz",    type:"voltz",     muts:["Big-Hearted","Sporified"]},
  {id:"mecha",     name:"Mecha",       type:"voltz",     muts:["All-Seeing","Kernel-Powered"]},
  {id:"dynamo",    name:"Dynamo",      type:"voltz",     muts:["Flaming","Speedy"]}
 ];
@@ -341,10 +355,10 @@ const GOALS = [
  {id:"rich250k",desc:"Hold 250,000 gold at once",    n:250000, stat:"goldbank", brains:5},
  {id:"spec1",   desc:"Transform your first SPECIAL CHARACTER", n:1, stat:"specialkinds", brains:2},
  {id:"spec10",  desc:"Collect 10 SPECIAL CHARACTERS",  n:10,  stat:"specialkinds", brains:5},
- {id:"spec42",  desc:"Collect ALL 42 SPECIAL CHARACTERS", n:42, stat:"specialkinds", brains:25, gold:100000}
+ {id:"spec42",  desc:"Collect ALL 56 SPECIAL CHARACTERS", n:56, stat:"specialkinds", brains:25, gold:100000}
 ];
 
-const BUILD = "build 76 · 2026-07-17"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 77 · 2026-07-17"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -993,7 +1007,7 @@ function medicTick(dt){
     }
     if(dist<TILE*1.0){
       t.hp=Math.min(t.maxhp, t.hp + t.maxhp*MEDIC_RATE*dt);
-      if(Math.random()<0.05) addFloat(t.x+rnd(-12,12), t.y-34-rnd(0,14), "\u2665", "#e22c2c"); // little RED hearts — healing, not romance
+      if(Math.random()<0.05) addFloat(t.x+rnd(-12,12), t.y-34-rnd(0,14), "\u271A", "#e22c2c"); // little RED CROSSES — strictly medical
     } else m.__side=undefined;
   });
 }
