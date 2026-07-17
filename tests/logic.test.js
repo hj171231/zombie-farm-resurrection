@@ -1388,6 +1388,23 @@ console.log("\n== SPECIAL CHARACTERS & the Composter\u2019s wanted list ==");
   });
 }
 
+console.log("\n== Voltz self-repair ==");
+{
+  const inst = loadGame(); const G = inst.G;
+  G.startGame(null);
+  check("Voltz heals at exactly DOUBLE the grove rate", () => {
+    G.S.lifeForce = 1800;
+    G.S.zombies.push({type:"bruiser",name:"Meat",pow:15,hp:30,maxhp:60,spd:1,hunger:0,mut:[],kills:0,x:0,y:0,tx:0,ty:0,wob:0});
+    G.S.zombies.push({type:"voltz",name:"Chrome",pow:60,hp:125,maxhp:250,spd:1,hunger:0,mut:[],kills:0,x:0,y:0,tx:0,ty:0,wob:0});
+    G.S.lastHealAt = Date.now() - 60000; // one minute passes
+    G.healTick();
+    const meatGain=(G.S.zombies[0].hp-30)/60;    // per maxhp-fraction... compare fraction healed
+    const chromeGain=(G.S.zombies[1].hp-125)/250;
+    const meatFrac=(G.S.zombies[0].hp-30)/60;
+    ok(Math.abs(chromeGain - meatFrac*2) < 1e-6, "bionic fraction is exactly 2x: "+chromeGain+" vs "+meatFrac);
+  });
+}
+
 console.log("\n== Patches at the bedside: no NaN, no vanishing, ever ==");
 {
   const inst = loadGame({ visual: true }); const G = inst.G;
