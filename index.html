@@ -57,7 +57,7 @@
 
   .modal-shade { position:fixed; inset:0; background:rgba(10,8,20,.6); display:none; z-index:20; }
   .modal-shade.open { display:flex; align-items:center; justify-content:center; }
-  .modal { background:linear-gradient(#57432a,#3a2c1a); border:4px solid #8a6d3b; border-radius:18px; width:min(480px,92vw); max-height:82vh; display:flex; flex-direction:column; color:#f3e9d2; box-shadow:0 12px 44px rgba(0,0,0,.7), inset 0 2px 0 rgba(255,230,180,.25); overflow:hidden; }
+  .modal { animation:modalPop .28s cubic-bezier(.34,1.4,.64,1); background:linear-gradient(#57432a,#3a2c1a); border:4px solid #8a6d3b; border-radius:18px; width:min(480px,92vw); max-height:82vh; display:flex; flex-direction:column; color:#f3e9d2; box-shadow:0 12px 44px rgba(0,0,0,.7), inset 0 2px 0 rgba(255,230,180,.25); overflow:hidden; }
   .modal h2 { background:linear-gradient(#a5823f,#7d5d2c); padding:9px 14px; font-size:18px; color:#fff; text-shadow:0 2px 2px rgba(0,0,0,.5); display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid #3d2810; }
   .modal h2 .x { cursor:pointer; background:#5e4426; border:2px solid #3d2810; border-radius:10px; padding:0 10px; font-size:18px; box-shadow:0 2px 0 #2a1c08; }
   .modal .body { padding:10px; overflow-y:auto; }
@@ -76,6 +76,8 @@
   .mutcard { background:rgba(18,12,6,.55); border:2px solid #5e4426; border-radius:10px; padding:4px 3px 5px; text-align:center; width:158px; }
   .mutcard.raised { border-color:#7dffa0; box-shadow:0 0 8px rgba(125,255,160,.25); }
   .mutcard.goldcard { border:3px solid #ffd94d; animation:goldGlisten 2.2s ease-in-out infinite; }
+  @keyframes modalPop { from{ transform:scale(.92); opacity:.3; } to{ transform:scale(1); opacity:1; } }
+  @keyframes toastDrop { from{ transform:translate(-50%,-14px); opacity:0; } to{ transform:translate(-50%,0); opacity:1; } }
   @keyframes dailyPop { 0%{ transform:scale(.3); opacity:0; } 70%{ transform:scale(1.12); } 100%{ transform:scale(1); opacity:1; } }
   @keyframes goldGlisten { 0%,100%{ box-shadow:0 0 8px rgba(255,217,77,.45); border-color:#ffd94d; } 50%{ box-shadow:0 0 20px rgba(255,231,140,.9); border-color:#fff3b8; } }
   .mutcard.unknown { border-style:dashed; opacity:.75; }
@@ -86,7 +88,7 @@
   .goal.done { border-left-color:#7dffa0; opacity:.85; }
   .goal .rw { font-size:14px; color:#ffe9a8; }
 
-  #toast { position:fixed; top:66px; left:50%; transform:translateX(-50%); background:linear-gradient(#57432a,#3a2c1a); border:3px solid #b7e05c; color:#fff; padding:9px 18px; border-radius:22px; font-weight:bold; font-size:14px; z-index:30; display:none; text-align:center; max-width:90vw; box-shadow:0 6px 18px rgba(0,0,0,.5); text-shadow:0 1px 2px #000; }
+  #toast { position:fixed; top:66px; left:50%; transform:translateX(-50%); animation:toastDrop .3s ease-out; background:linear-gradient(#57432a,#3a2c1a); border:3px solid #b7e05c; color:#fff; padding:9px 18px; border-radius:22px; font-weight:bold; font-size:14px; z-index:30; display:none; text-align:center; max-width:90vw; box-shadow:0 6px 18px rgba(0,0,0,.5); text-shadow:0 1px 2px #000; }
 
   #plantChip { position:fixed; top:64px; left:50%; transform:translateX(-50%); background:linear-gradient(#b8e262 0%,#7fb33c 45%,#5d8a2a 100%); border:3px solid #2f4a12; color:#fff; padding:7px 16px; border-radius:22px; font-family:"Luckiest Guy","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; letter-spacing:.4px; z-index:15; display:none; cursor:pointer; box-shadow:inset 0 2px 0 rgba(255,255,255,.3), 0 4px 10px rgba(0,0,0,.45); text-shadow:0 1px 2px rgba(0,0,0,.5); font-size:14px; max-width:92vw; text-align:center; }
 
@@ -342,7 +344,7 @@ const GOALS = [
  {id:"spec42",  desc:"Collect ALL 42 SPECIAL CHARACTERS", n:42, stat:"specialkinds", brains:25, gold:100000}
 ];
 
-const BUILD = "build 75 · 2026-07-17"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 76 · 2026-07-17"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -3735,7 +3737,7 @@ function renderMarket(tab){
         const kind = tab===0?"crop":tab===1?"zombie":"tree";
         if(kind==="zombie"){
           let tgt=plantTarget;
-          if(tgt<0){ tgt=S.tiles.findIndex(t2=>t2.st==="plot"); if(tgt<0){ toast("Plow an empty plot first! (tap grass)"); return; } }
+          if(tgt<0){ tgt=S.tiles.findIndex(t2=>t2.st==="plot"); if(tgt<0){ toast("Plow an empty plot first! (tap the dirt field)"); return; } }
           if(plantAt(tgt,kind,item.id)) closeModal();
           return;
         }
@@ -3912,7 +3914,7 @@ $("helpBtn").onclick=()=>{
   $("mTabs").innerHTML="";
   $("mBody").innerHTML =
    "<div style='font-size:14px;line-height:1.6'>"+
-   "<b>&#x1F33E; Farm:</b> Tap grass to plow a plot (10g). Tap a plot to open the Market. After you pick a seed you stay in <b>planting mode</b> &mdash; keep tapping plots (even unplowed grass!) to plant the same thing again and again. Tap the green banner to stop. Zombies are the exception: they plant <b>one at a time</b>, on purpose &mdash; each one is a commitment. Tap ripe things to harvest. Crops wither if ignored too long!<br><br>"+
+   "<b>&#x1F33E; Farm:</b> Tap the dirt field to plow a plot (10g). Tap a plot to open the Market. After you pick a seed you stay in <b>planting mode</b> &mdash; keep tapping plots (even unplowed dirt!) to plant the same thing again and again. Tap the green banner to stop. Zombies are the exception: they plant <b>one at a time</b>, on purpose &mdash; each one is a commitment. Tap ripe things to harvest. Crops wither if ignored too long!<br><br>"+
    "<b>"+iconHTML(drawZedMini)+"Zombies:</b> Harvested zombies join your horde (max "+MAX_Z+") and roam the farm, getting hungrier. Wounded zombies <b>only heal if trees give life force</b> &mdash; no trees, no healing! More life force = faster mending. If the horde is full, harvesting a zombie sells it for gold.<br><br>"+
    "<b>&#x1F9EA; Mutations:</b> Grow a zombie <i>next to</i> ripening crops for a chance it rises mutated with bonus stats &mdash; and a new look! More life force (trees) = better odds. <button class='gbtn small' id='mutBtn'>&#x1F9EC; Mutation Almanac</button><br><br>"+
    "<b>&#x2694;&#xFE0F; Invasions:</b> With "+INVADE_MIN+"+ zombies, hit INVADE, pick a squad, then tap squad cards to send fighters in (up to 3 at once). <b>Hungrier zombies bite much harder</b> &mdash; starve them before a big raid! Win gold, XP, and maybe a <b>brain</b>.<br><br>"+
