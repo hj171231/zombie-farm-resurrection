@@ -342,7 +342,7 @@ const GOALS = [
  {id:"spec42",  desc:"Collect ALL 42 SPECIAL CHARACTERS", n:42, stat:"specialkinds", brains:25, gold:100000}
 ];
 
-const BUILD = "build 73 · 2026-07-17"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 74 · 2026-07-17"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -355,7 +355,7 @@ const PAL={
 };
 const GRID = 7;
 const MAX_Z = 20;
-const INVADE_MIN = 6;
+const INVADE_MIN = 5;
 const INVADE_CD = 600;
 const PLOW_COST = 10;
 const DAY_LEN = 240;
@@ -451,7 +451,7 @@ function sanitizeState(raw){
         const zd=zdefFor(z);
         return { type:z.type, name:typeof z.name==="string"?z.name:pick(ZNAMES),
           pow:num(z.pow,zd.pow), hp:num(z.hp,zd.hp), maxhp:num(z.maxhp,zd.hp), spd:num(z.spd,zd.spd),
-          hunger:num(z.hunger,30), x:z.x, y:z.y, tx:z.tx, ty:z.ty, wob:num(z.wob,0),
+          hunger:num(z.hunger,30), x:num(z.x,400), y:num(z.y,420), tx:num(z.tx,400), ty:num(z.ty,420), wob:num(z.wob,0),
           mut:Array.isArray(z.mut)?z.mut.filter(m=>m&&typeof m.label==="string").slice(0,2):[],
           awakened:!!z.awakened, charged:!!z.charged, lastBattleAt:num(z.lastBattleAt,0),
           special:(typeof z.special==="string" && SPECIALS.some(sp=>sp.id===z.special))?z.special:undefined,
@@ -3313,6 +3313,9 @@ function drawFarm(dt){
     sfx.brains();
   }
   S.zombies.forEach(z=>{
+    if(!isFinite(z.x)||!isFinite(z.y)||!isFinite(z.tx)||!isFinite(z.ty)){
+      const rp=randRoamPos(); z.x=rp.x; z.y=rp.y; z.tx=rp.x; z.ty=rp.y; // back from the void
+    }
     z.wob+=dt*3*z.spd; // stride rate — keep in step with the roam speed below
     // bouncer rule: lingering on the field past a short visit? escorted out.
     if(inFieldDiamond(z.x,z.y,1.02) && inFieldDiamond(z.tx,z.ty,1.02) &&
@@ -3333,7 +3336,7 @@ function drawFarm(dt){
     if((d<6 || Math.random()<0.002) && !onDuty){
       const rp=roamTargetFrom(z.x,z.y,z); z.tx=rp.x; z.ty=rp.y;
       if(inFieldDiamond(rp.x,rp.y,1.0)) z.__fieldUntil=now()+7000; // brief visit only
-    } else {
+    } else if(d>0.5){ // d~0 would divide by zero and NaN the poor zombie into oblivion
       z.x+=(z.tx-z.x)/d*11*z.spd*dt; z.y+=(z.ty-z.y)/d*11*z.spd*dt; // a proper undead shuffle, feet matching ground covered
       // face where you're headed (hysteresis: near-vertical strolls keep the last facing)
       if(Math.abs(z.tx-z.x)>4) z.__face=(z.tx-z.x)<0?-1:1;

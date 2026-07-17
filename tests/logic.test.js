@@ -750,10 +750,10 @@ console.log("\n== invasion gating ==");
 {
   const inst = loadGame(); const G = inst.G; const els = inst.els;
   G.startGame(null);
-  check("hud disables INVADE with fewer than 6 zombies", () => {
+  check("hud disables INVADE with fewer than 5 zombies", () => {
     G.hud();
     ok(els["invadeBtn"].disabled === true);
-    ok(els["invadeBtn"].innerHTML.includes("Need 6"));
+    ok(els["invadeBtn"].innerHTML.includes("Need 5"));
   });
   check("invade click refused outright with a small horde (logic gate, not just UI)", () => {
     els["invadeBtn"].onclick();
@@ -771,7 +771,7 @@ console.log("\n== invasion gating ==");
     eq(G.scene, "farm");
     ok(els["toast"].innerHTML.includes("resting"));
   });
-  check("cooldown over + 6 zombies => target picker opens", () => {
+  check("cooldown over + enough zombies => target picker opens", () => {
     G.S.lastInvade = 0;
     G.hud();
     ok(els["invadeBtn"].disabled === false);
@@ -1385,6 +1385,28 @@ console.log("\n== SPECIAL CHARACTERS & the Composter\u2019s wanted list ==");
     const parts = G.S.compostWant.split(" + ");
     const labels = G.CROPS.map(c => c.mut.label);
     ok(parts.length === 2 && labels.includes(parts[0]) && labels.includes(parts[1]) && parts[0] < parts[1]);
+  });
+}
+
+console.log("\n== Patches at the bedside: no NaN, no vanishing, ever ==");
+{
+  const inst = loadGame({ visual: true }); const G = inst.G;
+  G.startGame(null);
+  check("a medic standing AT the bedside never dissolves into NaN", () => {
+    G.S.zombies.push({type:"sawbones",name:"Doc",pow:3,hp:20,maxhp:20,spd:1.1,hunger:0,mut:[],kills:0,x:400,y:400,tx:400,ty:400,wob:0});
+    G.S.zombies.push({type:"bruiser",name:"Hurt",pow:15,hp:30,maxhp:60,spd:0.7,hunger:0,mut:[],kills:0,x:400,y:400,tx:400,ty:400,wob:0});
+    for(let f=0; f<40; f++){ G.medicTick(0.016); G.drawFarm(0.016); }
+    G.S.zombies.forEach(z=>{
+      ok(isFinite(z.x)&&isFinite(z.y)&&isFinite(z.tx)&&isFinite(z.ty), z.name+" has real coordinates");
+      ok(z.x>-100&&z.x<1000&&z.y>-100&&z.y<800, z.name+" is on stage ("+Math.round(z.x)+","+Math.round(z.y)+")");
+    });
+  });
+  check("a NaN-poisoned save self-heals at load AND at runtime", () => {
+    G.S.zombies[0].x=NaN; G.S.zombies[0].tx=NaN;
+    const s2=G.sanitizeState(JSON.parse(JSON.stringify(G.S)));
+    ok(isFinite(s2.zombies[0].x), "sanitize repairs coordinates");
+    G.drawFarm(0.016); // runtime rescue path
+    ok(isFinite(G.S.zombies[0].x), "runtime rescue rematerializes the lost");
   });
 }
 
