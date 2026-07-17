@@ -655,16 +655,18 @@ console.log("\n== gardener & hunger ticks ==");
     G2.gardenerTick();
     ok(G2.S.tiles[10].fert === false);
   });
-  check("hungerTick raises hunger by 1, clamped at 100", () => {
+  check("hunger = time since last battle; never-fought = STARVING", () => {
     const inst2 = loadGame(); const G2 = inst2.G;
     G2.startGame(null);
-    G2.S.zombies.push({ type: "mini", name: "A", pow: 3, hp: 12, maxhp: 12, spd: 1.7, hunger: 50, x: 0, y: 0, tx: 0, ty: 0, wob: 0, mut: [], kills: 0 });
-    G2.S.zombies.push({ type: "mini", name: "B", pow: 3, hp: 12, maxhp: 12, spd: 1.7, hunger: 100, x: 0, y: 0, tx: 0, ty: 0, wob: 0, mut: [], kills: 0 });
+    G2.S.zombies.push({ type: "mini", name: "Fresh", pow: 3, hp: 12, maxhp: 12, spd: 1.7, hunger: 0, lastBattleAt: Date.now(), x: 0, y: 0, tx: 0, ty: 0, wob: 0, mut: [], kills: 0 });
+    G2.S.zombies.push({ type: "mini", name: "Hour", pow: 3, hp: 12, maxhp: 12, spd: 1.7, hunger: 0, lastBattleAt: Date.now() - 3600e3, x: 0, y: 0, tx: 0, ty: 0, wob: 0, mut: [], kills: 0 });
+    G2.S.zombies.push({ type: "mini", name: "Never", pow: 3, hp: 12, maxhp: 12, spd: 1.7, hunger: 0, x: 0, y: 0, tx: 0, ty: 0, wob: 0, mut: [], kills: 0 });
     G2.hungerTick();
-    eq(G2.S.zombies[0].hunger, 51);
-    eq(G2.S.zombies[1].hunger, 100, "clamped");
-    G2.hungerTick(); // within 4s throttle window
-    eq(G2.S.zombies[0].hunger, 51, "throttled");
+    ok(G2.S.zombies[0].hunger < 2, "fresh from battle: content");
+    ok(Math.abs(G2.S.zombies[1].hunger - 50) < 2, "one idle hour: peckish (~50)");
+    eq(G2.S.zombies[2].hunger, 100, "never fought: STARVING");
+    const s2 = G2.sanitizeState(JSON.parse(JSON.stringify(G2.S)));
+    ok(s2.zombies[0].lastBattleAt > 0, "battle clock survives saves");
   });
 }
 
@@ -892,7 +894,7 @@ console.log("\n== sanitizeState (save repair & migration) ==");
 console.log("\n== PERFECTED mutations ==");
 {
   const { G } = boot();
-  check("perfecting a mutation doubles it retroactively + sets the goal", () => {
+  check("perfecting doubles FUTURE zombies only — existing ones keep their stats", () => {
     const labels = G.CROPS.map(c => c.mut.label);
     G.S.mutSeen = { Speedy: 3 };
     G.S.pairSeen = {};
@@ -900,10 +902,9 @@ console.log("\n== PERFECTED mutations ==");
     G.S.zombies.push({ type: "shambler", name: "Zip", pow: 5, hp: 22, maxhp: 22, spd: 3, hunger: 0, mut: [{ label: "Speedy" }], kills: 0, x: 0, y: 0, tx: 0, ty: 0, wob: 0 });
     G.checkGoals();
     ok(G.S.perfected && G.S.perfected.Speedy === true, "perfected flag set");
-    eq(G.S.zombies[0].spd, 5, "existing zombie got the bonus again (+2)");
+    eq(G.S.zombies[0].spd, 3, "existing zombie is UNCHANGED (no retro boost)");
     ok(G.S.goalsDone.includes("perf1"), "perf1 goal completed");
-    G.checkGoals();
-    eq(G.S.zombies[0].spd, 5, "doubling applies exactly once");
+    eq(G.mutAmt("Speedy").amt, 4, "future Speedy zombies earn the doubled +4");
   });
   check("perfection survives save sanitization", () => {
     const s2 = G.sanitizeState(JSON.parse(JSON.stringify(G.S)));

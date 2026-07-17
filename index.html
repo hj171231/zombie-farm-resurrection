@@ -23,7 +23,7 @@
   #cv { touch-action:none; } /* we handle pinch-zoom & drag-pan ourselves */
 
   .hud { position:absolute; top:0; left:0; right:0; display:flex; gap:6px; padding:6px; align-items:center; pointer-events:none; flex-wrap:wrap; z-index:5; }
-  .pill { pointer-events:auto; cursor:help; line-height:1; background:linear-gradient(rgba(34,42,14,.92),rgba(18,24,8,.92)); border:2px solid #5d7a30; border-radius:18px; color:#ffe97a; padding:4px 12px; font-size:15px; font-family:"Luckiest Guy","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-weight:400; letter-spacing:.5px; display:flex; align-items:center; gap:6px; white-space:nowrap; box-shadow:0 3px 5px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,200,.14); text-shadow:0 1px 2px rgba(0,0,0,.7); }
+  .pill { pointer-events:auto; cursor:help; line-height:1; font-variant-numeric:tabular-nums; background:linear-gradient(rgba(34,42,14,.92),rgba(18,24,8,.92)); border:2px solid #5d7a30; border-radius:18px; color:#ffe97a; padding:4px 12px; font-size:15px; font-family:"Luckiest Guy","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-weight:400; letter-spacing:.5px; display:flex; align-items:center; gap:6px; white-space:nowrap; box-shadow:0 3px 5px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,200,.14); text-shadow:0 1px 2px rgba(0,0,0,.7); }
   .pill .ico { font-size:15px; filter:drop-shadow(0 1px 1px rgba(0,0,0,.4)); display:flex; align-items:center; }
   #goldPill { height:38px; box-sizing:border-box; }
   #brainPill, #zedPill, #lfPill { width:92px; height:38px; box-sizing:border-box; justify-content:center; padding:0 6px; }
@@ -341,7 +341,7 @@ const GOALS = [
  {id:"spec42",  desc:"Collect ALL 42 SPECIAL CHARACTERS", n:42, stat:"specialkinds", brains:25, gold:100000}
 ];
 
-const BUILD = "build 70 · 2026-07-16"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 71 · 2026-07-16"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -452,7 +452,7 @@ function sanitizeState(raw){
           pow:num(z.pow,zd.pow), hp:num(z.hp,zd.hp), maxhp:num(z.maxhp,zd.hp), spd:num(z.spd,zd.spd),
           hunger:num(z.hunger,30), x:z.x, y:z.y, tx:z.tx, ty:z.ty, wob:num(z.wob,0),
           mut:Array.isArray(z.mut)?z.mut.filter(m=>m&&typeof m.label==="string").slice(0,2):[],
-          awakened:!!z.awakened, charged:!!z.charged,
+          awakened:!!z.awakened, charged:!!z.charged, lastBattleAt:num(z.lastBattleAt,0),
           special:(typeof z.special==="string" && SPECIALS.some(sp=>sp.id===z.special))?z.special:undefined,
           kills:num(z.kills,0) };
       });
@@ -994,7 +994,11 @@ let lastHunger=0;
 function hungerTick(){
   if(now()-lastHunger<4000) return;
   lastHunger=now();
-  S.zombies.forEach(z=>{ z.hunger=clamp(z.hunger+1,0,100); });
+  // hunger is TIME SINCE LAST BATTLE: content fresh from a fight, STARVING
+  // after 2 idle hours — and a zombie who has NEVER fought starts starving
+  S.zombies.forEach(z=>{
+    z.hunger = !z.lastBattleAt ? 100 : clamp((now()-z.lastBattleAt)/72000, 0, 100); // 2h -> 100
+  });
 }
 // TREES ARE THE HEART OF THE FARM: they heal the roaming horde AND raise
 // mutation odds, and both ride the SAME grove curve (sqrt of life force,
@@ -1060,15 +1064,8 @@ function checkPerfected(){
     const label=c.mut.label;
     if(S.perfected[label] || !isPerfectedNow(label)) return;
     S.perfected[label]=true;
-    // retroactive: every living zombie with the mutation gets the bonus AGAIN
-    S.zombies.forEach(z=>{
-      if(z.mut&&z.mut.some(m=>m.label===label)){
-        if(c.mut.stat==="pow") z.pow+=c.mut.amt;
-        if(c.mut.stat==="hp"){ z.hp+=c.mut.amt; z.maxhp+=c.mut.amt; }
-        if(c.mut.stat==="spd") z.spd+=c.mut.amt;
-      }
-    });
-    toast("&#x1F3C6; <b>"+label+" PERFECTED!</b> Its bonus is DOUBLED &mdash; every zombie, forever!",4200);
+    // NOT retroactive: the doubled bonus blesses only zombies grown from here on
+    toast("&#x1F3C6; <b>"+label+" PERFECTED!</b> Every "+label+" zombie grown from now on gets DOUBLE the bonus!",4200);
     sfx.brain();
   });
 }
@@ -1116,6 +1113,9 @@ function hudTween(dt){
   };
   HUDV.gold=step(HUDV.gold,HUDV.tg); HUDV.brains=step(HUDV.brains,HUDV.tb);
   HUDV.z=step(HUDV.z,HUDV.tz);       HUDV.lf=step(HUDV.lf,HUDV.tl);
+  // reserve the FINAL width up front so digits roll inside a still pill
+  const gt=$("goldTxt");
+  if(gt&&gt.style && HUDV.__gw!==String(HUDV.tg).length){ HUDV.__gw=String(HUDV.tg).length; gt.style.minWidth=(HUDV.__gw*0.62)+"em"; gt.style.display="inline-block"; }
   $("goldTxt").textContent = Math.round(HUDV.gold);
   $("brainTxt").textContent = Math.round(HUDV.brains);
   $("zcountTxt").textContent = Math.round(HUDV.z)+"/"+MAX_Z;
@@ -3767,7 +3767,7 @@ $("zombiesBtn").onclick=()=>{
     const zd=zdefFor(z);
     const row=document.createElement("div"); row.className="zrow";
     row.appendChild(artCanvasSized((g,x,y,r)=>drawZombie(g,x,y+r*1.05,0.78,zd,z.mut,0.5,0,false,"idle"),84));
-    const hungry = z.hunger>=70?"<b style='color:#ff9a7a'>STARVING &#x1F9E0;</b>":z.hunger>=40?"peckish":"content";
+    const hungry = z.hunger>=99?"<b style='color:#ff9a7a'>STARVING &#x1F9E0;</b>":z.hunger>=50?"peckish":"content";
     const txt=document.createElement("div"); txt.style.flex="1"; txt.style.fontSize="15px"; txt.style.lineHeight="1.5";
     txt.innerHTML="<b style='color:#ffe9a8'>"+z.name+"</b> the "+zd.name+
       (z.mut.length?" <span style='color:#c9f'>("+z.mut.map(m=>m.label).join(", ")+")</span>":"")+
@@ -4080,8 +4080,9 @@ function renderAlmanacSpecials(b){
       if(!got){ g.globalCompositeOperation="source-atop"; g.fillStyle="#100b1c"; g.fillRect(0,0,400,400); g.globalCompositeOperation="source-over"; } // PITCH BLACK — shape only
     },150));
     const lbl=document.createElement("div"); lbl.className="mlbl"; lbl.style.fontSize="13.5px";
-    lbl.innerHTML= got ? "<b style='color:#ffd94d'>"+sp.name+"</b>"
-                       : "<b>???</b><br><span style='opacity:.7'>a "+((ZTYPES.find(t=>t.id===sp.type)||{}).name||"?")+"...</span>";
+    const baseName=((ZTYPES.find(t=>t.id===sp.type)||{}).name||"?");
+    lbl.innerHTML= got ? "<b style='color:#ffd94d'>"+sp.name+"</b><br><span style='font-size:11px;opacity:.85'>"+baseName+" &middot; "+sp.muts.join(" + ")+"</span>"
+                       : "<b>???</b><br><span style='opacity:.7'>a "+baseName+"...</span>";
     card.appendChild(lbl);
     spGrid.appendChild(card);
   });
@@ -4126,6 +4127,18 @@ function openAlmanac(tab){
   b.appendChild(rankDiv);
   const zd=ZTYPES.find(t=>t.id==="shambler");
   // (legendary-combos section retired — the SPECIALS tab is the collection now)
+  const MUT_LORE={
+    "Speedy":"Carrot-fed legs never tire. The crows can't keep up.",
+    "Kernel-Powered":"Corn-cob haymakers. Butter not included.",
+    "Gourd-Headed":"A new head, pre-carved. Thoughts optional.",
+    "Sporified":"The mushrooms whisper. It listens.",
+    "Flaming":"Ghost peppers burn twice. This one never stopped.",
+    "Moon-Touched":"Bathed in melon-light, calm under any moon.",
+    "Wormfriend":"The worm stays. The worm helps. Don't ask.",
+    "Big-Hearted":"A beet where the heart was. Somehow, better.",
+    "All-Seeing":"The berries see everything. Now, so does it.",
+    "Pungent":"Grave garlic: feared by vampires and friends alike."
+  };
   CROPS.forEach(c=>{
     const label=c.mut.label, tier=mutTier(label);
     const eff=mutAmt(label), perf=!!(S.perfected&&S.perfected[label]);
@@ -4146,11 +4159,15 @@ function openAlmanac(tab){
         (lockedByLevel?" <i>(unlocks at level "+c.unlock+")</i>":"")+".</div>";
       div.appendChild(inf);
     } else {
-      // discovered: the mutation in the flesh — big, clean, uniform
-      div.appendChild(artCanvasSized((g,x,y,r)=>drawZombie(g,x,y+r*1.05,0.86,zd,[{label,col:c.col}],0.5,0,false,"idle"),64));
+      // discovered: the mutation in the flesh — big art, lore, and the road to PERFECTION
+      const pairsDone=CROPS.filter(o=>o.mut.label!==label && pairRaised(label,o.mut.label)).length;
+      div.appendChild(artCanvasSized((g,x,y,r)=>drawZombie(g,x,y+r*1.05,1.05,zd,[{label,col:c.col}],0.5,0,false,"idle"),96));
       const inf=document.createElement("div"); inf.className="inf";
-      inf.innerHTML="<div class='nm'>"+label+" <span style='font-weight:normal;font-size:13px'>&mdash; "+statTxt+"</span></div>"+
-        "<div class='ds'>"+(perf?"<span style='color:#ffd94d'><b>&#x1F3C6; PERFECTED &mdash; bonus doubled forever</b></span>":"<b>From:</b> "+c.name)+"</div>";
+      inf.innerHTML="<div class='nm' style='font-size:17px'>"+label+" <span style='font-weight:normal;font-size:13.5px'>&mdash; "+statTxt+"</span></div>"+
+        "<div class='ds' style='font-size:13.5px;line-height:1.45'><i style='opacity:.85'>"+(MUT_LORE[label]||"")+"</i><br>"+
+        "<b>From:</b> "+c.name+" &middot; <b>Raised:</b> "+seen+"<br>"+
+        (perf?"<span style='color:#ffd94d'><b>&#x1F3C6; PERFECTED</b> &mdash; new "+label+" zombies get DOUBLE</span>"
+             :"<b>Combos:</b> "+pairsDone+"/9 &mdash; raise all 9 to <b>PERFECT</b> it")+"</div>";
       div.appendChild(inf);
     }
     b.appendChild(div);
@@ -4228,7 +4245,7 @@ function openSquadPicker(target){
     row.appendChild(sel);
     row.appendChild(artCanvas((g,x,y,r)=>drawZombie(g,x,y+22,0.5,zd,z.mut,0.5,0,false,"idle")));
     const txt=document.createElement("div"); txt.style.flex="1";
-    const hungry = z.hunger>=70?"STARVING":z.hunger>=40?"peckish":"content";
+    const hungry = z.hunger>=99?"STARVING":z.hunger>=50?"peckish":"content";
     txt.innerHTML="<b style='color:#ffe9a8'>"+z.name+"</b> the "+zd.name+(z.charged?" <span style='color:#ffe97a'>&#x26A1;x2</span>":"")+"<br>PWR "+z.pow+" &middot; HP "+Math.ceil(z.hp)+"/"+z.maxhp+" &middot; "+hungry;
     row.appendChild(txt);
     row.onclick=()=>{
@@ -4287,7 +4304,7 @@ function sendZombie(k){
   // bonus — but nobody stops to daydream anymore.
   const a={z, slot, x:-40, y:H*0.68-slot*10, state:"march", bubbleT:0, atkT:0, charged:!!z.charged};
   if(z.charged){ z.charged=false; addFloat(W*0.2,H*0.5,"\u26A1 SUPERCHARGED!","#ffe97a"); } // one battle, then it's spent
-  B.sent.add(z); B.actives.push(a); sfx.zomb();
+  z.lastBattleAt=now(); B.sent.add(z); B.actives.push(a); sfx.zomb(); // fed by the fight itself
   B.sendCount++;
   if(B.sendCount>=FREE_SENDS) B.nextSendAt=B.t+SEND_COOLDOWN;
   return true;
@@ -4448,7 +4465,7 @@ function endBattle(won){
     S.zombies.forEach(z=>{ if(z.hp>0){ z.hunger=ri(0,15); z.hp=Math.min(z.maxhp,z.hp+heal); } });
     if(B.sent) B.sent.forEach(z=>{ if(z.hp>0) z.kills++; }); // only actual fighters earn the win
   } else { sfx.lose(); }
-  S.zombies = S.zombies.filter(z=>z.hp>0);
+  S.zombies = S.zombies.filter(z=>z.hp>0 || !(B.sent&&B.sent.has(z))); // only fighters can fall
   S.lastInvade=now();
   B.result=won?"win":"lose";
   checkGoals(); save();
