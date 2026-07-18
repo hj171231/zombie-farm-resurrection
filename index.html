@@ -358,7 +358,7 @@ const GOALS = [
  {id:"spec42",  desc:"Collect ALL 56 SPECIAL CHARACTERS", n:56, stat:"specialkinds", brains:25, gold:100000}
 ];
 
-const BUILD = "build 79 · 2026-07-17"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 80 · 2026-07-17"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -445,7 +445,7 @@ function sanitizeState(raw){
     });
   }
   s.lastHealAt=num(raw.lastHealAt,now());
-  s.muted=!!raw.muted;
+  s.muted=!!raw.muted; s.musicOff=!!raw.musicOff;
   if(Array.isArray(raw.tiles)){
     for(let i=0;i<s.tiles.length;i++){
       const t=raw.tiles[i];
@@ -522,6 +522,56 @@ function slide(f1,f2,dur,type,vol){
     o.start(); o.stop(AC.currentTime+dur);
   }catch(e){}
 }
+// ---- music: a cozy-spooky looping farm waltz, synthesized live (no files,
+// no downloads — the whole theme is 40 lines of WebAudio). Toggle in Help. ----
+function tone(freq,type,vol,when,dur){
+  if(!AC) return;
+  try{
+    const o=AC.createOscillator(), g=AC.createGain();
+    o.type=type; o.frequency.value=freq;
+    g.gain.setValueAtTime(0.0001,when);
+    g.gain.linearRampToValueAtTime(vol,when+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001,when+dur);
+    o.connect(g); g.connect(AC.destination);
+    o.start(when); o.stop(when+dur+0.05);
+  }catch(e){}
+}
+const MUSIC={next:0,step:0};
+const MFREQ=m=>440*Math.pow(2,(m-69)/12);
+// two 32-step parts in A minor — bass heartbeat, wandering lead, soft hats
+const M_BASS=[45,0,0,0,52,0,0,0,48,0,0,0,52,0,55,0, 45,0,0,0,52,0,0,0,50,0,0,0,43,0,47,0];
+const M_LEAD=[69,0,72,0,76,0,74,72, 0,0,69,0,67,0,64,0, 69,0,72,0,76,0,79,76, 0,0,74,0,72,0,69,0];
+const M_LEAD2=[76,0,79,0,81,0,79,76, 0,0,74,0,72,0,74,0, 76,0,74,0,72,0,69,67, 0,0,64,0,67,0,69,0];
+function musicTick(){
+  if(!AC || !S || S.muted || S.musicOff) return;
+  if(AC.state==="suspended"){ try{ AC.resume(); }catch(e){} return; }
+  const t=AC.currentTime, SPB=0.27;
+  if(MUSIC.next<t-1) MUSIC.next=t+0.05; // fell behind (tab slept): rejoin the beat
+  while(MUSIC.next<t+0.5){
+    const i=MUSIC.step%32, bar=Math.floor(MUSIC.step/32)%4;
+    const b=M_BASS[i]; if(b) tone(MFREQ(b),"triangle",0.030,MUSIC.next,SPB*1.8);
+    const lead=(bar%2===0?M_LEAD:M_LEAD2)[i];
+    if(lead && bar!==3) tone(MFREQ(lead),"square",0.011,MUSIC.next,SPB*0.9); // bar 4: bass breathes alone
+    if(i%8===4) tone(7000+Math.random()*1500,"square",0.004,MUSIC.next,0.03); // whisper hat
+    MUSIC.step++; MUSIC.next+=SPB;
+  }
+}
+setInterval(musicTick,200);
+
+// ---- the zombie voice: a real (synthesized) groan, beeps as fallback ----
+let BRAINS_AU=null;
+function playBrainsVoice(){
+  if(S && S.muted) return false;
+  try{
+    if(typeof Audio==="undefined") return false;
+    if(!BRAINS_AU){ BRAINS_AU=new Audio("art/sfx-brains.m4a"); BRAINS_AU.volume=0.55; }
+    BRAINS_AU.currentTime=0;
+    BRAINS_AU.playbackRate=0.85+Math.random()*0.3; // every groan slightly its own
+    const p=BRAINS_AU.play(); if(p&&p.catch) p.catch(()=>{});
+    return true;
+  }catch(e){ return false; }
+}
+
 const sfx = {
   tap:()=>beep(520,.07,"square",.04),
   plant:()=>beep(340,.12,"triangle",.07),
@@ -1168,7 +1218,11 @@ setInterval(()=>{
 // arriving only while the player is at the controls — phones included.
 function compostTick(){
   if(!(S&&scene==="farm"&&!COMPOST&&(S.stats.playSec||0)>=(S.nextCompostAt||Infinity)&&now()-LAST_INPUT<60000&&S.zombies.length)) return false;
-  COMPOST={phase:"in",t0:performance.now()};
+  COMPOST={phase:"in",t0:performance.now(),rumble:0};
+  if(AC && !(S&&S.muted)){ // two-tone HONK announces him
+    const t=AC.currentTime;
+    tone(262,"square",0.07,t,0.18); tone(330,"square",0.07,t+0.2,0.28);
+  }
   S.nextCompostAt=(S.stats.playSec||0)+1800;
   S.compostVisits=(S.compostVisits||0)+1;
   if(!S.compostWant) rollCompostWant(); // first visit: he already has a shopping list
@@ -3327,7 +3381,7 @@ function drawFarm(dt){
     const yz=pick(S.zombies);
     yz.yellUntil=now()+3200;
     S.__nextYell=now()+rnd(180,240)*1000;
-    sfx.brains();
+    if(!playBrainsVoice()) sfx.brains();
   }
   S.zombies.forEach(z=>{
     if(!isFinite(z.x)||!isFinite(z.y)||!isFinite(z.tx)||!isFinite(z.ty)){
@@ -3661,6 +3715,11 @@ function drawComposterTruck(){
     if(k>=1){ COMPOST=null; return; }
   }
   const bob=Math.sin(performance.now()/95)*1.3;
+  if((COMPOST.phase==="in"||COMPOST.phase==="out") && AC && !(S&&S.muted) &&
+     performance.now()-(COMPOST.rumble||0)>150){ // diesel heartbeat while rolling
+    COMPOST.rumble=performance.now();
+    tone(50+Math.random()*14,"sawtooth",0.045,AC.currentTime,0.17);
+  }
   g.fillStyle="rgba(20,25,10,.3)";
   g.beginPath(); g.ellipse(x,y+6,105,14,0,0,TAU); g.fill();
   const sp=spriteGet("composter-truck");
@@ -3942,11 +4001,13 @@ $("helpBtn").onclick=()=>{
      "<span id='scMsg' style='font-size:12px;opacity:.75'></span>"+
    "</div><br><br>"+
    "<button class='gbtn small' id='muteBtn2'>"+(S.muted?"&#x1F507; Unmute":"&#x1F50A; Mute")+" sounds</button> "+
+   "<button class='gbtn small' id='musicBtn'>&#x1F3B5; Music: "+(S.musicOff?"OFF":"ON")+"</button> "+
    "<button class='gbtn small red' id='resetBtn2'>&#x1F5D1; Reset farm</button>"+
    (localStorage.getItem("zfr_save_backup")?" <button class='gbtn small' id='restoreBtn'>&#x21A9; Restore previous farm</button>":"")+
    "<div style='opacity:.55;font-size:11px;margin-top:10px'>Zombie Farm Resurrection &middot; "+BUILD+"</div></div>";
   $("mutBtn").onclick=()=>{ openAlmanac(); };
-  $("muteBtn2").onclick=function(){ S.muted=!S.muted; save(); this.innerHTML=S.muted?"&#x1F507; Unmute":"&#x1F50A; Mute"; };
+  $("muteBtn2").onclick=function(){ S.muted=!S.muted; save(); this.innerHTML=(S.muted?"&#x1F507; Unmute":"&#x1F50A; Mute")+" sounds"; };
+  $("musicBtn").onclick=function(){ S.musicOff=!S.musicOff; save(); this.innerHTML="&#x1F3B5; Music: "+(S.musicOff?"OFF":"ON"); sfx.tap(); };
   // NO prompt() dialogs here — iOS truncates long strings both when showing
   // a default value and when pasting into one, silently corrupting codes.
   // Everything goes through a real textarea instead.
@@ -5611,7 +5672,7 @@ function drawHeartMini(g,x,y,r){
   const el=$(pr[0]);
   if(el&&el.addEventListener) el.addEventListener("click",()=>{ toast(pr[1](),2400); sfx.tap(); });
 });
-$("startBtn").onclick=()=>{ startGame(load()); setTimeout(checkDaily,700); };
+$("startBtn").onclick=()=>{ startGame(load()); try{ if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)(); AC.resume&&AC.resume(); }catch(e){} setTimeout(checkDaily,700); };
 // (New Farm button retired — Reset Farm lives in the Help menu)
 if(load()){ $("startBtn").innerHTML="&#x25B6; Continue Farming"; }
 
