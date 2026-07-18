@@ -358,7 +358,7 @@ const GOALS = [
  {id:"spec42",  desc:"Collect ALL 56 SPECIAL CHARACTERS", n:56, stat:"specialkinds", brains:25, gold:100000}
 ];
 
-const BUILD = "build 80 · 2026-07-17"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 81 · 2026-07-18"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -538,21 +538,28 @@ function tone(freq,type,vol,when,dur){
 }
 const MUSIC={next:0,step:0};
 const MFREQ=m=>440*Math.pow(2,(m-69)/12);
-// two 32-step parts in A minor — bass heartbeat, wandering lead, soft hats
-const M_BASS=[45,0,0,0,52,0,0,0,48,0,0,0,52,0,55,0, 45,0,0,0,52,0,0,0,50,0,0,0,43,0,47,0];
-const M_LEAD=[69,0,72,0,76,0,74,72, 0,0,69,0,67,0,64,0, 69,0,72,0,76,0,79,76, 0,0,74,0,72,0,69,0];
-const M_LEAD2=[76,0,79,0,81,0,79,76, 0,0,74,0,72,0,74,0, 76,0,74,0,72,0,69,67, 0,0,64,0,67,0,69,0];
+// a slow graveyard lullaby: long root drones, a distant music-box melody in
+// A minor (with one raised 7th for the chill), everything sine — no arcade
+const M_ROOT=[33,0,0,0,0,0,0,0, 40,0,0,0,0,0,0,0, 36,0,0,0,0,0,0,0, 31,0,0,0,32,0,0,0];
+const M_LEAD=[69,0,0,72,0,0,76,0, 0,0,74,0,0,72,0,0, 69,0,0,64,0,0,68,0, 69,0,0,0,0,0,0,0];
+const M_LEAD2=[76,0,0,74,0,0,72,0, 0,0,69,0,0,67,0,0, 64,0,0,68,0,0,69,0, 0,0,0,0,0,0,0,0];
 function musicTick(){
   if(!AC || !S || S.muted || S.musicOff) return;
   if(AC.state==="suspended"){ try{ AC.resume(); }catch(e){} return; }
-  const t=AC.currentTime, SPB=0.27;
+  const t=AC.currentTime, SPB=0.46; // ~65bpm — a funeral stroll, not a chase
   if(MUSIC.next<t-1) MUSIC.next=t+0.05; // fell behind (tab slept): rejoin the beat
-  while(MUSIC.next<t+0.5){
+  while(MUSIC.next<t+0.7){
     const i=MUSIC.step%32, bar=Math.floor(MUSIC.step/32)%4;
-    const b=M_BASS[i]; if(b) tone(MFREQ(b),"triangle",0.030,MUSIC.next,SPB*1.8);
+    const r=M_ROOT[i];
+    if(r){ // deep drone, doubled a hair detuned — the graveyard shimmer
+      tone(MFREQ(r),"sine",0.040,MUSIC.next,SPB*7);
+      tone(MFREQ(r)*1.004,"sine",0.020,MUSIC.next,SPB*7);
+    }
     const lead=(bar%2===0?M_LEAD:M_LEAD2)[i];
-    if(lead && bar!==3) tone(MFREQ(lead),"square",0.011,MUSIC.next,SPB*0.9); // bar 4: bass breathes alone
-    if(i%8===4) tone(7000+Math.random()*1500,"square",0.004,MUSIC.next,0.03); // whisper hat
+    if(lead && bar!==3){ // distant music box: soft sine + a ghost octave
+      tone(MFREQ(lead),"sine",0.020,MUSIC.next,SPB*3.2);
+      tone(MFREQ(lead)*2,"sine",0.006,MUSIC.next,SPB*2.2);
+    }
     MUSIC.step++; MUSIC.next+=SPB;
   }
 }
@@ -4083,8 +4090,7 @@ function openDailyModal(){
   const b=$("mBody"); b.innerHTML="";
   const head=document.createElement("div");
   head.style.cssText="text-align:center;line-height:1.4;padding:6px 4px;animation:dailyPop .6s cubic-bezier(.34,1.56,.64,1)";
-  head.innerHTML="<div style=\"font-family:'Luckiest Guy','Comic Sans MS',sans-serif;font-size:26px;color:#ffd94d;text-shadow:0 2px 3px rgba(0,0,0,.5)\">DAY "+day+"</div>"+
-    "<div style='font-size:16px;color:#7dffa0'><b>"+streak+" day"+(streak>1?"s":"")+" strong!</b></div>";
+  head.innerHTML="<div style=\"font-family:'Luckiest Guy','Comic Sans MS',sans-serif;font-size:44px;color:#ffd94d;text-shadow:0 3px 4px rgba(0,0,0,.55)\">DAY "+day+"</div>";
   b.appendChild(head);
   // the streak bar: fills day by day, brains waiting at every 7th milestone
   const wrap=document.createElement("div");
@@ -4098,7 +4104,9 @@ function openDailyModal(){
     const hit=day>=ms;
     const mk=document.createElement("div");
     mk.style.cssText="position:absolute;top:-14px;left:"+(ms/28*100)+"%;transform:translateX(-100%);white-space:nowrap;font-size:"+(ms===28?"15":"18")+"px;"+(hit?"filter:drop-shadow(0 0 6px rgba(255,217,77,.9));animation:dailyPop .7s "+(0.3+ms/28)+"s both":"opacity:.45");
-    mk.innerHTML= ms===28 ? "&#x1F9E0;&#x1F9E0;&#x1F9E0;" : "&#x1F9E0;";
+    mk.innerHTML= ms===28
+      ? "<span style=\"display:inline-block;width:28px;height:28px;border-radius:50%;background:#ffd94d;color:#3a2413;font-family:'Luckiest Guy','Comic Sans MS',sans-serif;line-height:29px;text-align:center;font-size:19px;box-shadow:0 0 8px rgba(255,217,77,.7)\">?</span>"
+      : "&#x1F9E0;";
     wrap.appendChild(mk);
   });
   b.appendChild(wrap);
@@ -4115,9 +4123,9 @@ function openDailyModal(){
   const stage=document.createElement("div");
   stage.style.cssText="text-align:center;min-height:190px;display:flex;flex-direction:column;align-items:center;justify-content:center";
   const gift=document.createElement("div");
-  gift.style.cssText="width:110px;height:110px;cursor:pointer;transition:transform 1.15s cubic-bezier(.34,1.6,.64,1);display:flex;align-items:center;justify-content:center;transform:scale(1)";
+  gift.style.cssText="width:160px;height:160px;cursor:pointer;transition:transform 1.15s cubic-bezier(.34,1.6,.64,1);display:flex;align-items:center;justify-content:center;transform:scale(1)";
   const gs=SPRITES["daily-gift"];
-  gift.innerHTML=(gs&&gs.img)?"<img src='art/daily-gift.png' style='width:100%;height:100%;object-fit:contain'>":"<span style='font-size:78px;filter:drop-shadow(0 4px 6px rgba(0,0,0,.4))'>&#x1F381;</span>";
+  gift.innerHTML=(gs&&gs.img)?"<img src='art/daily-gift.png' style='width:100%;height:100%;object-fit:contain'>":"<span style='font-size:116px;filter:drop-shadow(0 5px 8px rgba(0,0,0,.4))'>&#x1F381;</span>";
   const hint=document.createElement("div");
   hint.style.cssText="font-size:13px;opacity:.85;margin-top:6px";
   hint.innerHTML="Tap your gift!";
@@ -4988,6 +4996,8 @@ function drawBattle(dt){
     cx.beginPath(); cx.moveTo(cmx,cmy); cx.lineTo(cmx-34,cmy+10); cx.stroke();
     cx.fillStyle="#e8f4ff"; blob(cx,cmx,cmy,3.4);
   }
+  } // end procedural backdrop fallback — but the LIVING details below play
+  // over the hand-drawn worlds too: every battlefield keeps its critters
   // ---- ambient life: every battlefield has something living (or trying) ----
   if(tg.scen==="farm"){
     // two chickens pecking along the path, utterly unbothered by the siege
@@ -5093,7 +5103,6 @@ function drawBattle(dt){
     // low-gravity dust puff behind it
     cx.fillStyle="rgba(176,180,192,.4)"; blob(cx,rvx-11,rvy-4-((pnow*4)%6),2.4);
   }
-  } // end procedural backdrop fallback
   const shx = B.shake>0? rnd(-4,4)*B.shake : 0;
   cx.save(); cx.translate(shx,0);
   // building + name + hp bar
@@ -5133,6 +5142,41 @@ function drawBattle(dt){
     });
   }
   drawBuilding(cx,tg.scen,bx,by,bsc);
+  // ---- tower life: every building breathes a little ----
+  {
+    const t3=pnow;
+    if(tg.scen==="farm"||tg.scen==="robot"||tg.scen==="moon"){ // chimney/vent smoke
+      for(let k=0;k<3;k++){
+        const ph=(t3*14+k*34)%85;
+        cx.fillStyle="rgba(235,235,245,"+(0.28*(1-ph/85))+")";
+        blob(cx,bx+40*bsc+Math.sin((t3+k)*1.3)*5, by-238*bsc-ph, (4.5+ph*0.1)*bsc);
+      }
+    } else if(tg.scen==="office"||tg.scen==="mall"){ // windows flicker after hours
+      for(let k=0;k<4;k++){
+        if(Math.sin(t3*(1.1+k*0.6)+k*9)>0.55){
+          cx.fillStyle="rgba(255,233,168,.32)";
+          cx.fillRect(bx-70*bsc+k*38*bsc, by-155*bsc-(k%2)*42*bsc, 20*bsc, 15*bsc);
+        }
+      }
+    } else if(tg.scen==="pirate"){ // gulls rounding the mast
+      cx.strokeStyle="rgba(250,250,255,.8)"; cx.lineWidth=2;
+      for(let k=0;k<2;k++){
+        const a3=t3*0.8+k*Math.PI;
+        const gx=bx+Math.cos(a3)*72*bsc, gy=by-232*bsc+Math.sin(a3*2)*15;
+        cx.beginPath(); cx.arc(gx-4,gy,4,Math.PI*1.15,Math.PI*1.85); cx.arc(gx+4,gy,4,Math.PI*1.15,Math.PI*1.85); cx.stroke();
+      }
+    } else if(tg.scen==="wizard"){ // spell motes orbiting the tower
+      for(let k=0;k<3;k++){
+        const a3=t3*(0.9+k*0.3)+k*2.1;
+        cx.fillStyle="rgba(160,240,140,"+(0.45+Math.sin(t3*3+k)*0.3)+")";
+        blob(cx,bx+Math.cos(a3)*95*bsc,by-160*bsc+Math.sin(a3)*58*bsc,2.6);
+      }
+    } else if(tg.scen==="ninja"){ // a paper lantern sways by the door
+      const lx=bx-95*bsc, ly=by-58*bsc+Math.sin(t3*1.6)*3;
+      cx.fillStyle="rgba(255,235,150,.22)"; blob(cx,lx,ly,14*bsc);
+      cx.fillStyle="rgba(255,180,90,.85)"; cx.beginPath(); cx.roundRect(lx-5*bsc,ly-8*bsc,10*bsc,15*bsc,4); cx.fill();
+    }
+  }
   // damage cracks appear as HP drops
   {
     const ncr=Math.floor((1-clamp(B.hp/B.maxhp,0,1))*5);
