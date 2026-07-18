@@ -358,7 +358,7 @@ const GOALS = [
  {id:"spec42",  desc:"Collect ALL 56 SPECIAL CHARACTERS", n:56, stat:"specialkinds", brains:25, gold:100000}
 ];
 
-const BUILD = "build 78 · 2026-07-17"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 79 · 2026-07-17"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -4115,7 +4115,9 @@ function renderAlmanacSpecials(b){
   spHead.innerHTML="<b style='color:#ffd94d'>&#x1F31F; SPECIAL CHARACTERS "+Object.keys(seenSp).length+"/"+SPECIALS.length+"</b><br><span style='font-size:11.5px;opacity:.75'>the right zombie + the right mutations = a transformation. Experiment!</span>";
   b.appendChild(spHead);
   const spGrid=document.createElement("div"); spGrid.className="mutgrid";
-  SPECIALS.forEach(sp=>{
+  // grouped by zombie type, in market order — all four shamblers, then the minis...
+  const spOrdered=SPECIALS.slice().sort((a,b)=>ZTYPES.findIndex(z=>z.id===a.type)-ZTYPES.findIndex(z=>z.id===b.type));
+  spOrdered.forEach(sp=>{
     const got=!!seenSp[sp.id];
     const card=document.createElement("div"); card.className="mutcard"+(got?" goldcard":" unknown");
     const zdS=zdefFor({type:sp.type, special:sp.id, mut:[]});
