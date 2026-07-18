@@ -358,7 +358,7 @@ const GOALS = [
  {id:"spec42",  desc:"Collect ALL 56 SPECIAL CHARACTERS", n:56, stat:"specialkinds", brains:25, gold:100000}
 ];
 
-const BUILD = "build 81 · 2026-07-18"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 82 · 2026-07-18"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -541,12 +541,12 @@ const MFREQ=m=>440*Math.pow(2,(m-69)/12);
 // a slow graveyard lullaby: long root drones, a distant music-box melody in
 // A minor (with one raised 7th for the chill), everything sine — no arcade
 const M_ROOT=[33,0,0,0,0,0,0,0, 40,0,0,0,0,0,0,0, 36,0,0,0,0,0,0,0, 31,0,0,0,32,0,0,0];
-const M_LEAD=[69,0,0,72,0,0,76,0, 0,0,74,0,0,72,0,0, 69,0,0,64,0,0,68,0, 69,0,0,0,0,0,0,0];
-const M_LEAD2=[76,0,0,74,0,0,72,0, 0,0,69,0,0,67,0,0, 64,0,0,68,0,0,69,0, 0,0,0,0,0,0,0,0];
+const M_LEAD=[69,0,72,0,76,0,74,0, 72,0,74,0,76,0,79,0, 76,0,74,0,72,0,68,0, 69,0,0,0,64,0,67,0];
+const M_LEAD2=[81,0,79,0,76,0,74,0, 76,0,72,0,74,0,72,0, 69,0,72,0,68,0,64,0, 69,0,0,0,0,0,0,0];
 function musicTick(){
   if(!AC || !S || S.muted || S.musicOff) return;
   if(AC.state==="suspended"){ try{ AC.resume(); }catch(e){} return; }
-  const t=AC.currentTime, SPB=0.46; // ~65bpm — a funeral stroll, not a chase
+  const t=AC.currentTime, SPB=0.34; // ~88bpm — a wandering lament, still no chase
   if(MUSIC.next<t-1) MUSIC.next=t+0.05; // fell behind (tab slept): rejoin the beat
   while(MUSIC.next<t+0.7){
     const i=MUSIC.step%32, bar=Math.floor(MUSIC.step/32)%4;
@@ -556,9 +556,10 @@ function musicTick(){
       tone(MFREQ(r)*1.004,"sine",0.020,MUSIC.next,SPB*7);
     }
     const lead=(bar%2===0?M_LEAD:M_LEAD2)[i];
-    if(lead && bar!==3){ // distant music box: soft sine + a ghost octave
-      tone(MFREQ(lead),"sine",0.020,MUSIC.next,SPB*3.2);
-      tone(MFREQ(lead)*2,"sine",0.006,MUSIC.next,SPB*2.2);
+    if(lead && bar!==3){ // distant music box: soft sine + ghost octave + a low echo
+      tone(MFREQ(lead),"sine",0.021,MUSIC.next,SPB*3.4);
+      tone(MFREQ(lead)*2,"sine",0.006,MUSIC.next,SPB*2.4);
+      tone(MFREQ(lead)/2,"sine",0.008,MUSIC.next+SPB*0.5,SPB*2.6); // trailing shadow of each note
     }
     MUSIC.step++; MUSIC.next+=SPB;
   }
@@ -1659,12 +1660,24 @@ function spriteGet(n){
 }
 function preloadSprites(){
   if(typeof Image==="undefined") return; // test harness / old envs: procedural fallback
-  const names=[];
-  Object.values(SPRITE_IDS).concat(["awakened"]).forEach(n=>{
-    names.push("zombie-"+n+"-idle","zombie-"+n+"-lunge","zombie-"+n+"-walk-2f");
+  // boot-critical only: the small UI kit + the shambler (splash + everyone's
+  // first zombie). Everything else loads exactly when the FARM needs it.
+  const names=["ui-icon-gold","ui-icon-zombie","ui-icon-heart","ui-arrow-ready","ui-check-go","sky-bat"];
+  ["idle","lunge","walk-2f"].forEach(p=>names.push("zombie-shambler-"+p));
+  names.forEach(spriteGet);
+}
+// horde-aware warm-up: fetch just the sheets THIS save's zombies wear
+function preloadHorde(){
+  if(typeof Image==="undefined" || !S) return;
+  const names=new Set();
+  S.zombies.forEach(z=>{
+    if(z.awakened){ names.add("zombie-awakened"); return; }
+    if(z.special){ ["idle","lunge","walk-2f"].forEach(p=>spriteGet("special-"+z.special+"-"+p)); return; }
+    names.add(variantBase(z.type,z.mut));
+    names.add("zombie-"+SPRITE_IDS[z.type]); // base too (menus draw it)
   });
-  ["ui-icon-gold","ui-icon-zombie","ui-icon-heart","ui-arrow-ready","ui-check-go","sky-bat"].forEach(n=>names.push(n));
-  names.forEach(spriteGet); // base sheets + small UI kit — mutation variants lazy-load on first sighting
+  S.tiles.forEach(t=>{ if(t.st==="planted"&&t.kind==="zombie") names.add("zombie-"+SPRITE_IDS[t.plant]); });
+  names.forEach(b=>["idle","lunge","walk-2f"].forEach(p=>spriteGet(b+"-"+p)));
 }
 function zdefFor(z){
   const base=ZTYPES.find(t=>t.id===z.type);
@@ -5547,6 +5560,7 @@ function startGame(existing){
   S = existing ? (sanitizeState(existing) || freshState()) : freshState();
   S.zombies.forEach(z=>{ if(z.x===undefined){const rp=randRoamPos();z.x=rp.x;z.y=rp.y;z.tx=z.x;z.ty=z.y;z.wob=Math.random()*7;} });
   calcLF();
+  preloadHorde(); // warm exactly the art this farm is about to draw
   $("splash").style.display="none";
   $("hud").style.display="flex"; $("leftBar").style.display="flex"; $("rightBar").style.display="flex";
   hud();
