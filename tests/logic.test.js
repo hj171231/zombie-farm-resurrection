@@ -853,12 +853,12 @@ console.log("\n== sanitizeState (save repair & migration) ==");
     eq(s.tiles[2].plant, "corn"); eq(s.tiles[2].at, 12345); eq(s.tiles[2].fert, true);
     eq(s.tiles[3].tree, "oak");
   });
-  check("zombies of unknown type are dropped; horde clamped to 20", () => {
+  check("zombies of unknown type are dropped; legacy hordes up to 30 grandfathered", () => {
     const raw = G.freshState();
-    for (let k = 0; k < 24; k++) raw.zombies.push({ type: "mini", name: "Z" + k, hunger: 10 });
+    for (let k = 0; k < 34; k++) raw.zombies.push({ type: "mini", name: "Z" + k, hunger: 10 });
     raw.zombies.push({ type: "vampire", name: "NotInThisGame" });
     const s = G.sanitizeState(raw);
-    eq(s.zombies.length, 20);
+    eq(s.zombies.length, 30);
     ok(s.zombies.every(z => z.type === "mini"));
   });
   check("zombie missing stats gets its type's defaults", () => {
@@ -1332,9 +1332,32 @@ console.log("\n== combo tracking (almanac pairs) ==");
     eq(s.pairSeen["Flaming + Speedy"], 2);
     eq(Object.keys(s.pairSeen).length, 1, "junk keys dropped");
   });
-  check("squad picker cap is 5", () => {
+  check("squad base is 4; War Drums raises it to 7", () => {
+    const { G, run } = boot();
+    eq(G.SQUAD_MAX, 4);
+    eq(run("squadMax()"), 4);
+    run("S.up={drums:3}");
+    eq(run("squadMax()"), 7);
+  });
+  check("Workshop effects: fertile sell, deeper graves, necrotic mutation, brain magnet clamp", () => {
+    const { G, run } = boot();
+    eq(run("hordeCap()"), 15);
+    run("S.up={graves:5}");
+    eq(run("hordeCap()"), 30);
+    run("S.up={necrotic:5}; S.lifeForce=0;");
+    ok(Math.abs(run("mutationChance()") - 0.55) < 1e-9, "0.15 base + 0.40 necrotic");
+    run("S.up={necrotic:5}; S.lifeForce=1800;");
+    eq(run("mutationChance()"), 1, "capped at 100%");
+  });
+  check("Workshop tiers survive the save cycle; junk is clamped", () => {
     const { G } = boot();
-    eq(G.SQUAD_MAX, 5);
+    const raw = G.freshState();
+    raw.up = { fertile: 3, drums: 99, bogus: 2, lucky: "x" };
+    const s = G.sanitizeState(raw);
+    eq(s.up.fertile, 3);
+    eq(s.up.drums, 3, "clamped to max");
+    eq(s.up.bogus, undefined);
+    eq(s.up.lucky, undefined);
   });
 }
 

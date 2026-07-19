@@ -57,6 +57,7 @@
   .gbtn.red { background:linear-gradient(#ff9a6a 0%, #e0603a 45%, #b03a1e 100%); border-image-source:url("art/ui-btn-red.png"); }
   .gbtn.small { font-size:13px; padding:0 3px; }
   #invadeBtn { font-size:17px; display:flex; align-items:center; justify-content:center; gap:7px; }
+  #invadeBtn, #menuBtn { height:44px; box-sizing:border-box; } /* pixel-identical bottom buttons */
   .gbtn:disabled { filter:grayscale(.8); opacity:.7; }
   .gbtn.toggled { outline:3px solid #ffd94d; }
 
@@ -140,6 +141,7 @@
     <button class="gbtn" id="marketBtn">&#x1F6D2; Market</button>
     <button class="gbtn" id="zombiesBtn">&#x1FAA6; Horde</button>
     <button class="gbtn small" id="goalsBtn">&#x1F4DC; Goals</button>
+    <button class="gbtn small" id="workshopBtn">&#x1F9F0; Workshop</button>
     <button class="gbtn small" id="shovelBtn">&#x26CF;&#xFE0F; Shovel</button>
     <button class="gbtn small" id="helpBtn">? Help</button>
   </div>
@@ -260,6 +262,62 @@ function specialFor(type,muts){
   return SPECIAL_LOOKUP[type+"|"+muts.map(m=>m.label).sort().join(" + ")]||null;
 }
 
+// ---- THE WORKSHOP: permanent upgrades, the great gold sink ----
+const UP_COST=[10000,25000,125000,300000,1000000];
+const UPGRADES=[
+ {id:"fertile",  name:"Fertile Soil",       icon:"\u{1F33E}", max:5, lvl:[2,6,11,17,23],  what:t=>"+"+(5*t)+"% crop sell value"},
+ {id:"green",    name:"Green Thumb",        icon:"\u{1F44D}", max:5, lvl:[3,7,12,18,24],  what:t=>"crops grow "+(4*t)+"% faster"},
+ {id:"necrotic", name:"Necrotic Fertilizer",icon:"\u{1F9EA}", max:5, lvl:[4,8,13,19,25],  what:t=>"+"+(8*t)+"% mutation chance"},
+ {id:"graves",   name:"Deeper Graves",      icon:"\u26B0\uFE0F", max:5, lvl:[3,6,10,15,21], what:t=>"horde capacity "+(15+3*t)},
+ {id:"drums",    name:"War Drums",          icon:"\u{1F941}", max:3, lvl:[5,12,20],       what:t=>"squad size "+(4+t)},
+ {id:"brainmag", name:"Brain Magnet",       icon:"\u{1F9F2}", max:3, lvl:[8,15,22],       what:t=>"+"+(5*t)+"% brain drop chance"},
+ {id:"lucky",    name:"Lucky Charm",        icon:"\u{1F340}", max:5, lvl:[4,9,14,19,24],  what:t=>(t)+"% chance of a GOLDEN crop (10x)"},
+ {id:"scarecrow",name:"Scarecrow Sentry",   icon:"\u{1F383}", max:3, lvl:[3,9,16],        what:t=>"crops wither "+(25*t)+"% slower"}
+];
+function upTier(id){ return (S&&S.up&&S.up[id])|0; }
+function upCost(u){ return UP_COST[upTier(u.id)]; }
+function hordeCap(){ return 15+3*upTier("graves"); }
+function squadMax(){ return 4+upTier("drums"); }
+function openWorkshop(){
+  openModal("\u{1F9F0} The Workshop");
+  $("mTabs").innerHTML="";
+  const b=$("mBody"); b.innerHTML="";
+  const p=document.createElement("p");
+  p.style.cssText="font-size:12.5px;opacity:.85;padding:4px 6px;text-align:center";
+  p.innerHTML="Permanent upgrades. Forever yours, tier by tier.";
+  b.appendChild(p);
+  UPGRADES.forEach(u=>{
+    const t=upTier(u.id), maxed=t>=u.max;
+    const cost=maxed?0:upCost(u), needLvl=maxed?0:u.lvl[t];
+    const lvlOK=S.level>=needLvl, goldOK=S.gold>=cost;
+    const row=document.createElement("div"); row.className="shopitem"+((maxed||lvlOK)?"":" locked");
+    const ic=document.createElement("div");
+    ic.style.cssText="width:52px;height:52px;flex:none;font-size:34px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4))";
+    ic.textContent=u.icon; row.appendChild(ic);
+    const inf=document.createElement("div"); inf.className="inf";
+    let pips=""; for(let k=0;k<u.max;k++) pips+=k<t?"\u25CF":"\u25CB";
+    inf.innerHTML="<div class='nm'>"+u.name+" <span style='color:#ffd94d;letter-spacing:2px'>"+pips+"</span></div>"+
+      "<div class='ds'>"+(maxed?"<b style='color:#7dffa0'>MAXED:</b> ":"<b>Next:</b> ")+u.what(maxed?u.max:t+1)+
+      (maxed?"":"<br><b>"+cost.toLocaleString()+"</b> gold"+(lvlOK?"":" &middot; <i>needs level "+needLvl+"</i>"))+"</div>";
+    row.appendChild(inf);
+    if(!maxed){
+      const btn=document.createElement("button"); btn.className="gbtn small";
+      btn.textContent="Upgrade"; btn.disabled=!(lvlOK&&goldOK);
+      btn.onclick=()=>{
+        if(upTier(u.id)>=u.max||S.gold<upCost(u)||S.level<u.lvl[upTier(u.id)]) return;
+        gold(-upCost(u));
+        if(!S.up) S.up={};
+        S.up[u.id]=(S.up[u.id]|0)+1;
+        sfx.win(); save(); hud();
+        toast("\u{1F9F0} <b>"+u.name+"</b> tier "+S.up[u.id]+"! "+u.what(S.up[u.id]),3200);
+        openWorkshop();
+      };
+      row.appendChild(btn);
+    }
+    b.appendChild(row);
+  });
+}
+
 // every zombie deserves their OWN name — no duplicates while both live
 function uniqueZName(){
   const used=new Set(S&&S.zombies?S.zombies.map(z=>z.name):[]);
@@ -363,7 +421,15 @@ const GOALS = [
  {id:"spec42",  desc:"Collect ALL 56 SPECIAL CHARACTERS", n:56, stat:"specialkinds", brains:25, gold:100000}
 ];
 
-const BUILD = "build 85 · 2026-07-19"; // rewritten by scripts/deploy.sh at each publish
+// Shown once per player per deploy. Keep it to the FUN stuff only; everything
+// else is covered by the standing "minor bug fixes" line. deploy.sh leaves
+// WHATS_NEW alone — update it by hand when a build ships something exciting.
+const WHATS_NEW=[
+ "&#x1F9F0; <b>THE WORKSHOP is open!</b> A new button in your menu &mdash; spend gold on PERMANENT upgrades: richer harvests, faster crops, deeper graves, war drums, lucky golden crops and more!",
+ "&#x2728; <b>Golden crops</b> &mdash; with a Lucky Charm, any harvest can turn GOLDEN and pay 10&times;!",
+ "&#x1F3C6; Your horde and squad picker now list your most battle-hardened zombies first."
+];
+const BUILD = "build 86 · 2026-07-19"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -375,7 +441,7 @@ const PAL={
   outlinePlum:"#33244A", moonCream:"#F2EFD9", sunsetOrange:"#F5934B"
 };
 const GRID = 7;
-const MAX_Z = 20;
+const MAX_Z = 15; // base; Deeper Graves raises via hordeCap(); legacy hordes up to 20 grandfathered
 const INVADE_MIN = 5;
 const INVADE_CD = 1800; // half an hour: raids are events, not slot machines
 const PLOW_COST = 10;
@@ -392,7 +458,7 @@ function freshState(){
     tiles, zombies:[], lifeForce:0,
     lastInvade:0, muted:false,
     stats:{plowed:0,crops:0,zombies:0,trees:0,wins:0,muts:0,apples:0,gmound:0,mallwin:0,moonwin:0,ferts:0,renames:0,doubles:0,garlics:0,playSec:0,composted:0,specials:0},
-    goalsDone:[], claimed:[], mutSeen:{}, pairSeen:{}, perfected:{}, lastHealAt:now(), lastCompost:0, nextCompostAt:1800, compostVisits:0, nextRainAt:3600, blessed:{}, compostWant:null, specialsSeen:{}, daily:{last:"",streak:0}, v:2, xpTotal:0, rebalanceSeen:true, created:now()
+    goalsDone:[], claimed:[], mutSeen:{}, pairSeen:{}, perfected:{}, lastHealAt:now(), lastCompost:0, nextCompostAt:1800, compostVisits:0, nextRainAt:3600, blessed:{}, compostWant:null, specialsSeen:{}, daily:{last:"",streak:0}, up:{}, v:2, xpTotal:0, rebalanceSeen:true, created:now()
   };
 }
 // ---- horde management ----
@@ -473,7 +539,12 @@ function sanitizeState(raw){
     });
   }
   s.lastHealAt=num(raw.lastHealAt,now());
+  if(typeof raw.seenBuild==="string") s.seenBuild=raw.seenBuild;
   s.muted=!!raw.muted; s.musicOff=!!raw.musicOff;
+  s.up={};
+  if(raw.up && typeof raw.up==="object"){
+    UPGRADES.forEach(u=>{ const t=Math.floor(num(raw.up[u.id],0)); if(t>0) s.up[u.id]=Math.min(t,u.max); });
+  }
   if(Array.isArray(raw.tiles)){
     for(let i=0;i<s.tiles.length;i++){
       const t=raw.tiles[i];
@@ -490,7 +561,7 @@ function sanitizeState(raw){
   if(Array.isArray(raw.zombies)){
     s.zombies=raw.zombies
       .filter(z=>z && typeof z==="object" && ZTYPES.some(t=>t.id===z.type))
-      .slice(0,MAX_Z)
+      .slice(0,30) // hard bound only; grandfathered legacy hordes stay intact
       .map(z=>{
         const zd=zdefFor(z);
         return { type:z.type, name:typeof z.name==="string"?z.name:pick(ZNAMES),
@@ -814,7 +885,8 @@ function neighbors(i){
 }
 function growthInfo(t){
   const def = t.kind==="crop" ? CROPS.find(c=>c.id===t.plant) : ZTYPES.find(z=>z.id===t.plant);
-  const el = (now()-t.at)/1000;
+  let el = (now()-t.at)/1000;
+  if(t.kind==="crop" && upTier("green")) el /= (1-0.04*upTier("green")); // Green Thumb
   // rain-blessed soil: every second under the blessing counts twice, and the
   // bonus is banked — expiry never un-ripens anything. Wilt runs on real time.
   let el2=el;
@@ -823,7 +895,7 @@ function growthInfo(t){
   // crops wither 12 real-world hours after ripening — the clock runs whether
   // the game is open or closed. Zombies never wither.
   const boosting=!!(t.boostUntil && t.boostUntil>now());
-  return {def, el, el2, boosting, prog:Math.min(p,1), ready:p>=1, wilted:(t.kind==="crop" && el>=def.time+WILT_AFTER)};
+  return {def, el, el2, boosting, prog:Math.min(p,1), ready:p>=1, wilted:(t.kind==="crop" && (now()-t.at)/1000>=def.time/(t.kind==="crop"&&upTier("green")?(1-0.04*upTier("green")):1)+WILT_AFTER*(1+0.25*upTier("scarecrow")))};
 }
 
 // ---- actions ----
@@ -906,6 +978,10 @@ function tapTile(i){
     harvest(i); return;
   }
 }
+function fmtDur(s){ // market display: hours & minutes only, never seconds
+  if(s>=3600){ const h=Math.floor(s/3600), m=Math.round((s%3600)/60); return h+"h"+(m?" "+m+"m":""); }
+  return Math.max(1,Math.round(s/60))+"m";
+}
 function fmtTime(s){
   if(s>=60) return Math.floor(s/60)+"m "+Math.ceil(s%60)+"s";
   return Math.ceil(s)+"s";
@@ -915,7 +991,10 @@ function harvest(i){
   const cp0=cellXY(i), px=cp0.x, py=cp0.y-TH;
   if(t.kind==="crop"){
     let val=g.def.sell;
+    if(upTier("fertile")) val=Math.round(val*(1+0.05*upTier("fertile"))); // Fertile Soil
     if(t.fert){ val*=2; }
+    let golden=false;
+    if(upTier("lucky") && Math.random()<0.01*upTier("lucky")){ golden=true; val*=10; } // Lucky Charm
     let cxp=g.def.xp;
     if(S.level-g.def.unlock>8){ // long-mastered crops teach little
       cxp=Math.max(1,Math.round(cxp*0.25));
@@ -924,12 +1003,13 @@ function harvest(i){
     gold(val); gainXP(cxp); S.stats.crops++;
     if(t.plant==="wormapple") S.stats.apples++;
     if(t.plant==="garlic") S.stats.garlics=(S.stats.garlics||0)+1;
-    addFloat(px,py,"+"+val+"g", t.fert?"#7dffa0":"#ffe95c");
+    addFloat(px,py,(golden?"\u2728 GOLDEN! ":"")+"+"+val+"g", golden?"#ffd94d":t.fert?"#7dffa0":"#ffe95c");
+    if(golden){ spawnParts(px,py,"#ffd94d",22); sfx.win(); }
     spawnParts(px,py+10,"#ffe08a",10);
     popIcons.push({id:t.plant,x:px,y:py-4,t:0});
     sfx.coin();
   } else {
-    if(S.zombies.length>=MAX_Z){
+    if(S.zombies.length>=hordeCap()){
       const val=Math.floor(ZTYPES.find(z=>z.id===t.plant).cost*1.2)+20;
       gold(val); addFloat(px,py,"Horde full! +"+val+"g","#ffe95c"); sfx.coin();
     } else {
@@ -1151,7 +1231,9 @@ function healTick(){
 // surrounding a grave with crops still multiplies your chances.
 const MUT_ODDS=[[0,0.15],[50,0.30],[600,0.50],[1200,0.75],[1800,1.00]]; // 10 Lantern Trees (1800 LF) = guaranteed 100%
 function mutationChance(){
+  const nec=0.08*upTier("necrotic"); // Necrotic Fertilizer
   const lf=Math.min(S.lifeForce,3600);
+  const base=(function(){
   for(let i=1;i<MUT_ODDS.length;i++){
     if(lf<=MUT_ODDS[i][0]){
       const a=MUT_ODDS[i-1], b=MUT_ODDS[i];
@@ -1159,6 +1241,8 @@ function mutationChance(){
     }
   }
   return 1;
+  })();
+  return Math.min(1, base+nec);
 }
 // ---- PERFECTED mutations: raise a mutation's every combo and its bonus
 // DOUBLES for all its zombies — past, present and future ----
@@ -1231,7 +1315,7 @@ function hudTween(dt){
   if(gt&&gt.style && HUDV.__gw!==String(HUDV.tg).length){ HUDV.__gw=String(HUDV.tg).length; gt.style.minWidth=(HUDV.__gw*0.62)+"em"; gt.style.display="inline-block"; }
   $("goldTxt").textContent = Math.round(HUDV.gold);
   $("brainTxt").textContent = Math.round(HUDV.brains);
-  $("zcountTxt").textContent = Math.round(HUDV.z)+"/"+MAX_Z;
+  $("zcountTxt").textContent = Math.round(HUDV.z)+"/"+hordeCap();
   $("lfTxt").textContent = Math.round(HUDV.lf);
 }
 function hud(){
@@ -3851,8 +3935,8 @@ function renderMarket(tab){
     const inf=document.createElement("div"); inf.className="inf";
     let costStr = item.brains>0 ? item.brains+" &#x1F9E0;" : item.cost+" "+iconHTML(drawGoldMini);
     let ds="";
-    if(tab===0) ds="Grows in "+fmtTime(item.time)+" &middot; sells "+item.sell+"g &middot; +"+item.xp+"xp<br><i>Mutation gift: "+item.mut.label+"</i>";
-    else if(tab===1) ds=item.desc+"<br>PWR "+item.pow+" &middot; HP "+item.hp+" &middot; rises in "+fmtTime(item.time);
+    if(tab===0) ds="Grows in "+fmtDur(item.time)+" &middot; sells "+item.sell+"g &middot; +"+item.xp+"xp<br><i>Mutation gift: "+item.mut.label+"</i>";
+    else if(tab===1) ds=item.desc+"<br>PWR "+item.pow+" &middot; HP "+item.hp+" &middot; rises in "+fmtDur(item.time);
     else ds="+"+item.lf+" life force &mdash; heals your roaming horde faster.";
     inf.innerHTML="<div class='nm'>"+item.name+" <span style='font-weight:normal;font-size:12px'>&mdash; "+costStr+"</span></div><div class='ds'>"+(locked?("Unlocks at level "+item.unlock):ds)+"</div>";
     div.appendChild(inf);
@@ -3891,7 +3975,7 @@ function closeMenu(){
   if(mi&&mi.classList){ mi.classList.remove("open"); }
   if(mb&&mb.classList){ mb.classList.remove("open"); mb.innerHTML="&#x2630;"; }
 }
-["marketBtn","zombiesBtn","goalsBtn","shovelBtn","helpBtn"].forEach(id=>{
+["marketBtn","zombiesBtn","goalsBtn","workshopBtn","shovelBtn","helpBtn"].forEach(id=>{
   const el=$(id);
   if(el&&el.addEventListener) el.addEventListener("click",()=>setTimeout(closeMenu,60));
 });
@@ -3900,16 +3984,17 @@ $("plantChip").onclick=()=>{ clearPlantMode(); sfx.tap(); };
 
 $("zombiesBtn").onclick=()=>{
   sfx.tap();
-  openModal("&#x1FAA6; Your Horde ("+S.zombies.length+"/"+MAX_Z+")");
+  openModal("&#x1FAA6; Your Horde ("+S.zombies.length+"/"+hordeCap()+")");
   $("mTabs").innerHTML="";
   const b=$("mBody");
   if(!S.zombies.length){ b.innerHTML="<p style='padding:20px;text-align:center'>No zombies yet! Plant some from the Market. &#x26B0;&#xFE0F;</p>"; return; }
   b.innerHTML="";
-  S.zombies.forEach((z,ix)=>{
+  // most seasoned first — battle wins outrank all
+  S.zombies.map((z,ix)=>({z,ix})).sort((a,b2)=>(b2.z.kills||0)-(a.z.kills||0)).forEach(({z,ix})=>{
     const zd=zdefFor(z);
     const row=document.createElement("div"); row.className="zrow";
     row.appendChild(artCanvasSized((g,x,y,r)=>drawZombie(g,x,y+r*1.05,0.78,zd,z.mut,0.5,0,false,"idle"),84));
-    const hungry = z.hunger>=99?"<b style='color:#ff9a7a'>STARVING &#x1F9E0;</b>":z.hunger>=50?"peckish":"content";
+    const hungry = z.hunger>=99?"<b style='color:#ff9a7a'>STARVING</b>":z.hunger>=50?"peckish":"content";
     const txt=document.createElement("div"); txt.style.flex="1"; txt.style.fontSize="15px"; txt.style.lineHeight="1.5";
     txt.innerHTML="<b style='color:#ffe9a8'>"+z.name+"</b> the "+zd.name+
       (z.mut.length?" <span style='color:#c9f'>("+z.mut.map(m=>m.label).join(", ")+")</span>":"")+
@@ -3940,6 +4025,7 @@ $("zombiesBtn").onclick=()=>{
   b.appendChild(tip);
 };
 
+$("workshopBtn").onclick=()=>{ sfx.tap(); openWorkshop(); };
 $("goalsBtn").onclick=()=>{
   sfx.tap();
   openModal("&#x1F4DC; Goals");
@@ -4043,7 +4129,7 @@ $("helpBtn").onclick=()=>{
   $("mBody").innerHTML =
    "<div style='font-size:14px;line-height:1.6'>"+
    "<b>&#x1F33E; Farm:</b> Tap the dirt field to plow a plot (10g). Tap a plot to open the Market. After you pick a seed you stay in <b>planting mode</b> &mdash; keep tapping plots (even unplowed dirt!) to plant the same thing again and again. Tap the green banner to stop. Zombies are the exception: they plant <b>one at a time</b>, on purpose &mdash; each one is a commitment. Tap ripe things to harvest. Crops wither if ignored too long!<br><br>"+
-   "<b>"+iconHTML(drawZedMini)+"Zombies:</b> Harvested zombies join your horde (max "+MAX_Z+") and roam the farm, getting hungrier. Wounded zombies <b>only heal if trees give life force</b> &mdash; no trees, no healing! More life force = faster mending. If the horde is full, harvesting a zombie sells it for gold.<br><br>"+
+   "<b>"+iconHTML(drawZedMini)+"Zombies:</b> Harvested zombies join your horde (max "+hordeCap()+") and roam the farm, getting hungrier. Wounded zombies <b>only heal if trees give life force</b> &mdash; no trees, no healing! More life force = faster mending. If the horde is full, harvesting a zombie sells it for gold.<br><br>"+
    "<b>&#x1F9EA; Mutations:</b> Grow a zombie <i>next to</i> ripening crops for a chance it rises mutated with bonus stats &mdash; and a new look! More life force (trees) = better odds. <button class='gbtn small' id='mutBtn'>&#x1F9EC; Mutation Almanac</button><br><br>"+
    "<b>&#x2694;&#xFE0F; Invasions:</b> With "+INVADE_MIN+"+ zombies, hit INVADE, pick a squad, then tap squad cards to send fighters in (up to 3 at once). <b>Hungrier zombies bite much harder</b> &mdash; starve them before a big raid! Win gold, XP, and maybe a <b>brain</b>.<br><br>"+
    "<b>&#x1F9E0; Brains:</b> Rare currency from invasions. Buys premium zombies &amp; trees.<br><br>"+
@@ -4328,7 +4414,7 @@ function openAlmanac(tab){
       },64));
       const inf=document.createElement("div"); inf.className="inf";
       inf.innerHTML="<div class='nm'>??? <span style='font-weight:normal;font-size:13px'>&mdash; "+statTxt+"</span></div>"+
-        "<div class='ds'>Grow a zombie beside a ripening <b>"+c.name+"</b>"+
+        "<div class='ds'>Grow a zombie beside a ripening <b>"+c.name+"</b> ("+fmtDur(c.time)+")"+
         (lockedByLevel?" <i>(unlocks at level "+c.unlock+")</i>":"")+".</div>";
       div.appendChild(inf);
     } else {
@@ -4388,7 +4474,7 @@ $("invadeBtn").onclick=()=>{
 
 // ---- squad picker: choose exactly who marches ----
 let squadSel=null;
-const SQUAD_MAX=5;
+const SQUAD_MAX=4; // base; War Drums raises via squadMax()
 function openSquadPicker(target){
   openModal("Pick your squad &mdash; "+target.name);
   $("mTabs").innerHTML="";
@@ -4396,9 +4482,9 @@ function openSquadPicker(target){
   const b=$("mBody"); b.innerHTML="";
   const info=document.createElement("p");
   info.style.cssText="font-size:12.5px;opacity:.85;padding:4px 6px";
-  info.innerHTML="Pick <b>"+SQUAD_MAX+"</b> to invade.";
+  info.innerHTML="Pick <b>"+squadMax()+"</b> to invade.";
   b.appendChild(info);
-  S.zombies.forEach((z,ix)=>{
+  S.zombies.map((z,ix)=>({z,ix})).sort((a,b2)=>(b2.z.kills||0)-(a.z.kills||0)).forEach(({z,ix})=>{
     const zd=zdefFor(z);
     const row=document.createElement("div"); row.className="zrow";
     row.style.cursor="pointer";
@@ -4424,7 +4510,7 @@ function openSquadPicker(target){
     row.appendChild(txt);
     row.onclick=()=>{
       const count=squadSel.filter(Boolean).length;
-      if(!squadSel[ix] && count>=SQUAD_MAX){ toast("Squad is full &mdash; max "+SQUAD_MAX+"! Bench someone first."); sfx.bad(); return; }
+      if(!squadSel[ix] && count>=squadMax()){ toast("Squad is full &mdash; max "+squadMax()+"! Bench someone first."); sfx.bad(); return; }
       squadSel[ix]=!squadSel[ix]; paint(); paintGo(); sfx.tap();
     };
     paint();
@@ -4434,9 +4520,9 @@ function openSquadPicker(target){
   go.style.cssText="display:block;margin:8px auto";
   const paintGo=()=>{
     const n=squadSel.filter(Boolean).length;
-    $("mTitle").innerHTML="Pick your squad <span style='color:#7dffa0'>("+n+"/"+SQUAD_MAX+")</span> &mdash; "+target.name;
+    $("mTitle").innerHTML="Pick your squad <span style='color:#7dffa0'>("+n+"/"+squadMax()+")</span> &mdash; "+target.name;
     go.innerHTML="&#x2694;&#xFE0F; INVADE";
-    go.disabled=(n!==SQUAD_MAX); // lights up only with a full squad of 5
+    go.disabled=(n!==squadMax()); // lights up only with a full squad
   };
   paintGo();
   go.onclick=()=>{
@@ -4626,7 +4712,7 @@ function endBattle(won){
   if(won){
     B.goldWon=Math.round(ri(target.gold[0],target.gold[1])*0.5); // raiding pays half in gold now...
     B.xpWon=25+target.id*40; // tiered, tuned to ~15-20% of an engaged day's XP
-    B.brainWon=Math.random()<target.brain;
+    B.brainWon=Math.random()<Math.min(0.95,target.brain+0.05*upTier("brainmag")); // Brain Magnet
     S.stats.wins++; sfx.win();
     gold(B.goldWon);
     if(B.brainWon){ S.brains++; sfx.brain(); }
@@ -5619,7 +5705,16 @@ function startGame(existing){
         "<i>The dead are patient. Now the farm is too.</i></div>";
       S.rebalanceSeen=true; save();
     },1200);
+  } else if(existing && S.seenBuild!==BUILD && WHATS_NEW.length){
+    setTimeout(()=>{
+      openModal("&#x1F31F; What's New on the Farm");
+      $("mTabs").innerHTML="";
+      $("mBody").innerHTML="<div style='font-size:14.5px;line-height:1.65;padding:10px'>"+
+        WHATS_NEW.map(w=>"&#x2022; "+w).join("<br><br>")+
+        "<br><br><i style='opacity:.75'>...and we fixed some minor bug issues in the background.</i></div>";
+    },1200);
   }
+  S.seenBuild=BUILD; save();
   $("splash").style.display="none";
   $("hud").style.display="flex"; $("leftBar").style.display="flex"; $("rightBar").style.display="flex";
   hud();
