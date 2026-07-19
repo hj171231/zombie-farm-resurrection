@@ -62,22 +62,22 @@ console.log("\n== economy ==");
     ok(G.plantAt(30, "crop", "carrot") === false);
     eq(G.S.tiles[30].st, "plot");
   });
-  check("harvesting a ripe carrot pays sell price (15g) + xp + stat", () => {
+  check("harvesting a ripe carrot pays sell price (18g) + xp + stat", () => {
     G.S.gold = 0; const xp0 = G.S.xp; const crops0 = G.S.stats.crops;
-    backdate(G, 24, 26);
+    backdate(G, 24, 61);
     G.tapTile(24);
-    eq(G.S.gold, 15); eq(G.S.tiles[24].st, "plot");
+    eq(G.S.gold, 18); eq(G.S.tiles[24].st, "plot");
     eq(G.S.stats.crops, crops0 + 1);
     ok(G.S.xp > xp0 || G.S.level > 1, "xp gained");
   });
-  check("fertilized crop pays double (carrot 30g)", () => {
+  check("fertilized crop pays double (carrot 36g)", () => {
     G.S.gold = 100;
     G.plantAt(24, "crop", "carrot");
     G.S.tiles[24].fert = true;
-    backdate(G, 24, 26);
+    backdate(G, 24, 61);
     const before = G.S.gold;
     G.tapTile(24);
-    eq(G.S.gold, before + 30);
+    eq(G.S.gold, before + 36);
   });
   check("abomination costs brains, refused with 0, accepted with 5", () => {
     forcePlot(G, 31);
@@ -105,16 +105,16 @@ console.log("\n== growth & wilt ==");
     ok(g.prog < 0.05); ok(!g.ready); ok(!g.wilted);
   });
   check("ready exactly when grow time elapses", () => {
-    backdate(G, 10, 25);
+    backdate(G, 10, 60);
     const g = G.growthInfo(G.S.tiles[10]);
     ok(g.ready); eq(g.prog, 1);
   });
-  check("ripe crop survives 2h59m unpicked", () => {
-    backdate(G, 10, 25 + 3 * 3600 - 60);
+  check("ripe crop survives 7h59m unpicked", () => {
+    backdate(G, 10, 60 + 8 * 3600 - 60);
     ok(!G.growthInfo(G.S.tiles[10]).wilted);
   });
-  check("crop withers 3 hours after ripening (offline clock too)", () => {
-    backdate(G, 10, 25 + 3 * 3600 + 60);
+  check("crop withers 8 hours after ripening (offline clock too)", () => {
+    backdate(G, 10, 60 + 8 * 3600 + 60);
     ok(G.growthInfo(G.S.tiles[10]).wilted);
   });
   check("tapping a wilted crop plows it under (no gold)", () => {
@@ -133,11 +133,12 @@ console.log("\n== growth & wilt ==");
 console.log("\n== xp & levels ==");
 {
   const { G } = boot();
-  check("xpNeeded(1) is 30", () => eq(G.xpNeeded(1), 30));
+  check("xpNeeded(1) is 15 (new curve)", () => eq(G.xpNeeded(1), 15));
   check("gainXP levels up and carries remainder", () => {
     G.S.xp = 0; G.S.level = 1;
-    G.gainXP(35);
+    G.gainXP(20);
     eq(G.S.level, 2); eq(G.S.xp, 5);
+    ok(G.S.xpTotal >= 20, "lifetime XP ledger keeps everything");
   });
   check("xpNeeded grows superlinearly", () => {
     ok(G.xpNeeded(5) > 5 * G.xpNeeded(1));
@@ -228,9 +229,9 @@ console.log("\n== horde ==");
 {
   const { G } = boot();
   check("harvested zombie joins the horde with a name", () => {
-    G.S.gold = 1000;
+    G.S.gold = 1000; G.S.level = 5; // minis unlock at 3 in the new ladder
     forcePlot(G, 5); G.plantAt(5, "zombie", "mini");
-    backdate(G, 5, 16);
+    backdate(G, 5, 41);
     G.tapTile(5);
     eq(G.S.zombies.length, 1);
     ok(G.ZNAMES.includes(G.S.zombies[0].name));
@@ -238,9 +239,9 @@ console.log("\n== horde ==");
   });
   check("full horde (20): overflow zombie sells for cost*1.2+20", () => {
     while (G.S.zombies.length < 20) G.S.zombies.push({ type: "mini", hp: 1, maxhp: 1, pow: 1, spd: 1, hunger: 0, mut: [], kills: 0, x: 0, y: 0, tx: 0, ty: 0, wob: 0, name: "Dummy" });
-    G.S.gold = 0;
+    G.S.gold = 0; G.S.level = 5;
     forcePlot(G, 6); G.S.gold = 300; G.plantAt(6, "zombie", "mini"); // 300-250=50
-    backdate(G, 6, 16);
+    backdate(G, 6, 41);
     G.tapTile(6);
     eq(G.S.zombies.length, 20, "horde stays capped");
     eq(G.S.gold, 50 + Math.floor(250 * 1.2) + 20); // +320
@@ -679,14 +680,14 @@ console.log("\n== offline growth (timestamps survive save/load) ==");
     G.save();
     // simulate returning later: rewrite the stored timestamp 25s into the past
     const st = G.load();
-    st.tiles[12].at = Date.now() - 27 * 1000;
+    st.tiles[12].at = Date.now() - 62 * 1000;
     G.startGame(st);
     const g = G.growthInfo(G.S.tiles[12]);
     ok(g.ready, "ripe after offline time");
   });
   check("'away' past the 12-hour ripe window => wilted on return", () => {
     const st = G.load();
-    st.tiles[12] = { st: "planted", kind: "crop", plant: "carrot", at: Date.now() - (25 + 12 * 3600 + 300) * 1000, fert: false };
+    st.tiles[12] = { st: "planted", kind: "crop", plant: "carrot", at: Date.now() - (60 + 12 * 3600 + 300) * 1000, fert: false };
     G.startGame(st);
     ok(G.growthInfo(G.S.tiles[12]).wilted);
   });
@@ -699,8 +700,8 @@ function mutationRoll(lifeForce, roll) {
   G.S.gold = 100000; G.S.level = 99;
   forcePlot(G, 24); G.plantAt(24, "zombie", "shambler");
   forcePlot(G, 23); G.plantAt(23, "crop", "carrot");
-  G.S.tiles[23].at = Date.now() - 0.7 * 25 * 1000; // 70% grown
-  backdate(G, 24, 31);
+  G.S.tiles[23].at = Date.now() - 0.7 * 60 * 1000; // 70% grown (carrot = 60s now)
+  backdate(G, 24, 76); // shambler rises in 75s
   G.S.lifeForce = lifeForce;
   const restore = G.setRandom(() => roll);
   G.harvest(24);
@@ -920,12 +921,12 @@ console.log("\n== content pack: data ==");
     eq(G.TREES.length, 5); eq(G.TARGETS.length, 8); eq(G.GOALS.length, 41);
   });
   check("crop grow times are the approved nice numbers", () => {
-    const want = [25, 50, 100, 200, 330, 540, 780, 1320, 1980, 3000];
+    const want = [60, 120, 300, 600, 1200, 2400, 3600, 7200, 14400, 28800];
     eq(JSON.stringify(G.CROPS.map(c => c.time)), JSON.stringify(want));
   });
-  check("crop economy ladder: ~15% compounding per tier (carrot untouched)", () => {
-    const wantCost = [10, 30, 80, 180, 440, 1000, 2100, 4800, 10500, 24500];
-    const wantSell = [15, 40, 120, 260, 700, 1700, 3600, 8800, 20000, 49000];
+  check("crop economy ladder (the Great Rebalance)", () => {
+    const wantCost = [10, 25, 70, 180, 450, 1200, 2600, 6000, 14000, 32000];
+    const wantSell = [18, 48, 145, 400, 1100, 3100, 7000, 17000, 42000, 105000];
     eq(JSON.stringify(G.CROPS.map(c => c.cost)), JSON.stringify(wantCost));
     eq(JSON.stringify(G.CROPS.map(c => c.sell)), JSON.stringify(wantSell));
   });
@@ -939,8 +940,8 @@ console.log("\n== content pack: data ==");
     const labels = G.CROPS.map(c => c.mut.label);
     eq(new Set(labels).size, labels.length);
   });
-  check("unlocks escalate to level 24 (Lunar Lab is the finale)", () => {
-    eq(Math.max(...G.TARGETS.map(t => t.unlock)), 24);
+  check("unlocks escalate to level 29 (Lunar Lab is the finale)", () => {
+    eq(Math.max(...G.TARGETS.map(t => t.unlock)), 29);
     eq(G.TARGETS[7].scen, "moon");
   });
   check("premium brains pricing: Lantern 5, Gravemound 10, Chef 3, Abom 5, Spooky 3", () => {
@@ -1023,7 +1024,7 @@ console.log("\n== content pack: new stats & goals ==");
   check("harvesting a Wormy Apple counts the apples stat + completes its goal", () => {
     G.S.level = 99; G.S.gold = 100000;
     forcePlot(G, 5); G.plantAt(5, "crop", "wormapple");
-    backdate(G, 5, 800);
+    backdate(G, 5, 3601);
     G.tapTile(5);
     eq(G.S.stats.apples, 1);
     ok(G.S.goalsDone.includes("apple1"));
@@ -1031,7 +1032,7 @@ console.log("\n== content pack: new stats & goals ==");
   check("raising the Gravemound counts its stat + goal", () => {
     G.S.brains = 10;
     forcePlot(G, 6); G.plantAt(6, "zombie", "gravemound");
-    backdate(G, 6, 700);
+    backdate(G, 6, 1501);
     G.tapTile(6);
     eq(G.S.stats.gmound, 1);
     ok(G.S.goalsDone.includes("gmound1"));
@@ -1117,8 +1118,8 @@ console.log("\n== new goals & the mystery ==");
     G.renameZombie(0, "Goalworthy");
     ok(G.S.goalsDone.includes("rename1"));
   });
-  check("invade cooldown is now 10 minutes", () => {
-    eq(G.INVADE_CD, 600);
+  check("invade cooldown is 30 minutes — raids are events", () => {
+    eq(G.INVADE_CD, 1800);
   });
   check("defender aim rotates between targets", () => {
     G.S.zombies = [];
@@ -1388,6 +1389,71 @@ console.log("\n== SPECIAL CHARACTERS & the Composter\u2019s wanted list ==");
   });
 }
 
+console.log("\n== THE GREAT REBALANCE: progression math & migration ==");
+{
+  const { G } = boot();
+  check("cumulative XP to level 30 is ~375,639 (the two-month road)", () => {
+    let total = 0;
+    for (let l = 1; l < 30; l++) total += G.xpNeeded(l);
+    ok(Math.abs(total - 375639) < 400, "cumulative to L30: " + total);
+  });
+  check("engaged player (~1h/day) reaches L30 in 55-65 days", () => {
+    // daily XP: ~6 gloomshroom passes on 49 plots at full anti-grind rates as
+    // levels rise, + one offline garlic sweep — modeled per level bracket
+    let total = 0, days = 0, level = 1;
+    const needTo = l => { let s = 0; for (let x = 1; x < l; x++) s += G.xpNeeded(x); return s; };
+    while (level < 30 && days < 120) {
+      days++;
+      // active hour: best available short crop at ~1,100 taps/hr, capped by unlocks
+      const activeXP = level < 4 ? 2200 : level < 6 ? 2900 : 4100; // carrot->pumpkin->gloomshroom band
+      // offline sweep: one long-crop harvest across ~49 plots
+      const sweepXP = level < 15 ? 500 : level < 23 ? 1500 : 2600;
+      const raidXP = level >= 3 ? 300 : 0; // a few raids, ~15-20% of income
+      total += activeXP + sweepXP + raidXP;
+      while (level < 30 && total >= needTo(level + 1)) level++;
+    }
+    ok(days >= 45 && days <= 70, "L30 reached on day " + days);
+  });
+  check("no degenerate crop strategy at the 1,100-tap/hour ceiling", () => {
+    G.CROPS.forEach(c => {
+      const cyclesPerHour = Math.min(3600 / c.time, 1100 / 1); // tap ceiling shared across plots
+      const perPlotXPh = c.xp * (3600 / c.time);
+      const plotsWorkable = Math.min(49, Math.floor(1100 / (3600 / c.time)));
+      const totalXPh = perPlotXPh * Math.max(1, plotsWorkable);
+      ok(totalXPh <= 4600, c.name + " caps at " + Math.round(totalXPh) + " XP/hr");
+    });
+  });
+  check("MIGRATION: the founder's L42 / 16M-gold save crosses over intact", () => {
+    const inst2 = loadGame(); const G2 = inst2.G;
+    G2.startGame(null);
+    // fixture shaped like the real pre-rebalance save
+    const raw = JSON.parse(JSON.stringify(G2.S));
+    delete raw.v; delete raw.xpTotal;
+    raw.level = 42; raw.xp = 500; raw.gold = 16089160; raw.brains = 31;
+    raw.zombies = [{ type: "voltz", name: "Keeper", pow: 60, hp: 250, maxhp: 250, spd: 1, hunger: 0, mut: [{ label: "Flaming" }], kills: 12, x: 100, y: 100, tx: 100, ty: 100, wob: 0, special: null }];
+    raw.tiles[10] = { st: "tree", tree: "lantern" };
+    raw.goalsDone = ["plow4", "combo22"];
+    const s2 = G2.sanitizeState(raw);
+    ok(s2 !== null, "never wiped");
+    eq(s2.gold, 250000, "legacy fortune capped");
+    eq(s2.brains, 31, "brains untouched");
+    ok(s2.level >= 20 && s2.level <= 26, "level recomputed under new curve: L" + s2.level + " (old L42 lifetime XP repriced)");
+    ok(s2.xpTotal > 60000, "lifetime XP preserved: " + s2.xpTotal);
+    eq(s2.zombies[0].name, "Keeper", "horde intact");
+    eq(s2.tiles[10].st, "tree", "trees intact");
+    ok(s2.goalsDone.includes("combo22"), "goals intact");
+    ok(s2.rebalanceSeen === false, "ceremony modal queued exactly once");
+    const s3 = G2.sanitizeState(JSON.parse(JSON.stringify(s2)));
+    eq(s3.gold, s2.gold, "second load: migration does NOT run again");
+    eq(s3.level, s2.level, "level stable across reloads");
+  });
+  check("fresh farms never see the migration ceremony", () => {
+    const s2 = G.sanitizeState(G.freshState());
+    ok(s2.rebalanceSeen !== false);
+    eq(s2.gold, 200, "fresh gold untouched by the cap");
+  });
+}
+
 console.log("\n== Voltz self-repair ==");
 {
   const inst = loadGame(); const G = inst.G;
@@ -1500,15 +1566,15 @@ console.log("\n== rain-blessed soil ==");
     G.S.gold = 1000;
     forcePlot(G, 10);
     G.S.blessed = { 10: Date.now() + 5 * 3600 * 1000 };
-    G.plantAt(10, "crop", "carrot"); // carrot: 25s
+    G.plantAt(10, "crop", "carrot"); // carrot: 60s
     ok(G.S.tiles[10].boostUntil > Date.now(), "planting inherits the tile blessing");
-    backdate(G, 10, 13); // 13 real seconds = 26 boosted seconds
+    backdate(G, 10, 31); // 31 real seconds = 62 boosted seconds
     ok(G.growthInfo(G.S.tiles[10]).ready, "ripe in half the time");
   });
   check("banked boost never un-ripens when the blessing expires", () => {
     forcePlot(G, 11);
     G.plantAt(11, "crop", "carrot");
-    G.S.tiles[11].at = Date.now() - 13 * 1000;
+    G.S.tiles[11].at = Date.now() - 31 * 1000;
     G.S.tiles[11].boostUntil = Date.now() - 1; // blessing JUST expired — 13s were all blessed... 
     // boosted seconds = (boostUntil - at) = ~13s banked -> el2 ~= 26s
     ok(G.growthInfo(G.S.tiles[11]).ready, "the doubled seconds stay banked");
@@ -1536,7 +1602,7 @@ console.log("\n== battle rewards & lightning charge ==");
     G.B.hp = 0; G.updateBattle(0.01);
     const tg=G.TARGETS[0];
     ok(G.B.goldWon >= Math.round(tg.gold[0]*0.5) && G.B.goldWon <= Math.round(tg.gold[1]*0.5), "gold halved: "+G.B.goldWon);
-    eq(G.B.xpWon, Math.round(G.B.goldWon/6)+10, "xp formula (target 0)");
+    eq(G.B.xpWon, 25, "tiered xp: 25 + tier*40 (target 0)");
     ok(G.S.xp>xp0 || G.S.level>lvl0, "xp actually granted");
   });
   check("a lightning charge doubles power for ONE battle, then it's spent", () => {

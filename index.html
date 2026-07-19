@@ -45,8 +45,8 @@
   #menuBtn { font-size:27px; line-height:19px; padding:0 12px; min-width:54px; }
   @media (max-width:700px){ #menuBtn { font-size:36px; line-height:19px; } } /* phones: same button, beefier glyph */
   @media (orientation:portrait) and (max-width:700px){ /* TALL iPhone only — landscape & laptop untouched */
-    .btnbar-l { bottom:34px; }
-    .btnbar { bottom:34px; }
+    #leftBar { bottom:34px; }
+    #rightBar { bottom:34px; }
     #hud { justify-content:center; }
   }
   #menuBtn.open { background:linear-gradient(#ffd97a 0%,#e0a83a 45%,#b07a1e 100%); border-color:#5e440c; }
@@ -275,49 +275,49 @@ function uniqueZName(){
 
 // ---------- content data ----------
 const CROPS = [
- {id:"carrot",   name:"Carrot",       cost:10,  time:25,   sell:15,   xp:1, unlock:1, col:"#ff8c2e", mut:{stat:"spd", amt:2,   label:"Speedy"}},
- {id:"corn",     name:"Corn",         cost:30,  time:50,   sell:40,   xp:2, unlock:2, col:"#ffd94d", mut:{stat:"pow", amt:2,   label:"Kernel-Powered"}},
- {id:"pumpkin",  name:"Pumpkin",      cost:80,  time:100,  sell:120,  xp:3, unlock:3, col:"#ff7f1e", mut:{stat:"hp",  amt:10,  label:"Gourd-Headed"}},
- {id:"shroom",   name:"Gloomshroom",  cost:180, time:200,  sell:260,  xp:5, unlock:5, col:"#c98ee0", mut:{stat:"pow", amt:5,   label:"Sporified"}},
- {id:"pepper",   name:"Ghost Pepper", cost:440, time:330,  sell:700,  xp:8, unlock:7, col:"#e03c2e", mut:{stat:"pow", amt:10, label:"Flaming"}},
- {id:"melon",    name:"Moon Melon",   cost:1000,time:540,  sell:1700, xp:12,unlock:10,col:"#8ee0b0", mut:{stat:"hp",  amt:25,  label:"Moon-Touched"}},
- {id:"wormapple",name:"Wormy Apple",  cost:2100,time:780,  sell:3600, xp:16,unlock:12,col:"#e04838", mut:{stat:"pow", amt:25,  label:"Wormfriend"}},
- {id:"beet",     name:"Beating Beet", cost:4800,time:1320, sell:8800,xp:22,unlock:14,col:"#c22b5a", mut:{stat:"hp",  amt:35,  label:"Big-Hearted"}},
- {id:"eyeberry", name:"Eyeball Berries",cost:10500,time:1980,sell:20000,xp:30,unlock:17,col:"#7ab8e0", mut:{stat:"hp",  amt:50,  label:"All-Seeing"}},
- {id:"garlic",   name:"Grave Garlic", cost:24500,time:3000,sell:49000,xp:40,unlock:20,col:"#e8e2d0", mut:{stat:"pow", amt:50,  label:"Pungent"}}
+ {id:"carrot",   name:"Carrot",       cost:10,   time:60,    sell:18,    xp:2,  unlock:1,  col:"#ff8c2e", mut:{stat:"spd", amt:2,   label:"Speedy"}},
+ {id:"corn",     name:"Corn",         cost:25,   time:120,   sell:48,    xp:3,  unlock:2,  col:"#ffd94d", mut:{stat:"pow", amt:2,   label:"Kernel-Powered"}},
+ {id:"pumpkin",  name:"Pumpkin",      cost:70,   time:300,   sell:145,   xp:6,  unlock:4,  col:"#ff7f1e", mut:{stat:"hp",  amt:10,  label:"Gourd-Headed"}},
+ {id:"shroom",   name:"Gloomshroom",  cost:180,  time:600,   sell:400,   xp:9,  unlock:6,  col:"#c98ee0", mut:{stat:"pow", amt:5,   label:"Sporified"}},
+ {id:"pepper",   name:"Ghost Pepper", cost:450,  time:1200,  sell:1100,  xp:13, unlock:9,  col:"#e03c2e", mut:{stat:"pow", amt:10,  label:"Flaming"}},
+ {id:"melon",    name:"Moon Melon",   cost:1200, time:2400,  sell:3100,  xp:18, unlock:12, col:"#8ee0b0", mut:{stat:"hp",  amt:25,  label:"Moon-Touched"}},
+ {id:"wormapple",name:"Wormy Apple",  cost:2600, time:3600,  sell:7000,  xp:22, unlock:15, col:"#e04838", mut:{stat:"pow", amt:25,  label:"Wormfriend"}},
+ {id:"beet",     name:"Beating Beet", cost:6000, time:7200,  sell:17000, xp:30, unlock:19, col:"#c22b5a", mut:{stat:"hp",  amt:35,  label:"Big-Hearted"}},
+ {id:"eyeberry", name:"Eyeball Berries",cost:14000,time:14400,sell:42000,xp:45, unlock:23, col:"#7ab8e0", mut:{stat:"hp",  amt:50,  label:"All-Seeing"}},
+ {id:"garlic",   name:"Grave Garlic", cost:32000,time:28800, sell:105000,xp:70, unlock:27, col:"#e8e2d0", mut:{stat:"pow", amt:50,  label:"Pungent"}}
 ];
 const ZTYPES = [
- {id:"shambler", name:"Shambler",  cost:100,  brains:0, time:30,  pow:5,  hp:22, spd:1.0, unlock:1, col:"#82c356", shirt:"#b23a2c", plaid:true, desc:"Your everyday hard-working corpse."},
- {id:"mini",     name:"Mini Z",    cost:250,  brains:0, time:15,  pow:3,  hp:12, spd:1.7, unlock:1, col:"#98d86a", shirt:"#4e8fbe", small:true, desc:"Tiny, quick, adorable-ish."},
- {id:"headless", name:"Headless",  cost:1000, brains:0, time:60,  pow:9,  hp:32, spd:0.9, unlock:3, col:"#79ab8f", shirt:"#8f5a4e", headless:true, desc:"Lost its head. Never lost a fight."},
- {id:"gardener", name:"Gardener",  cost:2000, brains:0, time:45,  pow:2,  hp:16, spd:1.0, unlock:4, col:"#6fcf96", shirt:"#3e7a4e", hat:"straw", desc:"Fertilizes crops for DOUBLE gold. Weak fighter."},
- {id:"bruiser",  name:"Bruiser",   cost:5000, brains:0, time:120, pow:15, hp:60, spd:0.7, unlock:6, col:"#9a8bc0", shirt:"#5c4a7a", big:true, desc:"Built like a barn door."},
- {id:"sawbones", name:"Patches",   cost:0,   brains:1, time:90,  pow:3,  hp:20, spd:1.1, unlock:7, col:"#9ad0a8", shirt:"#f0ede2", hat:"toque", medic:true, desc:"Half doctor, all dead. Tends your wounded like a walking Gnarly Oak."},
- {id:"banshee",  name:"Banshee",   cost:7500,brains:0, time:180, pow:20, hp:45, spd:1.4, unlock:8, col:"#c3d3ea", shirt:"#7a8fb0", glow:true, desc:"Fast, furious, faintly glowing."},
- {id:"chef",     name:"Chef",      cost:0,  brains:3,time:360, pow:28, hp:80, spd:1.0, unlock:15,col:"#b8d86a", shirt:"#f0ede2", hat:"toque", prop:"ladle", desc:"After a won battle, survivors heal DOUBLE."},
- {id:"digger",   name:"Grave Digger",cost:10000,brains:0,time:240, pow:24, hp:70, spd:0.9, unlock:11,col:"#a8b060", shirt:"#c8842e", hat:"hardhat", prop:"shovel", desc:"Hardhat blocks 30% of projectile damage."},
- {id:"abom",     name:"Abomination",cost:0,  brains:5, time:200, pow:32, hp:110,spd:0.6, unlock:9, col:"#cf7d7d", shirt:"#6e3a3a", big:true, hulk:true, desc:"A premium pile of muscle. Costs brains."},
- {id:"jester",   name:"Jester",    cost:15000,brains:0, time:300, pow:18, hp:50, spd:1.6, unlock:13,col:"#8fd8b8", shirt:"#7a3a9e", hat:"jester", motley:true, desc:"Confuses defenders &mdash; they throw much slower."},
- {id:"gravemound",name:"Gravemound",cost:0,  brains:10, time:600, pow:55, hp:220,spd:0.5, unlock:19,col:"#7a9a6a", shirt:"#4e5e42", big:true, colossus:true, desc:"A walking hillside. The ground remembers him."},
- {id:"golden",   name:"Golden Shambler",cost:50000,brains:0,time:60, pow:135,hp:380,spd:1.3, unlock:1, col:"#e8c84a", shirt:"#b8912e", plaid:true, glow:true, secret:true, desc:"A legend in solid gold. Earned, never found."},
- {id:"voltz",    name:"Voltz",     cost:0,  brains:15, time:900, pow:60, hp:250,spd:1.0, unlock:24,col:"#9ab8a2", shirt:"#5a6672", big:true, robo:true, desc:"Half corpse, half chrome. Self-repairs at DOUBLE speed. ERROR 404: pain not found."}
+ {id:"shambler", name:"Shambler",  cost:100,  brains:0, time:75,  pow:5,  hp:22, spd:1.0, unlock:1, col:"#82c356", shirt:"#b23a2c", plaid:true, desc:"Your everyday hard-working corpse."},
+ {id:"mini",     name:"Mini Z",    cost:250,  brains:0, time:40,  pow:3,  hp:12, spd:1.7, unlock:3, col:"#98d86a", shirt:"#4e8fbe", small:true, desc:"Tiny, quick, adorable-ish."},
+ {id:"headless", name:"Headless",  cost:1000, brains:0, time:150,  pow:9,  hp:32, spd:0.9, unlock:5, col:"#79ab8f", shirt:"#8f5a4e", headless:true, desc:"Lost its head. Never lost a fight."},
+ {id:"gardener", name:"Gardener",  cost:2000, brains:0, time:110,  pow:2,  hp:16, spd:1.0, unlock:7, col:"#6fcf96", shirt:"#3e7a4e", hat:"straw", desc:"Fertilizes crops for DOUBLE gold. Weak fighter."},
+ {id:"bruiser",  name:"Bruiser",   cost:5000, brains:0, time:300, pow:15, hp:60, spd:0.7, unlock:10, col:"#9a8bc0", shirt:"#5c4a7a", big:true, desc:"Built like a barn door."},
+ {id:"sawbones", name:"Patches",   cost:0,   brains:1, time:225,  pow:3,  hp:20, spd:1.1, unlock:8, col:"#9ad0a8", shirt:"#f0ede2", hat:"toque", medic:true, desc:"Half doctor, all dead. Tends your wounded like a walking Gnarly Oak."},
+ {id:"banshee",  name:"Banshee",   cost:7500,brains:0, time:450, pow:20, hp:45, spd:1.4, unlock:13, col:"#c3d3ea", shirt:"#7a8fb0", glow:true, desc:"Fast, furious, faintly glowing."},
+ {id:"chef",     name:"Chef",      cost:0,  brains:3,time:900, pow:28, hp:80, spd:1.0, unlock:16,col:"#b8d86a", shirt:"#f0ede2", hat:"toque", prop:"ladle", desc:"After a won battle, survivors heal DOUBLE."},
+ {id:"digger",   name:"Grave Digger",cost:10000,brains:0,time:600, pow:24, hp:70, spd:0.9, unlock:18,col:"#a8b060", shirt:"#c8842e", hat:"hardhat", prop:"shovel", desc:"Hardhat blocks 30% of projectile damage."},
+ {id:"abom",     name:"Abomination",cost:0,  brains:5, time:500, pow:32, hp:110,spd:0.6, unlock:20, col:"#cf7d7d", shirt:"#6e3a3a", big:true, hulk:true, desc:"A premium pile of muscle. Costs brains."},
+ {id:"jester",   name:"Jester",    cost:15000,brains:0, time:750, pow:18, hp:50, spd:1.6, unlock:22,col:"#8fd8b8", shirt:"#7a3a9e", hat:"jester", motley:true, desc:"Confuses defenders &mdash; they throw much slower."},
+ {id:"gravemound",name:"Gravemound",cost:0,  brains:10, time:1500, pow:55, hp:220,spd:0.5, unlock:25,col:"#7a9a6a", shirt:"#4e5e42", big:true, colossus:true, desc:"A walking hillside. The ground remembers him."},
+ {id:"golden",   name:"Golden Shambler",cost:50000,brains:0,time:150, pow:135,hp:380,spd:1.3, unlock:1, col:"#e8c84a", shirt:"#b8912e", plaid:true, glow:true, secret:true, desc:"A legend in solid gold. Earned, never found."},
+ {id:"voltz",    name:"Voltz",     cost:0,  brains:15, time:2250, pow:60, hp:250,spd:1.0, unlock:28,col:"#9ab8a2", shirt:"#5a6672", big:true, robo:true, desc:"Half corpse, half chrome. Self-repairs at DOUBLE speed. ERROR 404: pain not found."}
 ];
 const TREES = [
  {id:"oak",    name:"Gnarly Oak",   cost:2000, brains:0, lf:10, unlock:2, col:"#4e8a2e"},
- {id:"willow", name:"Weeping Willow",cost:5000,brains:0, lf:25, unlock:5, col:"#72aa50"},
- {id:"bonebirch",name:"Bone Birch", cost:10000,brains:0, lf:100,unlock:12,col:"#cfe0c0"},
- {id:"spooky", name:"Spooky Tree",  cost:0,   brains:3, lf:60, unlock:7, col:"#6a568a"},
- {id:"lantern", name:"Lantern Tree",cost:0,   brains:5, lf:180,unlock:16,col:"#3a3048"}
+ {id:"willow", name:"Weeping Willow",cost:5000,brains:0, lf:25, unlock:6, col:"#72aa50"},
+ {id:"bonebirch",name:"Bone Birch", cost:10000,brains:0, lf:100,unlock:14,col:"#cfe0c0"},
+ {id:"spooky", name:"Spooky Tree",  cost:0,   brains:3, lf:60, unlock:17, col:"#6a568a"},
+ {id:"lantern", name:"Lantern Tree",cost:0,   brains:5, lf:180,unlock:24,col:"#3a3048"}
 ];
 const TARGETS = [
- {id:0, name:"Old MacDoughnut's Farm", unlock:1,  hp:90,  gold:[80,140],   brain:0.22, scen:"farm"},
- {id:1, name:"Law Offices of Grim & Grimmer", unlock:5, hp:195, gold:[200,340], brain:0.28, scen:"office"},
- {id:2, name:"Pirate Cove", unlock:8,  hp:360, gold:[420,700],  brain:0.33, scen:"pirate"},
- {id:3, name:"Ninja Dojo",  unlock:11, hp:600, gold:[800,1300], brain:0.38, scen:"ninja"},
- {id:4, name:"Robot Factory",unlock:14,hp:975, gold:[1500,2400],brain:0.45, scen:"robot"},
- {id:5, name:"Haunted Mega-Mall",unlock:17,hp:1650,gold:[2800,4400], brain:0.52, scen:"mall"},
- {id:6, name:"Wizard's Tower",unlock:21, hp:2550,gold:[5500,8000], brain:0.62, scen:"wizard"},
- {id:7, name:"Lunar Lab",   unlock:24, hp:3750,gold:[10000,15000],brain:0.75, scen:"moon"}
+ {id:0, name:"Old MacDoughnut's Farm", unlock:3,  hp:90,  gold:[60,100],     brain:0.22, scen:"farm"},
+ {id:1, name:"Law Offices of Grim & Grimmer", unlock:6, hp:195, gold:[300,500], brain:0.28, scen:"office"},
+ {id:2, name:"Pirate Cove", unlock:10, hp:360, gold:[700,1100],   brain:0.33, scen:"pirate"},
+ {id:3, name:"Ninja Dojo",  unlock:13, hp:600, gold:[1600,2600],  brain:0.38, scen:"ninja"},
+ {id:4, name:"Robot Factory",unlock:17,hp:975, gold:[3600,5600],  brain:0.45, scen:"robot"},
+ {id:5, name:"Haunted Mega-Mall",unlock:21,hp:1650,gold:[8000,12000], brain:0.52, scen:"mall"},
+ {id:6, name:"Wizard's Tower",unlock:25, hp:2550,gold:[20000,30000], brain:0.62, scen:"wizard"},
+ {id:7, name:"Lunar Lab",   unlock:29, hp:3750,gold:[120000,160000],brain:0.75, scen:"moon"}
 ];
 const GOALS = [
  {id:"plow4",   desc:"Plow 4 plots",              n:4,  stat:"plowed",    gold:40},
@@ -363,7 +363,7 @@ const GOALS = [
  {id:"spec42",  desc:"Collect ALL 56 SPECIAL CHARACTERS", n:56, stat:"specialkinds", brains:25, gold:100000}
 ];
 
-const BUILD = "build 84 · 2026-07-19"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 85 · 2026-07-19"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -377,10 +377,10 @@ const PAL={
 const GRID = 7;
 const MAX_Z = 20;
 const INVADE_MIN = 5;
-const INVADE_CD = 600;
+const INVADE_CD = 1800; // half an hour: raids are events, not slot machines
 const PLOW_COST = 10;
 const DAY_LEN = 240;
-const WILT_AFTER = 3*3600; // seconds a ripe crop survives unpicked
+const WILT_AFTER = 8*3600; // seconds a ripe crop survives unpicked
 
 // ---------- state ----------
 let S = null;
@@ -392,7 +392,7 @@ function freshState(){
     tiles, zombies:[], lifeForce:0,
     lastInvade:0, muted:false,
     stats:{plowed:0,crops:0,zombies:0,trees:0,wins:0,muts:0,apples:0,gmound:0,mallwin:0,moonwin:0,ferts:0,renames:0,doubles:0,garlics:0,playSec:0,composted:0,specials:0},
-    goalsDone:[], claimed:[], mutSeen:{}, pairSeen:{}, perfected:{}, lastHealAt:now(), lastCompost:0, nextCompostAt:1800, compostVisits:0, nextRainAt:3600, blessed:{}, compostWant:null, specialsSeen:{}, daily:{last:"",streak:0}, created:now()
+    goalsDone:[], claimed:[], mutSeen:{}, pairSeen:{}, perfected:{}, lastHealAt:now(), lastCompost:0, nextCompostAt:1800, compostVisits:0, nextRainAt:3600, blessed:{}, compostWant:null, specialsSeen:{}, daily:{last:"",streak:0}, v:2, xpTotal:0, rebalanceSeen:true, created:now()
   };
 }
 // ---- horde management ----
@@ -419,11 +419,34 @@ function backupSave(){ try{ const d=localStorage.getItem("zfr_save"); if(d) loca
 // broken tiles/zombies get repaired, unknown ids get cleared. The single
 // migration path for both startGame and save-code import — old saves keep
 // working forever, corrupt ones can't brick the farm.
+// pre-rebalance saves keep everything they built — but level is recomputed
+// from lifetime XP under the new curve, and legacy gold is capped so the new
+// sinks matter. NEVER wipes anything.
+function migrateSave(raw){
+  const num=(v,d)=>(typeof v==="number"&&isFinite(v))?v:d;
+  if(num(raw.v,1)>=2) return raw;
+  const oldLevel=Math.max(1,Math.floor(num(raw.level,1)));
+  let total=num(raw.xpTotal,0);
+  if(!total){ // reconstruct lifetime XP from the OLD curve
+    for(let l=1;l<oldLevel;l++) total+=Math.floor(30*Math.pow(l,1.55));
+    total+=Math.max(0,num(raw.xp,0));
+  }
+  raw.xpTotal=total;
+  let lvl=1, rem=total;
+  while(rem>=xpNeeded(lvl)){ rem-=xpNeeded(lvl); lvl++; }
+  raw.level=lvl; raw.xp=rem;
+  if(typeof raw.gold==="number"&&isFinite(raw.gold)) raw.gold=Math.min(raw.gold,250000); // still rich — but the sinks matter now
+  raw.v=2;
+  raw.rebalanceSeen = oldLevel<=1; // only farms with real progress get the ceremony
+  return raw;
+}
 function sanitizeState(raw){
   if(!raw || typeof raw!=="object") return null;
+  raw=migrateSave(raw);
   const num=(v,d)=>(typeof v==="number"&&isFinite(v))?v:d;
   const s=freshState();
   s.gold=num(raw.gold,s.gold); s.brains=num(raw.brains,s.brains);
+  s.v=2; s.xpTotal=num(raw.xpTotal,0); s.rebalanceSeen=raw.rebalanceSeen!==false;
   s.xp=num(raw.xp,s.xp); s.level=Math.max(1,Math.floor(num(raw.level,1)));
   s.lastInvade=num(raw.lastInvade,0); s.created=num(raw.created,s.created);
   s.lastCompost=num(raw.lastCompost,0); s.nextRainAt=num(raw.nextRainAt,s.nextRainAt);
@@ -752,9 +775,9 @@ function toast(msg,ms){
 }
 
 // ---------- game logic ----------
-function xpNeeded(lv){ return Math.floor(30*Math.pow(lv,1.55)); }
+function xpNeeded(lv){ return Math.floor(15*Math.pow(lv,2.35)); } // L30 = 375,639 total: a two-month world
 function gainXP(n){
-  S.xp+=n;
+  S.xp+=n; S.xpTotal=(S.xpTotal||0)+n;
   while(S.xp>=xpNeeded(S.level)){
     S.xp-=xpNeeded(S.level); S.level++;
     sfx.win();
@@ -856,7 +879,7 @@ function tapTile(i){
   }
   if(t.st==="grass"){
     if(S.gold<PLOW_COST){ toast("Need "+PLOW_COST+" gold to plow!"); sfx.bad(); return; }
-    gold(-PLOW_COST); t.st="plot"; S.stats.plowed++; sfx.tap(); gainXP(1);
+    gold(-PLOW_COST); t.st="plot"; S.stats.plowed++; sfx.tap();
     const cp=cellXY(i);
     addFloat(cp.x,cp.y-TH,"-"+PLOW_COST+"g","#ffd");
     spawnParts(cp.x,cp.y,"#6a5228",8);
@@ -893,7 +916,12 @@ function harvest(i){
   if(t.kind==="crop"){
     let val=g.def.sell;
     if(t.fert){ val*=2; }
-    gold(val); gainXP(g.def.xp); S.stats.crops++;
+    let cxp=g.def.xp;
+    if(S.level-g.def.unlock>8){ // long-mastered crops teach little
+      cxp=Math.max(1,Math.round(cxp*0.25));
+      if(Math.random()<0.12) addFloat(px,py-18,"You've mastered "+g.def.name.toLowerCase()+"s","#cbb488");
+    }
+    gold(val); gainXP(cxp); S.stats.crops++;
     if(t.plant==="wormapple") S.stats.apples++;
     if(t.plant==="garlic") S.stats.garlics=(S.stats.garlics||0)+1;
     addFloat(px,py,"+"+val+"g", t.fert?"#7dffa0":"#ffe95c");
@@ -3988,7 +4016,7 @@ function lzDecode(b64){
   }
   return decodeURIComponent(escape(parts.join("")));
 }
-const SAVE_VERSION=1; // bumped by the coming rebalance; migration reads this
+const SAVE_VERSION=2; // v2 = the Great Rebalance (new XP curve + economy)
 function encodeSave(){
   // SYNCHRONOUS on purpose: the clipboard only works inside the tap gesture.
   S.v=SAVE_VERSION;
@@ -4597,7 +4625,7 @@ function endBattle(won){
   const target=B.target;
   if(won){
     B.goldWon=Math.round(ri(target.gold[0],target.gold[1])*0.5); // raiding pays half in gold now...
-    B.xpWon=Math.round(B.goldWon/6)+10+target.id*8;               // ...and properly in experience
+    B.xpWon=25+target.id*40; // tiered, tuned to ~15-20% of an engaged day's XP
     B.brainWon=Math.random()<target.brain;
     S.stats.wins++; sfx.win();
     gold(B.goldWon);
@@ -5578,6 +5606,20 @@ function startGame(existing){
   S.zombies.forEach(z=>{ if(z.x===undefined){const rp=randRoamPos();z.x=rp.x;z.y=rp.y;z.tx=z.x;z.ty=z.y;z.wob=Math.random()*7;} });
   calcLF();
   preloadHorde(); // warm exactly the art this farm is about to draw
+  if(S.rebalanceSeen===false){
+    setTimeout(()=>{
+      openModal("&#x1F311; The World Has Changed");
+      $("mTabs").innerHTML="";
+      $("mBody").innerHTML="<div style='font-size:15px;line-height:1.6;padding:10px'>"+
+        "A strange season has passed over every farm.<br><br>"+
+        "&#x2022; Your zombies, crops, trees, goals and collections are all <b>exactly as you left them</b>.<br>"+
+        "&#x2022; Levels now climb a much longer road &mdash; your level has been recalculated from everything you've ever done.<br>"+
+        "&#x2022; Gold got scarcer and mightier &mdash; oversized fortunes were trimmed to <b>250,000</b>.<br>"+
+        "&#x2022; Crops, prices, invasions and unlocks have all been rebalanced for the long haul.<br><br>"+
+        "<i>The dead are patient. Now the farm is too.</i></div>";
+      S.rebalanceSeen=true; save();
+    },1200);
+  }
   $("splash").style.display="none";
   $("hud").style.display="flex"; $("leftBar").style.display="flex"; $("rightBar").style.display="flex";
   hud();
