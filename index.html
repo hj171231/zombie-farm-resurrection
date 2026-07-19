@@ -44,6 +44,11 @@
   @keyframes menuPop { from{ opacity:0; transform:translateY(8px);} to{ opacity:1; transform:translateY(0);} }
   #menuBtn { font-size:27px; line-height:19px; padding:0 12px; min-width:54px; }
   @media (max-width:700px){ #menuBtn { font-size:36px; line-height:19px; } } /* phones: same button, beefier glyph */
+  @media (orientation:portrait) and (max-width:700px){ /* TALL iPhone only — landscape & laptop untouched */
+    .btnbar-l { bottom:34px; }
+    .btnbar { bottom:34px; }
+    #hud { justify-content:center; }
+  }
   #menuBtn.open { background:linear-gradient(#ffd97a 0%,#e0a83a 45%,#b07a1e 100%); border-color:#5e440c; }
   .btnbar-l { position:absolute; bottom:10px; left:10px; display:flex; flex-direction:column; gap:8px; z-index:5; align-items:flex-start; }
   .gbtn { background:linear-gradient(#b8e262 0%, #7fb33c 45%, #5d8a2a 100%); background-clip:padding-box; border:12px solid transparent; border-image:url("art/ui-btn-green.png") 46 fill stretch; border-radius:16px; color:#fff; font-weight:bold; font-size:15px; padding:0 6px; cursor:pointer; text-shadow:0 2px 2px rgba(0,0,0,.45); font-family:"Luckiest Guy","Arial Rounded MT Bold","Chalkboard SE","Comic Sans MS",sans-serif; font-weight:400; letter-spacing:.5px; }
@@ -358,7 +363,7 @@ const GOALS = [
  {id:"spec42",  desc:"Collect ALL 56 SPECIAL CHARACTERS", n:56, stat:"specialkinds", brains:25, gold:100000}
 ];
 
-const BUILD = "build 83 · 2026-07-19"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 84 · 2026-07-19"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -3983,8 +3988,10 @@ function lzDecode(b64){
   }
   return decodeURIComponent(escape(parts.join("")));
 }
+const SAVE_VERSION=1; // bumped by the coming rebalance; migration reads this
 function encodeSave(){
   // SYNCHRONOUS on purpose: the clipboard only works inside the tap gesture.
+  S.v=SAVE_VERSION;
   return "ZFR2."+lzEncode(JSON.stringify(S));
 }
 async function decodeSave(code){
@@ -4014,7 +4021,7 @@ $("helpBtn").onclick=()=>{
    "<b>&#x1F9E0; Brains:</b> Rare currency from invasions. Buys premium zombies &amp; trees.<br><br>"+
    "<b>&#x26CF;&#xFE0F; Shovel:</b> Toggle it, then tap anything to clear it.<br><br>"+
    "<b>&#x1F4BE; Saving:</b> Auto-saves in this browser every few seconds (and when you switch apps). Crops even grow while you're away! <b>Heads up:</b> the save lives inside this browser/app &mdash; deleting the home-screen app (or clearing browser data) deletes the farm with it. Copy a save code below FIRST if you ever reinstall.<br><br>"+
-   "<b>&#x1F511; Backup / move devices:</b> Copy a save code and load it anywhere.<br><button class='gbtn small' id='expBtn'>&#x1F4CB; Copy save code</button> <button class='gbtn small' id='impBtn'>&#x1F4E5; Load save code</button>"+
+   "<b>&#x1F511; Backup / move devices:</b> Copy a save code and load it anywhere.<br><button class='gbtn small' id='expBtn'>&#x1F4CB; Copy save code</button> <button class='gbtn small' id='impBtn'>&#x1F4E5; Load save code</button> <button class='gbtn small' id='dlBtn'>&#x1F4BE; Download save file</button>"+
    "<div id='scBox' style='display:none;margin-top:8px'>"+
      "<textarea id='scTA' spellcheck='false' autocapitalize='off' autocorrect='off' autocomplete='off' style='width:100%;height:86px;font-size:11px;font-family:monospace;border-radius:8px;padding:6px;box-sizing:border-box;border:2px solid #33244A'></textarea><br>"+
      "<button class='gbtn small' id='scCopy'>&#x1F4CB; Copy</button> <button class='gbtn small' id='scLoad'>&#x2705; Load this code</button><br>"+
@@ -4050,6 +4057,18 @@ $("helpBtn").onclick=()=>{
     scMode(); scCopy();
   };
   $("impBtn").onclick=()=>{ $("scTA").value=""; scMode("Paste your save code above, then hit Load."); $("scTA").focus(); };
+  $("dlBtn").onclick=()=>{ // a real file on disk — the belt to the code's suspenders
+    save();
+    try{
+      const blob=new Blob([encodeSave()],{type:"text/plain"});
+      const a=document.createElement("a");
+      a.href=URL.createObjectURL(blob);
+      a.download="zombie-farm-save-"+new Date().toISOString().slice(0,10)+".txt";
+      a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+      $("scBox").style.display="block";
+      scMode("Save file downloaded! Its contents ARE a save code — paste them here to restore.");
+    }catch(e){ scMode("Couldn't build the file — the copy button still works."); }
+  };
   $("scCopy").onclick=scCopy;
   $("scLoad").onclick=async()=>{
     const code=$("scTA").value;
@@ -4132,13 +4151,11 @@ function openDailyModal(){
   b.appendChild(sub);
   setTimeout(()=>{ fill.style.width=(day/28*100)+"%"; },80); // the bar GROWS on open
   // the gift: free-standing, GROWS when tapped, then reveals — then you COLLECT
-  spriteGet("daily-gift"); // kick the lazy load (Design asset; emoji fallback)
   const stage=document.createElement("div");
   stage.style.cssText="text-align:center;min-height:190px;display:flex;flex-direction:column;align-items:center;justify-content:center";
   const gift=document.createElement("div");
   gift.style.cssText="width:160px;height:160px;cursor:pointer;transition:transform 1.15s cubic-bezier(.34,1.6,.64,1);display:flex;align-items:center;justify-content:center;transform:scale(1)";
-  const gs=SPRITES["daily-gift"];
-  gift.innerHTML=(gs&&gs.img)?"<img src='art/daily-gift.png' style='width:100%;height:100%;object-fit:contain'>":"<span style='font-size:116px;filter:drop-shadow(0 5px 8px rgba(0,0,0,.4))'>&#x1F381;</span>";
+  gift.innerHTML="<img src='art/daily-gift.png' style='width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 5px 8px rgba(0,0,0,.35))' onerror=\"this.outerHTML='<span style=&quot;font-size:116px&quot;>&#x1F381;</span>\">";
   const hint=document.createElement("div");
   hint.style.cssText="font-size:13px;opacity:.85;margin-top:6px";
   hint.innerHTML="Tap your gift!";
