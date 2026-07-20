@@ -1349,6 +1349,60 @@ console.log("\n== combo tracking (almanac pairs) ==");
     run("S.up={necrotic:5}; S.lifeForce=1800;");
     eq(run("mutationChance()"), 1, "capped at 100%");
   });
+  check("Blood Moon: 48h cycle, 60min window, schedule self-heals", () => {
+    const { G, run } = boot();
+    G.S = G.freshState();
+    run("S.nextBloodAt = Date.now() - 30*60*1000"); // moon rose 30 min ago
+    ok(run("bloodMoonActive()"), "active mid-window");
+    run("S.nextBloodAt = Date.now() - 2*3600*1000"); // window long over
+    ok(!run("bloodMoonActive()"), "inactive after window");
+    const next = run("S.nextBloodAt"), prev = Date.now() - 2*3600*1000;
+    ok(next > Date.now() && next - prev === 48*3600*1000, "rolled forward exactly one 48h cycle");
+    run("S.nextBloodAt = Date.now() + 3600*1000");
+    ok(!run("bloodMoonActive()"), "inactive before the rise");
+  });
+  check("Coven summon: charges 5 brains, guaranteed brain + 3 bonus on win", () => {
+    const { G, run } = boot();
+    G.S = G.freshState();
+    G.S.brains = 6;
+    G.S.zombies = [{type:"mini",name:"A",pow:5,hp:20,maxhp:20,spd:1,hunger:10,x:1,y:2,tx:1,ty:2,wob:0,mut:[],kills:0}];
+    run("S.nextBloodAt = Date.now() - 1000");
+    run("startBattle(BLOOD_TARGET, [0])");
+    eq(G.S.brains, 1, "5 brains charged on summon");
+    run("endBattle(true)");
+    eq(run("B.brainWon"), true, "brain guaranteed despite 0.95 clamp");
+    eq(G.S.brains, 5, "1 won + 3 reliquary bonus");
+    eq(G.S.stats.covenwin, 1);
+    ok(run("B.goldWon") >= 20000, "coven gold is huge");
+  });
+  check("Coven summon refused when moon is down or brains short", () => {
+    const { G, run } = boot();
+    G.S = G.freshState();
+    G.S.brains = 6;
+    G.S.zombies = [{type:"mini",name:"A",pow:5,hp:20,maxhp:20,spd:1,hunger:10,x:1,y:2,tx:1,ty:2,wob:0,mut:[],kills:0}];
+    run("S.nextBloodAt = Date.now() + 3600*1000"); // moon not up
+    run("startBattle(BLOOD_TARGET, [0])");
+    eq(run("scene"), "farm", "no battle without the moon");
+    eq(G.S.brains, 6, "no brains taken");
+    run("S.nextBloodAt = Date.now() - 1000; S.brains = 4;");
+    run("startBattle(BLOOD_TARGET, [0])");
+    eq(run("scene"), "farm", "4 brains is not 5");
+  });
+  check("fmtTime speaks hours: 300 minutes reads as 5h 0m", () => {
+    const { G } = boot();
+    eq(G.fmtTime(18000), "5h 0m");
+    eq(G.fmtTime(5400), "1h 30m");
+    eq(G.fmtTime(300), "5m 0s");
+    eq(G.fmtTime(45), "45s");
+  });
+  check("goals list floats unfinished goals to the top", () => {
+    const { G, els, run } = boot();
+    G.S = G.freshState();
+    G.S.goalsDone = ["plow4"]; // first goal done
+    const order = run("GOALS.slice().sort((a,b2)=>(S.goalsDone.includes(a.id)?1:0)-(S.goalsDone.includes(b2.id)?1:0)).map(g=>g.id)");
+    eq(order[order.length-1], "plow4", "completed goal sank to the bottom");
+    ok(order.slice(0,-1).every(id=>id!=="plow4"));
+  });
   check("Workshop tiers survive the save cycle; junk is clamped", () => {
     const { G } = boot();
     const raw = G.freshState();
