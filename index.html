@@ -450,7 +450,7 @@ const WHATS_NEW=[
  "&#x2728; <b>Golden crops</b> &mdash; with a Lucky Charm, any harvest can turn GOLDEN and pay 10&times;!",
  "&#x1F4DC; Goals now show what's left to chase on top; finished trophies sink to the bottom."
 ];
-const BUILD = "build 87 · 2026-07-19"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 88 · 2026-07-19"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -1004,6 +1004,7 @@ function fmtDur(s){ // market display: hours & minutes only, never seconds
   if(s>=3600){ const h=Math.floor(s/3600), m=Math.round((s%3600)/60); return h+"h"+(m?" "+m+"m":""); }
   return Math.max(1,Math.round(s/60))+"m";
 }
+function fmtCD(s){ return s>=60 ? Math.ceil(s/60)+"m" : Math.ceil(s)+"s"; }
 function fmtTime(s){
   if(s>=3600) return Math.floor(s/3600)+"h "+Math.round((s%3600)/60)+"m";
   if(s>=60) return Math.floor(s/60)+"m "+Math.ceil(s%60)+"s";
@@ -1351,7 +1352,7 @@ function hud(){
   const cd = INVADE_CD - (now()-S.lastInvade)/1000;
   const btn=$("invadeBtn");
   if(S.zombies.length<INVADE_MIN){ btn.disabled=true; btn.innerHTML="&#x2694;&#xFE0F; Need "+INVADE_MIN+" zombies"; }
-  else if(cd>0){ btn.disabled=true; btn.innerHTML="&#x2694;&#xFE0F; "+fmtTime(cd); }
+  else if(cd>0){ btn.disabled=true; btn.innerHTML="&#x2694;&#xFE0F; "+fmtCD(cd); }
   else if(bloodMoonActive()){ btn.disabled=false; btn.innerHTML="&#x1F311; BLOOD MOON!"; btn.style.animation="pulseBtn 1.1s infinite"; }
   else { btn.disabled=false; btn.innerHTML="&#x2694;&#xFE0F; INVADE!"; btn.style.animation=""; }
 }
@@ -4477,7 +4478,7 @@ $("invadeBtn").onclick=()=>{
   // a DOM attribute refreshed on a 1s timer to enforce a game rule
   if(S.zombies.length<INVADE_MIN){ toast("You need "+INVADE_MIN+" zombies to invade!"); sfx.bad(); return; }
   const cdLeft=INVADE_CD-(now()-S.lastInvade)/1000;
-  if(cdLeft>0){ toast("Your horde is resting. Ready in "+fmtTime(cdLeft)+"."); sfx.bad(); return; }
+  if(cdLeft>0){ toast("Your horde is resting. Ready in "+fmtCD(cdLeft)+"."); sfx.bad(); return; }
   openModal("&#x2694;&#xFE0F; Choose your victim");
   $("mTabs").innerHTML="";
   const b=$("mBody"); b.innerHTML="";
