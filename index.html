@@ -450,7 +450,7 @@ const WHATS_NEW=[
  "&#x2728; <b>Golden crops</b> &mdash; with a Lucky Charm, any harvest can turn GOLDEN and pay 10&times;!",
  "&#x1F4DC; Goals now show what's left to chase on top; finished trophies sink to the bottom."
 ];
-const BUILD = "build 88 · 2026-07-19"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 89 · 2026-07-20"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -496,7 +496,24 @@ function releaseZombie(ix){
   S.zombies.splice(ix,1);
   save(); hud(); return true;
 }
-function save(){ try{ localStorage.setItem("zfr_save", JSON.stringify(S)); }catch(e){} }
+let SAVE_WARNED=false;
+function save(){
+  // a save that silently fails is worse than no save at all — verify the
+  // write actually landed, and if the browser is refusing (private window,
+  // blocked site data, full disk) SAY SO, loudly, once.
+  try{
+    const d=JSON.stringify(S);
+    localStorage.setItem("zfr_save", d);
+    if(localStorage.getItem("zfr_save")!==d) throw new Error("write did not stick");
+    SAVE_WARNED=false;
+  }catch(e){
+    if(!SAVE_WARNED){
+      SAVE_WARNED=true;
+      toast("&#x26A0;&#xFE0F; <b>SAVING IS FAILING!</b> This browser is refusing to store your farm &mdash; progress will be LOST on refresh. Are you in a private/incognito window, or blocking site data?",9000);
+      try{ sfx.bad(); }catch(_e){}
+    }
+  }
+}
 function load(){ try{ const d = localStorage.getItem("zfr_save"); if(d) return JSON.parse(d); }catch(e){} return null; }
 // Safety net: called before anything overwrites/deletes the save (import,
 // New Farm, Reset). The previous farm is kept in zfr_save_backup and can be
@@ -5773,6 +5790,13 @@ function startGame(existing){
     },1200);
   }
   S.seenBuild=BUILD; save();
+  try{
+    localStorage.setItem("zfr_probe","ok");
+    if(localStorage.getItem("zfr_probe")!=="ok") throw new Error("probe");
+    localStorage.removeItem("zfr_probe");
+  }catch(e){
+    setTimeout(()=>toast("&#x26A0;&#xFE0F; <b>This browser can't save your farm!</b> Private/incognito windows and blocked site data wipe progress on refresh. Use a normal window (or play on your phone).",9000),2500);
+  }
   $("splash").style.display="none";
   $("hud").style.display="flex"; $("leftBar").style.display="flex"; $("rightBar").style.display="flex";
   hud();
