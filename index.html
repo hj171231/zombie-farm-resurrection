@@ -263,21 +263,22 @@ function specialFor(type,muts){
 }
 
 // ---- THE WORKSHOP: permanent upgrades, the great gold sink ----
-const UP_COST=[10000,25000,125000,300000,1000000];
+const UP_COST=[25000,75000,250000,750000,2500000];
 const UPGRADES=[
- {id:"fertile",  name:"Fertile Soil",       icon:"\u{1F33E}", max:5, lvl:[2,6,11,17,23],  what:t=>"+"+(5*t)+"% crop sell value"},
- {id:"green",    name:"Green Thumb",        icon:"\u{1F331}", max:5, lvl:[3,7,12,18,24],  what:t=>"crops grow "+(4*t)+"% faster"},
- {id:"necrotic", name:"Necrotic Fertilizer",icon:"\u{1F9EA}", max:5, lvl:[4,8,13,19,25],  what:t=>"+"+(8*t)+"% mutation chance"},
- {id:"graves",   name:"Deeper Graves",      icon:"\u26B0\uFE0F", max:5, lvl:[3,6,10,15,21], what:t=>"horde capacity "+(15+3*t)},
- {id:"drums",    name:"War Drums",          icon:"\u{1F941}", max:3, lvl:[5,12,20],       what:t=>"squad size "+(4+t)},
- {id:"brainmag", name:"Brain Magnet",       icon:"\u{1F9F2}", max:3, lvl:[8,15,22],       what:t=>"+"+(5*t)+"% brain drop chance"},
- {id:"lucky",    name:"Lucky Charm",        icon:"\u{1F340}", max:5, lvl:[4,9,14,19,24],  what:t=>(t)+"% chance of a GOLDEN crop (10x)"},
- {id:"scarecrow",name:"Scarecrow Sentry",   icon:"\u{1F383}", max:3, lvl:[3,9,16],        what:t=>"crops wither "+(25*t)+"% slower"}
+ {id:"fertile",  name:"Fertile Soil",       icon:"\u{1F33E}", max:5, lvl:[4,9,14,20,26],  what:t=>"+"+(5*t)+"% crop sell value"},
+ {id:"green",    name:"Green Thumb",        icon:"\u{1F331}", max:5, lvl:[5,10,15,21,27], what:t=>"crops grow "+(4*t)+"% faster"},
+ {id:"necrotic", name:"Necrotic Fertilizer",icon:"\u{1F9EA}", max:5, lvl:[6,11,16,22,28], what:t=>"+"+(8*t)+"% mutation chance"},
+ {id:"graves",   name:"Deeper Graves",      icon:"\u26B0\uFE0F", max:5, lvl:[5,9,14,19,24], what:t=>"horde capacity "+(15+t)},
+ {id:"drums",    name:"War Drums",          icon:"\u{1F941}", max:4, lvl:[7,13,19,25],    what:t=>t<=2?("squad size "+(4+t)):("reinforcements every "+(5-(t-2))+"s (was "+(5-(t-3))+"s)")},
+ {id:"brainmag", name:"Brain Magnet",       icon:"\u{1F9F2}", max:3, lvl:[10,17,24],      what:t=>"+"+(5*t)+"% brain drop chance"},
+ {id:"lucky",    name:"Lucky Charm",        icon:"\u{1F340}", max:5, lvl:[6,12,18,24,29], what:t=>(t)+"% chance of a GOLDEN crop (10x)"},
+ {id:"scarecrow",name:"Scarecrow Sentry",   icon:"\u{1F383}", max:3, lvl:[5,12,19],       what:t=>"crops wither "+(25*t)+"% slower"}
 ];
 function upTier(id){ return (S&&S.up&&S.up[id])|0; }
 function upCost(u){ return UP_COST[upTier(u.id)]; }
-function hordeCap(){ return 15+3*upTier("graves"); }
-function squadMax(){ return 4+upTier("drums"); }
+function hordeCap(){ return 15+upTier("graves"); }
+function squadMax(){ return 4+Math.min(2,upTier("drums")); }
+function sendCooldown(){ return 5-Math.max(0,upTier("drums")-2); } // drums tiers 3-4 speed reinforcements
 function openWorkshop(){
   openModal("\u{1F9F0} The Workshop");
   $("mTabs").innerHTML="";
@@ -450,7 +451,7 @@ const WHATS_NEW=[
  "&#x2728; <b>Golden crops</b> &mdash; with a Lucky Charm, any harvest can turn GOLDEN and pay 10&times;!",
  "&#x1F4DC; Goals now show what's left to chase on top; finished trophies sink to the bottom."
 ];
-const BUILD = "build 90 · 2026-07-20"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 91 · 2026-07-21"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -1056,7 +1057,7 @@ function harvest(i){
     let cxp=g.def.xp;
     if(S.level-g.def.unlock>8){ // long-mastered crops teach little
       cxp=Math.max(1,Math.round(cxp*0.25));
-      if(Math.random()<0.12) addFloat(px,py-18,"You've mastered "+g.def.name.toLowerCase()+"s","#cbb488");
+      if(Math.random()<0.12) addFloat(px,py-18,"Mastered crop: full gold, less XP \u2014 plant newer crops to level!","#cbb488");
     }
     gold(val); gainXP(cxp); S.stats.crops++;
     if(t.plant==="wormapple") S.stats.apples++;
@@ -4648,7 +4649,7 @@ function sendZombie(k){
   if(z.charged){ z.charged=false; addFloat(W*0.2,H*0.5,"\u26A1 SUPERCHARGED!","#ffe97a"); } // one battle, then it's spent
   z.lastBattleAt=now(); B.sent.add(z); B.actives.push(a); sfx.zomb(); // fed by the fight itself
   B.sendCount++;
-  if(B.sendCount>=FREE_SENDS) B.nextSendAt=B.t+SEND_COOLDOWN;
+  if(B.sendCount>=FREE_SENDS) B.nextSendAt=B.t+sendCooldown();
   return true;
 }
 function removeActive(a){ B.actives=B.actives.filter(x=>x!==a); }
