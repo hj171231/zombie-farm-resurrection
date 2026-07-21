@@ -450,7 +450,7 @@ const WHATS_NEW=[
  "&#x2728; <b>Golden crops</b> &mdash; with a Lucky Charm, any harvest can turn GOLDEN and pay 10&times;!",
  "&#x1F4DC; Goals now show what's left to chase on top; finished trophies sink to the bottom."
 ];
-const BUILD = "build 89 · 2026-07-20"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 90 · 2026-07-20"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -496,14 +496,31 @@ function releaseZombie(ix){
   S.zombies.splice(ix,1);
   save(); hud(); return true;
 }
+// ---- one farm, one tab: if another tab starts saving, this one bows out ----
+// (an abandoned tab autosaving stale state every 5s silently erases all
+// progress made anywhere else — the Groundhog Day bug)
+const TAB_ID=Math.random().toString(36).slice(2)+Date.now().toString(36);
+let TAB_DEAD=false;
+window.addEventListener("storage",e=>{
+  if(e && e.key==="zfr_owner" && e.newValue && e.newValue!==TAB_ID && !TAB_DEAD){
+    TAB_DEAD=true;
+    try{
+      openModal("&#x1F6D1; Farm opened in another tab");
+      $("mTabs").innerHTML="";
+      $("mBody").innerHTML="<div style='font-size:15px;line-height:1.6;padding:12px;text-align:center'>Your farm just woke up in <b>another tab or window</b>.<br><br>To protect your progress, <b>this tab has stopped saving</b>.<br><br>Close this tab and keep playing in the new one.</div>";
+    }catch(_e){}
+  }
+});
 let SAVE_WARNED=false;
 function save(){
+  if(TAB_DEAD) return; // a fresher tab owns the farm now
   // a save that silently fails is worse than no save at all — verify the
   // write actually landed, and if the browser is refusing (private window,
   // blocked site data, full disk) SAY SO, loudly, once.
   try{
     const d=JSON.stringify(S);
     localStorage.setItem("zfr_save", d);
+    localStorage.setItem("zfr_owner", TAB_ID);
     if(localStorage.getItem("zfr_save")!==d) throw new Error("write did not stick");
     SAVE_WARNED=false;
   }catch(e){
