@@ -263,16 +263,16 @@ function specialFor(type,muts){
 }
 
 // ---- THE WORKSHOP: permanent upgrades, the great gold sink ----
-const UP_COST=[25000,75000,250000,750000,2500000];
+const UP_COST=[40000,120000,400000,1200000,4000000];
 const UPGRADES=[
- {id:"fertile",  name:"Fertile Soil",       icon:"\u{1F33E}", max:5, lvl:[4,9,14,20,26],  what:t=>"+"+(5*t)+"% crop sell value"},
- {id:"green",    name:"Green Thumb",        icon:"\u{1F331}", max:5, lvl:[5,10,15,21,27], what:t=>"crops grow "+(4*t)+"% faster"},
- {id:"necrotic", name:"Necrotic Fertilizer",icon:"\u{1F9EA}", max:5, lvl:[6,11,16,22,28], what:t=>"+"+(8*t)+"% mutation chance"},
- {id:"graves",   name:"Deeper Graves",      icon:"\u26B0\uFE0F", max:5, lvl:[5,9,14,19,24], what:t=>"horde capacity "+(15+t)},
- {id:"drums",    name:"War Drums",          icon:"\u{1F941}", max:4, lvl:[7,13,19,25],    what:t=>t<=2?("squad size "+(4+t)):("reinforcements every "+(5-(t-2))+"s (was "+(5-(t-3))+"s)")},
- {id:"brainmag", name:"Brain Magnet",       icon:"\u{1F9F2}", max:3, lvl:[10,17,24],      what:t=>"+"+(5*t)+"% brain drop chance"},
- {id:"lucky",    name:"Lucky Charm",        icon:"\u{1F340}", max:5, lvl:[6,12,18,24,29], what:t=>(t)+"% chance of a GOLDEN crop (10x)"},
- {id:"scarecrow",name:"Scarecrow Sentry",   icon:"\u{1F383}", max:3, lvl:[5,12,19],       what:t=>"crops wither "+(25*t)+"% slower"}
+ {id:"fertile",  name:"Fertile Soil",       icon:"\u{1F33E}", max:5, lvl:[6,11,16,22,27],  what:t=>"+"+(5*t)+"% crop sell value"},
+ {id:"green",    name:"Green Thumb",        icon:"\u{1F331}", max:5, lvl:[7,12,17,22,28], what:t=>"crops grow "+(4*t)+"% faster"},
+ {id:"necrotic", name:"Necrotic Fertilizer",icon:"\u{1F9EA}", max:5, lvl:[8,13,18,23,28], what:t=>"+"+(8*t)+"% mutation chance"},
+ {id:"graves",   name:"Deeper Graves",      icon:"\u26B0\uFE0F", max:5, lvl:[7,11,16,21,25], what:t=>"horde capacity "+(15+t)},
+ {id:"drums",    name:"War Drums",          icon:"\u{1F941}", max:4, lvl:[9,15,21,26],    what:t=>t<=2?("squad size "+(4+t)):("reinforcements every "+(5-(t-2))+"s (was "+(5-(t-3))+"s)")},
+ {id:"brainmag", name:"Brain Magnet",       icon:"\u{1F9F2}", max:3, lvl:[12,19,26],      what:t=>"+"+(5*t)+"% brain drop chance"},
+ {id:"lucky",    name:"Lucky Charm",        icon:"\u{1F340}", max:5, lvl:[8,14,20,25,29], what:t=>(t)+"% chance of a GOLDEN crop (10x)"},
+ {id:"scarecrow",name:"Scarecrow Sentry",   icon:"\u{1F383}", max:3, lvl:[7,14,21],       what:t=>"crops wither "+(25*t)+"% slower"}
 ];
 function upTier(id){ return (S&&S.up&&S.up[id])|0; }
 function upCost(u){ return UP_COST[upTier(u.id)]; }
@@ -451,7 +451,7 @@ const WHATS_NEW=[
  "&#x2728; <b>Golden crops</b> &mdash; with a Lucky Charm, any harvest can turn GOLDEN and pay 10&times;!",
  "&#x1F4DC; Goals now show what's left to chase on top; finished trophies sink to the bottom."
 ];
-const BUILD = "build 91 · 2026-07-21"; // rewritten by scripts/deploy.sh at each publish
+const BUILD = "build 92 · 2026-07-23"; // rewritten by scripts/deploy.sh at each publish
 // ---- OFFICIAL MASTER PALETTE (Art Bible Wave 1 style guide, v1.0) ----
 const PAL={
   grassDay:"#82C95B", grassShade:"#5FA43F", grassNight:"#4A7A63",
@@ -465,7 +465,7 @@ const PAL={
 const GRID = 7;
 const MAX_Z = 15; // base; Deeper Graves raises via hordeCap(); legacy hordes up to 20 grandfathered
 const INVADE_MIN = 5;
-const INVADE_CD = 1800; // half an hour: raids are events, not slot machines
+const INVADE_CD = 3600; // one full hour: raids are EVENTS — and they pay like it
 const PLOW_COST = 10;
 const DAY_LEN = 240;
 const WILT_AFTER = 8*3600; // seconds a ripe crop survives unpicked
@@ -4794,7 +4794,7 @@ function endBattle(won){
   const target=B.target;
   if(won){
     B.goldWon=Math.round(ri(target.gold[0],target.gold[1])*0.5); // raiding pays half in gold now...
-    B.xpWon=25+target.id*40; // tiered, tuned to ~15-20% of an engaged day's XP
+    B.xpWon=60+target.id*90; // hourly raids earn hero XP: 60 at the farm, 690 at the Lunar Lab
     B.brainWon=!!target.blood || Math.random()<Math.min(0.95,target.brain+0.05*upTier("brainmag")); // Brain Magnet; the Coven always pays
     S.stats.wins++; sfx.win();
     gold(B.goldWon);

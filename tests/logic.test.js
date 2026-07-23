@@ -1119,7 +1119,7 @@ console.log("\n== new goals & the mystery ==");
     ok(G.S.goalsDone.includes("rename1"));
   });
   check("invade cooldown is 30 minutes — raids are events", () => {
-    eq(G.INVADE_CD, 1800);
+    eq(G.INVADE_CD, 3600);
   });
   check("defender aim rotates between targets", () => {
     G.S.zombies = [];
@@ -1684,7 +1684,7 @@ console.log("\n== battle rewards & lightning charge ==");
     G.B.hp = 0; G.updateBattle(0.01);
     const tg=G.TARGETS[0];
     ok(G.B.goldWon >= Math.round(tg.gold[0]*0.5) && G.B.goldWon <= Math.round(tg.gold[1]*0.5), "gold halved: "+G.B.goldWon);
-    eq(G.B.xpWon, 25, "tiered xp: 25 + tier*40 (target 0)");
+    eq(G.B.xpWon, 60, "tiered xp: 60 + tier*90 (target 0)");
     ok(G.S.xp>xp0 || G.S.level>lvl0, "xp actually granted");
   });
   check("a lightning charge doubles power for ONE battle, then it's spent", () => {
